@@ -1,0 +1,33 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.3.14/schema.json",
+	"files": {
+		"includes": [
+			"src/**",
+			"index.html",
+			"vite.config.ts",
+			"tsconfig*.json",
+			"package.json",
+			"README.md",
+			"docs/**",
+			"!!**/node_modules",
+			"!!**/dist",
+			"!!**/coverage"
+		]
+	},
+	"formatter": {
+		"enabled": true
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true
+		}
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "single",
+			"semicolons": "asNeeded",
+			"trailingCommas": "all"
+		}
+	}
+}

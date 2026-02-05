@@ -1,3 +1,1 @@
-export class StringSession {
-  constructor(_value?: string) {}
-}
+export class StringSession {}

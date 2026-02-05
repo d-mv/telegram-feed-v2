@@ -1,17 +1,18 @@
 export type SendCodeResult = {
-  ok: true
+	ok: true
 }
 
 export type SubmitCodeResult = {
   status: 'needs_2fa' | 'logged_in'
+  hint?: string
 }
 
 export type SubmitPasswordResult = {
-  status: 'logged_in'
+	status: 'logged_in'
 }
 
 export type AuthClient = {
-  sendCode: (phone: string) => Promise<SendCodeResult>
-  submitCode: (code: string) => Promise<SubmitCodeResult>
-  submitPassword: (password: string) => Promise<SubmitPasswordResult>
+	sendCode: (phone: string) => Promise<SendCodeResult>
+	submitCode: (code: string) => Promise<SubmitCodeResult>
+	submitPassword: (password: string) => Promise<SubmitPasswordResult>
 }

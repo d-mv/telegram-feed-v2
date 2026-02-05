@@ -1,90 +1,139 @@
-import { TelegramClient } from 'telegram'
+import { Api, TelegramClient } from 'telegram'
 import { StringSession } from 'telegram/sessions'
+import { computeCheck } from 'telegram/Password'
 import type { AuthClient } from '../model/authTypes'
 
 type TelegramAuthConfig = {
-  apiId: number
-  apiHash: string
-  session?: string
+	apiId: number
+	apiHash: string
+	session?: string
+	logger?: Pick<Console, 'info' | 'warn' | 'error'>
 }
 
 export function createTelegramAuth(config: TelegramAuthConfig): AuthClient {
-  const session = new StringSession(config.session ?? '')
-  const client = new TelegramClient(session, config.apiId, config.apiHash, {
-    connectionRetries: 5,
-  })
+	const logger = config.logger ?? console
+	const session = new StringSession(config.session ?? '')
+	const client = new TelegramClient(session, config.apiId, config.apiHash, {
+		connectionRetries: 5,
+	})
 
-  let started = false
-  let resolvePhone: ((value: string) => void) | undefined
-  let resolveCode: ((value: string) => void) | undefined
-  let resolvePassword: ((value: string) => void) | undefined
-  let resolvePasswordRequested: (() => void) | undefined
-  let resolveLoggedIn: (() => void) | undefined
-  let rejectLoggedIn: ((error: unknown) => void) | undefined
+	let connected = false
+	let phoneNumber = ''
+	let phoneCodeHash = ''
+	let passwordHint = ''
 
-  const phonePromise = new Promise<string>((resolve) => {
-    resolvePhone = resolve
-  })
-  const codePromise = new Promise<string>((resolve) => {
-    resolveCode = resolve
-  })
-  const passwordPromise = new Promise<string>((resolve) => {
-    resolvePassword = resolve
-  })
-  const passwordRequested = new Promise<void>((resolve) => {
-    resolvePasswordRequested = resolve
-  })
-  const loggedIn = new Promise<void>((resolve, reject) => {
-    resolveLoggedIn = resolve
-    rejectLoggedIn = reject
-  })
+	function getLogoutToken() {
+		return 'telegram-feed'
+	}
 
-  function ensureStart() {
-    if (started) {
-      return
-    }
-    started = true
+	async function ensureConnected() {
+		if (connected) {
+			return
+		}
+		logger.info('[TelegramAuth] connecting client')
+		await client.connect()
+		connected = true
+	}
 
-    client
-      .start({
-        phoneNumber: async () => phonePromise,
-        phoneCode: async () => codePromise,
-        password: async () => {
-          resolvePasswordRequested?.()
-          return passwordPromise
-        },
-        onError: (error) => {
-          rejectLoggedIn?.(error)
-        },
-      })
-      .then(() => {
-        resolveLoggedIn?.()
-      })
-      .catch((error) => {
-        rejectLoggedIn?.(error)
-      })
-  }
-
-  return {
-    async sendCode(phone: string) {
-      ensureStart()
-      resolvePhone?.(phone)
-      return { ok: true }
-    },
-    async submitCode(code: string) {
-      ensureStart()
-      resolveCode?.(code)
-      const status = await Promise.race([
-        loggedIn.then(() => 'logged_in' as const),
-        passwordRequested.then(() => 'needs_2fa' as const),
-      ])
-      return { status }
-    },
-    async submitPassword(password: string) {
-      ensureStart()
-      resolvePassword?.(password)
-      await loggedIn
-      return { status: 'logged_in' }
-    },
-  }
+	return {
+		async sendCode(phone: string) {
+			await ensureConnected()
+			logger.info('[TelegramAuth] sending code')
+			phoneNumber = phone
+			try {
+				const result = await client.invoke(
+					new Api.auth.SendCode({
+						phoneNumber,
+						apiId: config.apiId,
+						apiHash: config.apiHash,
+						settings: new Api.CodeSettings({
+							currentNumber: true,
+							allowAppHash: true,
+							allowMissedCall: true,
+							logoutTokens: [getLogoutToken()],
+						}),
+					}),
+				)
+				phoneCodeHash = result.phoneCodeHash
+				logger.info('[TelegramAuth] sent code type', result.type?.className)
+				if (result.nextType) {
+					logger.info(
+						'[TelegramAuth] next code type',
+						result.nextType.className,
+					)
+				}
+				return { ok: true }
+			} catch (error) {
+				logger.error('[TelegramAuth] send code failed', error)
+				const message =
+					typeof error === 'object' && error && 'errorMessage' in error
+						? String((error as { errorMessage?: string }).errorMessage)
+						: error instanceof Error
+							? error.message
+							: 'Failed to send code'
+				throw new Error(message)
+			}
+		},
+		async submitCode(code: string) {
+			await ensureConnected()
+			logger.info('[TelegramAuth] submitting code')
+			if (!phoneNumber || !phoneCodeHash) {
+				throw new Error('Missing phone code hash. Send code first.')
+			}
+			try {
+				await client.invoke(
+					new Api.auth.SignIn({
+						phoneNumber,
+						phoneCodeHash,
+						phoneCode: code,
+					}),
+				)
+				logger.info('[TelegramAuth] logged in')
+				return { status: 'logged_in' }
+			} catch (error) {
+				const errorMessage =
+					typeof error === 'object' && error && 'errorMessage' in error
+						? String((error as { errorMessage?: string }).errorMessage)
+						: ''
+				if (errorMessage.toUpperCase() === 'SESSION_PASSWORD_NEEDED') {
+					logger.info('[TelegramAuth] 2fa required')
+					try {
+						const pwd = await client.invoke(new Api.account.GetPassword())
+						passwordHint = typeof pwd.hint === 'string' ? pwd.hint : ''
+						if (passwordHint) {
+							logger.info('[TelegramAuth] 2fa hint received')
+						}
+					} catch (hintError) {
+						logger.error('[TelegramAuth] failed to fetch 2fa hint', hintError)
+					}
+					return { status: 'needs_2fa', hint: passwordHint }
+				}
+				logger.error('[TelegramAuth] submit code failed', error)
+				const message =
+					errorMessage ||
+					(error instanceof Error ? error.message : 'Failed to submit code')
+				throw new Error(message)
+			}
+		},
+		async submitPassword(password: string) {
+			await ensureConnected()
+			logger.info('[TelegramAuth] submitting password')
+			try {
+				const pwd = await client.invoke(new Api.account.GetPassword())
+				const check = await computeCheck(pwd, password)
+				await client.invoke(new Api.auth.CheckPassword({ password: check }))
+				logger.info('[TelegramAuth] logged in')
+				return { status: 'logged_in' }
+			} catch (error) {
+				logger.error('[TelegramAuth] submit password failed', error)
+				const message =
+					typeof error === 'object' && error && 'errorMessage' in error
+						? String((error as { errorMessage?: string }).errorMessage)
+						: error instanceof Error
+							? error.message
+							: 'Failed to submit password'
+				throw new Error(message)
+			}
+		},
+	}
 }
