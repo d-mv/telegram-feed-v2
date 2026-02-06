@@ -131,14 +131,17 @@ export function FeedCardMedia({ item }: Props) {
 			return (
 				<video
 					src={previewUrl}
+					controls
 					autoPlay={false}
-					loop
 					muted
 					playsInline
 					style={{
 						objectFit: 'contain',
 						width: '100%',
 						height: '100%',
+					}}
+					onClick={(event) => {
+						event.stopPropagation()
 					}}
 				/>
 			)
