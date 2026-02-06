@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { AuthClient, QrLoginResult, QrLoginToken } from '../model/authTypes'
 import { createMockAuth } from '../model/mockAuth'
+import styles from './LoginView.module.css'
+import { LoginToggle } from './LoginToggle'
+import { PhoneLoginFields } from './PhoneLoginFields'
+import { QrLoginPanel } from './QrLoginPanel'
+import { TwoFactorForm } from './TwoFactorForm'
 
 type LoginMode = 'phone' | 'qr'
 
@@ -170,185 +175,66 @@ export function LoginView({ auth, onAuthenticated }: LoginViewProps) {
 		}
 	}
 
-	function getToggleClass(mode: LoginMode) {
-		let className = 'button'
-		if (loginMode === mode) {
-			className += ' button-primary'
-		} else {
-			className += ' button-ghost'
-		}
-		return className
-	}
-
-	function renderPhoneFields() {
-		return (
-			<>
-				<div className="login-field">
-					<label htmlFor="login-phone">Phone</label>
-					<input
-						id="login-phone"
-						name="phone"
-						type="tel"
-						placeholder="+1 202 555 0118"
-						value={phone}
-						onChange={(event) => setPhone(event.target.value)}
-					/>
-				</div>
-				<button
-					className="button button-primary"
-					type="button"
-					onClick={handleSendCode}
-					disabled={phone.trim() === '' || isSending}
-				>
-					{isSending ? 'Sending...' : 'Send code'}
-				</button>
-				{codeSent && (
-					<>
-						<div className="login-field">
-							<label htmlFor="login-code">Code</label>
-							<input
-								id="login-code"
-								name="code"
-								type="text"
-								inputMode="numeric"
-								placeholder="12345"
-								value={code}
-								onChange={(event) => setCode(event.target.value)}
-							/>
-						</div>
-						<div className="login-actions">
-							<button
-								className="button"
-								type="button"
-								onClick={handleSubmitCode}
-								disabled={isSubmittingCode || code.trim() === ''}
-							>
-								{isSubmittingCode ? 'Submitting...' : 'Submit code'}
-							</button>
-							<button
-								className="button button-ghost"
-								type="button"
-								onClick={resetFlow}
-							>
-								Reset
-							</button>
-						</div>
-					</>
-				)}
-			</>
-		)
-	}
-
-	function renderQrFields() {
-		const expiresAt = qrToken ? qrToken.expires * 1000 : null
-		const isExpired = expiresAt ? Date.now() > expiresAt : false
-
-		return (
-			<div className="login-qr">
-				{qrStatus === 'loading' && <p>Preparing QR code...</p>}
-				{qrToken && (
-					<>
-						<div className="login-qr-image">
-							<img src={qrToken.qrImageUrl} alt="Telegram QR login" />
-						</div>
-						<div className="login-qr-meta">
-							<p>
-								Scan with Telegram mobile. Keep the app open while it logs
-								in.
-							</p>
-							{isExpired && <p className="login-hint">QR expired. Refresh.</p>}
-						</div>
-					</>
-				)}
-			<div className="login-actions">
-				<button
-					className="button"
-					type="button"
-					onClick={handleRefreshQr}
-					disabled={qrStatus === 'loading'}
-				>
-					Refresh QR
-				</button>
-					<button
-						className="button button-ghost"
-						type="button"
-						onClick={resetFlow}
-					>
-						Reset
-					</button>
-				</div>
-				{qrError !== '' && <p className="login-error">{qrError}</p>}
-			</div>
-		)
-	}
+	const expiresAt = qrToken ? qrToken.expires * 1000 : null
+	const isQrExpired = Boolean(expiresAt && Date.now() > expiresAt)
 
 	return (
-		<div className="login-shell">
-			<div className="login-card">
-				<header className="login-header">
-					<p className="login-eyebrow">Telegram Feed</p>
-					<h1>Sign in to keep the river moving.</h1>
-					<p className="login-subtitle">
+		<div className={styles.loginShell}>
+			<div className={styles.loginCard}>
+				<header className={styles.loginHeader}>
+					<p className={styles.loginEyebrow}>Telegram Feed</p>
+					<h1 className={styles.loginTitle}>Sign in to keep the river moving.</h1>
+					<p className={styles.loginSubtitle}>
 						Phone or QR login. We never auto-load media or autoplay video.
 					</p>
 				</header>
-				<form className="login-form" onSubmit={(event) => event.preventDefault()}>
-					<div className="login-toggle">
-						<button
-							className={getToggleClass('phone')}
-							type="button"
-							onClick={() => handleModeChange('phone')}
-						>
-							Phone
-						</button>
-						<button
-							className={getToggleClass('qr')}
-							type="button"
-							onClick={() => handleModeChange('qr')}
-						>
-							QR Code
-						</button>
-					</div>
-					{loginMode === 'phone' && renderPhoneFields()}
-					{loginMode === 'qr' && renderQrFields()}
-					{needsTwoFactor && (
-						<>
-							<div className="login-field">
-								<label htmlFor="login-password">Password</label>
-								<input
-									id="login-password"
-									name="password"
-									type="password"
-									placeholder="2FA password"
-									value={password}
-									onChange={(event) => setPassword(event.target.value)}
-								/>
-								{passwordHint !== '' && (
-									<p className="login-hint">Hint: {passwordHint}</p>
-								)}
-							</div>
-							<button
-								className="button"
-								type="button"
-								onClick={handleSubmitPassword}
-								disabled={isSubmittingPassword || password.trim() === ''}
-							>
-								{isSubmittingPassword ? 'Submitting...' : 'Submit password'}
-							</button>
-						</>
+				<form className={styles.loginForm} onSubmit={(event) => event.preventDefault()}>
+					<LoginToggle mode={loginMode} onChange={handleModeChange} />
+					{loginMode === 'phone' && (
+						<PhoneLoginFields
+							phone={phone}
+							code={code}
+							codeSent={codeSent}
+							isSending={isSending}
+							isSubmittingCode={isSubmittingCode}
+							onPhoneChange={setPhone}
+							onCodeChange={setCode}
+							onSendCode={handleSendCode}
+							onSubmitCode={handleSubmitCode}
+							onReset={resetFlow}
+						/>
 					)}
-					{error !== '' && <p className="login-error">{error}</p>}
+					{loginMode === 'qr' && (
+						<QrLoginPanel
+							status={qrStatus}
+							token={qrToken}
+							error={qrError}
+							isExpired={isQrExpired}
+							onRefresh={handleRefreshQr}
+							onReset={resetFlow}
+						/>
+					)}
+					{needsTwoFactor && (
+						<TwoFactorForm
+							password={password}
+							hint={passwordHint}
+							isSubmitting={isSubmittingPassword}
+							onPasswordChange={setPassword}
+							onSubmit={handleSubmitPassword}
+						/>
+					)}
+					{error !== '' && <p className={styles.loginError}>{error}</p>}
 				</form>
 			</div>
-			<div className="login-panel">
+			<div className={styles.loginPanel}>
 				<div>
-					<h2>One feed, every channel.</h2>
-					<p>
+					<h2 className={styles.loginPanelTitle}>One feed, every channel.</h2>
+					<p className={styles.loginPanelText}>
 						The login is the only gate. Once you are in, the feed stays fast,
 						chronological, and intentionally quiet.
 					</p>
 				</div>
-				<div className="login-panel-footer">
+				<div className={styles.loginPanelFooter}>
 					<span>Client-side only</span>
 					<span>System theme</span>
 					<span>Greyscale media</span>

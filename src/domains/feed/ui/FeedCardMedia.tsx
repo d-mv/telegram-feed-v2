@@ -4,6 +4,7 @@ import {
 	downloadThumbnailForItem,
 } from '../infra/telegramFeed'
 import type { FeedItem } from '../model/mockFeed'
+import styles from './FeedCardMedia.module.css'
 
 type Props = {
 	item: FeedItem
@@ -105,6 +106,7 @@ export function FeedCardMedia({ item }: Props) {
 					src={previewUrl}
 					alt={media.alt}
 					loading="lazy"
+					className={styles.mediaImage}
 					onLoad={() => {
 						if (media.meta.type === 'video') {
 							console.log('[VideoPreview] img loaded', {
@@ -135,11 +137,7 @@ export function FeedCardMedia({ item }: Props) {
 					autoPlay={false}
 					muted
 					playsInline
-					style={{
-						objectFit: 'contain',
-						width: '100%',
-						height: '100%',
-					}}
+					className={styles.mediaVideo}
 					onClick={(event) => {
 						event.stopPropagation()
 					}}
@@ -147,26 +145,23 @@ export function FeedCardMedia({ item }: Props) {
 			)
 
 		return (
-			<div className="feed-card-media-placeholder">
+			<div className={styles.mediaPlaceholder}>
 				<span>Media preview</span>
 			</div>
 		)
 	}
 	return (
 		<div
-			className="feed-card-media"
+			className={styles.feedCardMedia}
 			aria-hidden="true"
 			data-media-type={media.meta.type}
 			style={{ aspectRatio: ratio }}
 		>
 			{renderMedia()}
-			{/* {media.meta.type === 'video' && (
-				<span className="feed-card-media-pill">Video preview</span>
-			)} */}
 			{(shouldOfferFullDownload || downloadError) && (
 				<button
 					type="button"
-					className="feed-card-download"
+					className={styles.mediaDownload}
 					onClick={(event) => {
 						event.stopPropagation()
 						handleDownload()
@@ -177,7 +172,7 @@ export function FeedCardMedia({ item }: Props) {
 				</button>
 			)}
 			{downloadError && (
-				<span className="feed-card-download-error">{downloadError}</span>
+				<span className={styles.mediaDownloadError}>{downloadError}</span>
 			)}
 		</div>
 	)

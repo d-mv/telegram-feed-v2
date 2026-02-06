@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 import type { FeedItem } from '../model/mockFeed'
+import { Button } from '../../../ui/Button'
+import styles from './ChatOverlay.module.css'
 
 type ChatOverlayProps = {
 	item: FeedItem
@@ -21,41 +23,42 @@ export function ChatOverlay({ item, onClose }: ChatOverlayProps) {
 	}, [onClose])
 
 	return (
-		<div className="chat-overlay" role="dialog" aria-modal="true">
-			<button className="chat-overlay-backdrop" type="button" onClick={onClose}>
-				<span className="sr-only">Close</span>
+		<div className={styles.overlay} role="dialog" aria-modal="true">
+			<button className={styles.backdrop} type="button" onClick={onClose}>
+				<span className={styles.srOnly}>Close</span>
 			</button>
-			<section className="chat-overlay-panel">
-				<header className="chat-overlay-header">
+			<section className={styles.panel}>
+				<header className={styles.header}>
 					<div>
-						<p className="chat-overlay-eyebrow">Chat</p>
-						<h2>{title}</h2>
+						<p className={styles.eyebrow}>Chat</p>
+						<h2 className={styles.title}>{title}</h2>
 					</div>
-					<button className="button button-ghost" type="button" onClick={onClose}>
+					<Button variant="ghost" type="button" onClick={onClose}>
 						Close
-					</button>
+					</Button>
 				</header>
-				<div className="chat-overlay-body">
-					<div className="chat-message">
-						<span className="chat-message-author">
+				<div className={styles.body}>
+					<div className={styles.message}>
+						<span className={styles.messageAuthor}>
 							{item.type === 'dm' ? item.senderName : item.chatName}
 						</span>
 						<p>{item.text}</p>
 					</div>
-					<div className="chat-message chat-message-muted">
-						<span className="chat-message-author">System</span>
+					<div className={`${styles.message} ${styles.messageMuted}`}>
+						<span className={styles.messageAuthor}>System</span>
 						<p>Mock thread. Real messages will appear here.</p>
 					</div>
 				</div>
-				<footer className="chat-overlay-composer">
+				<footer className={styles.composer}>
 					<input
+						className={styles.composerInput}
 						type="text"
 						placeholder="Write a reply..."
 						aria-label="Write a reply"
 					/>
-					<button className="button button-primary" type="button">
+					<Button variant="primary" type="button">
 						Send
-					</button>
+					</Button>
 				</footer>
 			</section>
 		</div>

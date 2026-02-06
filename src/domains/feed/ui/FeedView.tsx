@@ -2,7 +2,10 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { FeedItem } from '../model/mockFeed'
 import { getMockFeedBatch, getMockLiveItem } from '../model/mockFeed'
 import { ChatOverlay } from './ChatOverlay'
-import { FeedCard } from './FeedCard'
+import styles from './FeedView.module.css'
+import { FeedHeader } from './FeedHeader'
+import { FeedList } from './FeedList'
+import { ScrollTopButton } from './ScrollTopButton'
 
 const PAGE_SIZE = 10
 const TOTAL_ITEMS = 60
@@ -107,37 +110,21 @@ export function FeedView({ items: providedItems }: FeedViewProps) {
 	}, [providedItems])
 
 	return (
-		<section className="feed-shell">
-			<header className="feed-header">
-				<p className="feed-eyebrow">Feed</p>
-				<h1>Your feed is ready.</h1>
-				<p className="feed-subtitle">
-					We are warming up the river. The next step will stream real posts
-					from Telegram.
-				</p>
-			</header>
-			<div className="feed-list">
-				<div ref={topSentinelRef} className="feed-sentinel" />
-				{isLoadingOlder && (
-					<p className="feed-loading" aria-live="polite">
-						Loading older...
-					</p>
-				)}
-				{items.map((item) => (
-					<FeedCard key={item.id} item={item} onFocus={setFocusedItem} />
-				))}
-			</div>
+		<section className={styles.feedShell}>
+			<FeedHeader />
+			<FeedList
+				items={items}
+				isLoadingOlder={isLoadingOlder}
+				topSentinelRef={topSentinelRef}
+				onFocus={setFocusedItem}
+			/>
 			{focusedItem && (
 				<ChatOverlay item={focusedItem} onClose={() => setFocusedItem(null)} />
 			)}
 			{showScrollTop && (
-				<button
-					type="button"
-					className="scroll-top"
+				<ScrollTopButton
 					onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-				>
-					Up
-				</button>
+				/>
 			)}
 		</section>
 	)

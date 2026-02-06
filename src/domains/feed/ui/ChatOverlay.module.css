@@ -1,0 +1,102 @@
+.overlay {
+	position: fixed;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	z-index: 20;
+}
+
+.backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgba(12, 12, 12, 0.55);
+	backdrop-filter: blur(6px);
+	border: none;
+}
+
+.panel {
+	position: relative;
+	z-index: 1;
+	width: min(760px, 92vw);
+	max-height: 88vh;
+	display: grid;
+	grid-template-rows: auto 1fr auto;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: 26px;
+	box-shadow: var(--shadow);
+	overflow: hidden;
+}
+
+.header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 20px 24px;
+	border-bottom: 1px solid var(--border);
+}
+
+.title {
+	margin: 6px 0 0;
+	font-family: var(--font-display);
+}
+
+.eyebrow {
+	margin: 0;
+	font-size: 0.75rem;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+
+.body {
+	padding: 20px 24px;
+	display: grid;
+	gap: 16px;
+	overflow: auto;
+}
+
+.message {
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: 16px;
+	padding: 14px 16px;
+}
+
+.messageAuthor {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+
+.messageMuted {
+	opacity: 0.75;
+}
+
+.composer {
+	display: flex;
+	gap: 12px;
+	padding: 16px 24px;
+	border-top: 1px solid var(--border);
+	background: var(--surface-2);
+}
+
+.composerInput {
+	flex: 1;
+	border-radius: 14px;
+	border: 1px solid var(--border);
+	background: var(--surface);
+	padding: 12px 14px;
+	color: var(--ink);
+}
+
+.srOnly {
+	border: 0;
+	clip: rect(0 0 0 0);
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	padding: 0;
+	position: absolute;
+	width: 1px;
+}

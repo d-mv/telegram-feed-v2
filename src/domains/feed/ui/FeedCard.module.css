@@ -1,0 +1,71 @@
+.feedCard {
+	display: block;
+	gap: 16px;
+	border-radius: 18px;
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	cursor: pointer;
+	text-align: left;
+	transition:
+		transform 200ms ease,
+		box-shadow 200ms ease,
+		border-color 200ms ease;
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+	overflow: hidden;
+}
+
+.feedCard:hover {
+	transform: translateY(-1px);
+	box-shadow: var(--shadow-soft);
+	border-color: rgba(162, 74, 35, 0.35);
+}
+
+.feedCardBody {
+	display: grid;
+	gap: 10px;
+}
+
+.feedCardHeader {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	align-items: baseline;
+	padding-block-start: 16px;
+	padding-inline: 16px;
+}
+
+.feedCardSender {
+	margin: 0;
+	font-weight: 600;
+}
+
+.feedCardTime {
+	font-size: 0.8rem;
+	color: var(--muted);
+	padding-inline: 16px;
+}
+
+.feedCardText {
+	margin: 0;
+	color: var(--ink);
+	padding-inline: 16px;
+	padding-block-end: 16px;
+}
+
+.feedCardReactions {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	padding-inline: 16px;
+	padding-block-end: 16px;
+}
+
+.feedCardReaction {
+	padding: 4px 10px;
+	border-radius: 999px;
+	background: rgba(162, 74, 35, 0.12);
+	border: 1px solid rgba(162, 74, 35, 0.2);
+	font-size: 0.8rem;
+}

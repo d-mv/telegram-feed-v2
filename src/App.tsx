@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import './App.css'
 import { createAuthFromEnv } from './domains/auth/infra/authFactory'
 import type { AuthClient } from './domains/auth/model/authTypes'
 import { LoginView } from './domains/auth/ui/LoginView'
@@ -8,6 +7,7 @@ import type { FeedItem } from './domains/feed/model/mockFeed'
 import { fetchRecentFeed } from './domains/feed/infra/telegramFeed'
 import { createIndexedDbDal } from './domains/dal/indexedDbDal'
 import { ensureTelegramConnected } from './domains/auth/infra/telegramAuth'
+import styles from './App.module.css'
 
 type AppProps = {
 	auth?: AuthClient
@@ -105,16 +105,16 @@ function App({ auth }: AppProps) {
 
 	if (isAuthenticated) {
 		if (isLoadingFeed) {
-			return <div className="feed-loading">Loading feed...</div>
+			return <div className={styles.feedLoading}>Loading feed...</div>
 		}
 		if (feedError) {
-			return <div className="feed-loading">Feed error: {feedError}</div>
+			return <div className={styles.feedLoading}>Feed error: {feedError}</div>
 		}
 		if (feedItems.length === 0) {
 			return (
-				<div className="feed-empty">
-					<p className="feed-empty-title">No recent messages.</p>
-					<p className="feed-empty-subtitle">
+				<div className={styles.feedEmpty}>
+					<p className={styles.feedEmptyTitle}>No recent messages.</p>
+					<p className={styles.feedEmptySubtitle}>
 						This feed only shows messages from the last 7 days.
 					</p>
 				</div>
@@ -124,7 +124,7 @@ function App({ auth }: AppProps) {
 	}
 
 	if (isAuthLoading || !authClient) {
-		return <div className="feed-loading">Preparing session...</div>
+		return <div className={styles.feedLoading}>Preparing session...</div>
 	}
 
 	return (
