@@ -6,6 +6,8 @@ vi.mock('./telegramAuth', () => ({
 		sendCode: vi.fn(),
 		submitCode: vi.fn(),
 		submitPassword: vi.fn(),
+		requestQrLogin: vi.fn(),
+		checkQrLogin: vi.fn(),
 	})),
 }))
 

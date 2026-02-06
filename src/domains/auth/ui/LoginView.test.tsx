@@ -17,13 +17,21 @@ function createDeferred<T>() {
 	return { promise, resolve, reject }
 }
 
-test('shows OTP input after sending code', async () => {
-	const user = userEvent.setup()
-	const auth: AuthClient = {
+function createAuthMock(overrides: Partial<AuthClient> = {}): AuthClient {
+	return {
 		sendCode: vi.fn().mockResolvedValue({ ok: true }),
 		submitCode: vi.fn().mockResolvedValue({ status: 'logged_in' }),
 		submitPassword: vi.fn().mockResolvedValue({ status: 'logged_in' }),
+		requestQrLogin: vi.fn().mockResolvedValue({ status: 'pending' }),
+		checkQrLogin: vi.fn().mockResolvedValue({ status: 'pending' }),
+		...overrides,
 	}
+}
+
+test('shows OTP input after sending code', async () => {
+	const user = userEvent.setup()
+	const auth = createAuthMock()
+
 	render(<LoginView auth={auth} />)
 
 	expect(screen.queryByLabelText(/code/i)).toBeNull()
@@ -36,11 +44,10 @@ test('shows OTP input after sending code', async () => {
 
 test('shows 2FA password only after submit when required', async () => {
 	const user = userEvent.setup()
-	const auth: AuthClient = {
-		sendCode: vi.fn().mockResolvedValue({ ok: true }),
+	const auth = createAuthMock({
 		submitCode: vi.fn().mockResolvedValue({ status: 'needs_2fa' }),
-		submitPassword: vi.fn().mockResolvedValue({ status: 'logged_in' }),
-	}
+	})
+	
 	render(<LoginView auth={auth} />)
 
 	expect(screen.queryByLabelText(/password/i)).toBeNull()
@@ -55,11 +62,8 @@ test('shows 2FA password only after submit when required', async () => {
 
 test('disables send code when phone is empty', async () => {
 	const user = userEvent.setup()
-	const auth: AuthClient = {
-		sendCode: vi.fn().mockResolvedValue({ ok: true }),
-		submitCode: vi.fn().mockResolvedValue({ status: 'logged_in' }),
-		submitPassword: vi.fn().mockResolvedValue({ status: 'logged_in' }),
-	}
+	const auth = createAuthMock()
+
 	render(<LoginView auth={auth} />)
 
 	const sendCodeButton = screen.getByRole('button', { name: /send code/i })
@@ -71,11 +75,8 @@ test('disables send code when phone is empty', async () => {
 
 test('reset hides OTP field', async () => {
 	const user = userEvent.setup()
-	const auth: AuthClient = {
-		sendCode: vi.fn().mockResolvedValue({ ok: true }),
-		submitCode: vi.fn().mockResolvedValue({ status: 'logged_in' }),
-		submitPassword: vi.fn().mockResolvedValue({ status: 'logged_in' }),
-	}
+	const auth = createAuthMock()
+
 	render(<LoginView auth={auth} />)
 
 	await user.type(screen.getByLabelText(/phone/i), '+123456789')
@@ -91,11 +92,7 @@ test('reset hides OTP field', async () => {
 test('calls onAuthenticated after successful code submit', async () => {
 	const user = userEvent.setup()
 	const onAuthenticated = vi.fn()
-	const auth: AuthClient = {
-		sendCode: vi.fn().mockResolvedValue({ ok: true }),
-		submitCode: vi.fn().mockResolvedValue({ status: 'logged_in' }),
-		submitPassword: vi.fn().mockResolvedValue({ status: 'logged_in' }),
-	}
+	const auth = createAuthMock()
 
 	render(<LoginView auth={auth} onAuthenticated={onAuthenticated} />)
 
@@ -112,11 +109,9 @@ test('calls onAuthenticated after successful code submit', async () => {
 test('shows loading state while sending code', async () => {
 	const user = userEvent.setup()
 	const deferred = createDeferred<{ ok: true }>()
-	const auth: AuthClient = {
+	const auth = createAuthMock({
 		sendCode: vi.fn().mockReturnValue(deferred.promise),
-		submitCode: vi.fn().mockResolvedValue({ status: 'logged_in' }),
-		submitPassword: vi.fn().mockResolvedValue({ status: 'logged_in' }),
-	}
+	})
 
 	render(<LoginView auth={auth} />)
 
@@ -133,11 +128,7 @@ test('shows loading state while sending code', async () => {
 
 test('disables submit code when code is empty', async () => {
 	const user = userEvent.setup()
-	const auth: AuthClient = {
-		sendCode: vi.fn().mockResolvedValue({ ok: true }),
-		submitCode: vi.fn().mockResolvedValue({ status: 'logged_in' }),
-		submitPassword: vi.fn().mockResolvedValue({ status: 'logged_in' }),
-	}
+	const auth = createAuthMock()
 
 	render(<LoginView auth={auth} />)
 
@@ -153,11 +144,9 @@ test('disables submit code when code is empty', async () => {
 
 test('shows error when send code fails', async () => {
 	const user = userEvent.setup()
-	const auth: AuthClient = {
+	const auth = createAuthMock({
 		sendCode: vi.fn().mockRejectedValue(new Error('Nope')),
-		submitCode: vi.fn().mockResolvedValue({ status: 'logged_in' }),
-		submitPassword: vi.fn().mockResolvedValue({ status: 'logged_in' }),
-	}
+	})
 
 	render(<LoginView auth={auth} />)
 
