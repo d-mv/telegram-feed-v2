@@ -67,9 +67,22 @@ export function FeedCardMedia({ item }: Props) {
 	useEffect(() => {
 		if (!media || media.url || previewUrl || previewFailed) return
 
+		if (media.meta.type === 'video') {
+			console.log('[VideoPreview] requesting thumb', {
+				id: item.id,
+				key: media.key,
+				mimeType: media.meta.mimeType,
+				sizeBytes: media.meta.sizeBytes,
+				dims: { width: media.meta.width, height: media.meta.height },
+			})
+		}
+
 		let active = true
 		downloadThumbnailForItem(item, 480)
 			.then((url) => {
+				if (media.meta.type === 'video') {
+					console.log('[VideoPreview] thumb result', { id: item.id, url })
+				}
 				if (active && url) {
 					setPreviewUrl(url)
 				}
@@ -83,7 +96,59 @@ export function FeedCardMedia({ item }: Props) {
 	}, [media, previewUrl, previewFailed, item])
 
 	if (!media) return null
+	function renderMedia() {
+		if (!previewUrl || !media) return null
 
+		if (media.meta.type === 'image')
+			return (
+				<img
+					src={previewUrl}
+					alt={media.alt}
+					loading="lazy"
+					onLoad={() => {
+						if (media.meta.type === 'video') {
+							console.log('[VideoPreview] img loaded', {
+								id: item.id,
+								url: previewUrl,
+							})
+						}
+					}}
+					onError={() => {
+						console.log(media)
+						if (media.meta.type === 'video') {
+							console.log('[VideoPreview] img error', {
+								id: item.id,
+								url: previewUrl,
+							})
+						}
+						setPreviewUrl(undefined)
+						setPreviewFailed(true)
+					}}
+				/>
+			)
+
+		if (media.meta.type === 'video')
+			return (
+				<video
+					src={previewUrl}
+					autoPlay={false}
+					loop
+					muted
+					playsInline
+					style={{
+						objectFit: 'contain',
+						width: '100%',
+						height: '100%',
+					}}
+				/>
+			)
+
+		return (
+			<div className="feed-card-media-placeholder">
+				<span>Media preview</span>
+			</div>
+		)
+	}
 	return (
 		<div
 			className="feed-card-media"
@@ -91,24 +156,10 @@ export function FeedCardMedia({ item }: Props) {
 			data-media-type={media.meta.type}
 			style={{ aspectRatio: ratio }}
 		>
-			{previewUrl ? (
-				<img
-					src={previewUrl}
-					alt={media.alt}
-					loading="lazy"
-					onError={() => {
-						setPreviewUrl(undefined)
-						setPreviewFailed(true)
-					}}
-				/>
-			) : (
-				<div className="feed-card-media-placeholder">
-					<span>Media preview</span>
-				</div>
-			)}
-			{media.meta.type === 'video' && (
+			{renderMedia()}
+			{/* {media.meta.type === 'video' && (
 				<span className="feed-card-media-pill">Video preview</span>
-			)}
+			)} */}
 			{(shouldOfferFullDownload || downloadError) && (
 				<button
 					type="button"

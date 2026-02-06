@@ -237,6 +237,56 @@ function getBinarySize(input: unknown): number | null {
 	return null
 }
 
+function toUint8Array(input: unknown): Uint8Array | null {
+	if (input instanceof Uint8Array) {
+		return input
+	}
+	if (input instanceof ArrayBuffer) {
+		return new Uint8Array(input)
+	}
+	if (input instanceof Blob) {
+		return null
+	}
+	if (typeof input === 'string') {
+		const bytes = new Uint8Array(input.length)
+		for (let index = 0; index < input.length; index += 1) {
+			bytes[index] = input.charCodeAt(index) & 0xff
+		}
+		return bytes
+	}
+	return null
+}
+
+function sniffImageMime(bytes: Uint8Array | null): string | null {
+	if (!bytes || bytes.length < 12) {
+		return null
+	}
+	if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+		return 'image/jpeg'
+	}
+	if (
+		bytes[0] === 0x89 &&
+		bytes[1] === 0x50 &&
+		bytes[2] === 0x4e &&
+		bytes[3] === 0x47
+	) {
+		return 'image/png'
+	}
+	if (
+		bytes[0] === 0x52 &&
+		bytes[1] === 0x49 &&
+		bytes[2] === 0x46 &&
+		bytes[3] === 0x46 &&
+		bytes[8] === 0x57 &&
+		bytes[9] === 0x45 &&
+		bytes[10] === 0x42 &&
+		bytes[11] === 0x50
+	) {
+		return 'image/webp'
+	}
+	return null
+}
+
 export async function downloadMediaForItem(
 	item: FeedItem,
 ): Promise<string | undefined> {
@@ -287,23 +337,45 @@ export async function downloadThumbnailForItem(
 	}
 
 	const sourceMessage = item.sourceMessage as Api.Message
-	const mimeType = item.media.meta.mimeType || 'image/jpeg'
+	const defaultPreviewMimeType = 'image/jpeg'
 	let thumb: Api.TypePhotoSize | number | undefined
+	if (item.media.meta.type === 'video') {
+		console.log('[VideoPreview] download start', {
+			id: item.id,
+			key: item.media.key,
+			targetWidth,
+			cacheKey,
+		})
+	}
+
+	function pickThumbByWidth(sizes: Api.TypePhotoSize[]) {
+		let over: Api.TypePhotoSize | undefined
+		let under: Api.TypePhotoSize | undefined
+
+		for (const size of sizes) {
+			if (!('w' in size)) {
+				continue
+			}
+			if (size.w >= targetWidth) {
+				if (!over || ('w' in over && size.w < over.w)) {
+					over = size
+				}
+			} else {
+				if (!under || ('w' in under && size.w > under.w)) {
+					under = size
+				}
+			}
+		}
+
+		return over ?? under
+	}
 	if (sourceMessage.media instanceof Api.MessageMediaPhoto) {
 		const photo =
 			sourceMessage.media.photo instanceof Api.Photo
 				? sourceMessage.media.photo
 				: undefined
 		const sizes = photo?.sizes ?? []
-		thumb = sizes.reduce<Api.TypePhotoSize | undefined>((best, current) => {
-			if (!('w' in current)) {
-				return best
-			}
-			if (!best || (best && 'w' in best && current.w >= targetWidth)) {
-				return current
-			}
-			return best
-		}, undefined)
+		thumb = pickThumbByWidth(sizes)
 	}
 	if (sourceMessage.media instanceof Api.MessageMediaDocument) {
 		const doc =
@@ -311,32 +383,88 @@ export async function downloadThumbnailForItem(
 				? sourceMessage.media.document
 				: undefined
 		const sizes = doc?.thumbs ?? []
-		thumb = sizes.find((current) => 'w' in current && current.w >= targetWidth)
+		thumb = pickThumbByWidth(sizes)
+		if (item.media.meta.type === 'video') {
+			console.log('[VideoPreview] doc thumbs', {
+				id: item.id,
+				thumbCount: sizes.length,
+				thumb,
+			})
+		}
 	}
+
+	if (item.media.meta.type === 'video' && !thumb) {
+		console.log('[VideoPreview] missing thumbs', {
+			key: item.media.key,
+			mimeType: item.media.meta.mimeType,
+			sizeBytes: item.media.meta.sizeBytes,
+			thumbs: sourceMessage.media instanceof Api.MessageMediaDocument
+				? sourceMessage.media.document instanceof Api.Document
+					? sourceMessage.media.document.thumbs ?? []
+					: []
+				: [],
+			attributes:
+				sourceMessage.media instanceof Api.MessageMediaDocument &&
+				sourceMessage.media.document instanceof Api.Document
+					? sourceMessage.media.document.attributes ?? []
+					: [],
+		})
+		return undefined
+	}
+
 	const buffer = thumb
 		? await client.downloadMedia(sourceMessage, { thumb })
 		: await client.downloadMedia(sourceMessage)
 	const bufferSize = getBinarySize(buffer)
-	if (!buffer || bufferSize === 0) {
-		if (item.media.meta.type === 'image') {
-			const fallback = await client.downloadMedia(sourceMessage)
-			const fallbackSize = getBinarySize(fallback)
-			if (!fallback || fallbackSize === 0) {
-				return undefined
-			}
-			const url = toObjectUrl(fallback, mimeType)
-			if (!url) {
-				return undefined
-			}
-			if (url.startsWith('blob:')) {
-				const blob = await (await fetch(url)).blob()
-				await dal.setMedia(cacheKey, blob)
-			}
-			return url
+	if (item.media.meta.type === 'video') {
+		const bytes = toUint8Array(buffer)
+		let signature = ''
+		if (bytes) {
+			const view = bytes.slice(0, 12)
+			signature = Array.from(view)
+				.map((value) => value.toString(16).padStart(2, '0'))
+				.join(' ')
 		}
-		return undefined
+		console.log('[VideoPreview] buffer info', {
+			id: item.id,
+			bufferSize,
+			signature,
+			hasThumb: Boolean(thumb),
+		})
 	}
-	const url = toObjectUrl(buffer, mimeType)
+	if (!buffer || bufferSize === 0) {
+		if (item.media.meta.type === 'video') {
+			return undefined
+		}
+		const fallback = await client.downloadMedia(sourceMessage)
+		const fallbackSize = getBinarySize(fallback)
+		if (!fallback || fallbackSize === 0) {
+			return undefined
+		}
+		const fallbackMimeType =
+			item.media.meta.mimeType || 'application/octet-stream'
+		const url = toObjectUrl(fallback, fallbackMimeType)
+		if (!url) {
+			return undefined
+		}
+		if (url.startsWith('blob:')) {
+			const blob = await (await fetch(url)).blob()
+			await dal.setMedia(cacheKey, blob)
+		}
+		return url
+	}
+	let resolvedMimeType = defaultPreviewMimeType
+	if (!thumb) {
+		resolvedMimeType = item.media.meta.mimeType || defaultPreviewMimeType
+	}
+	if (thumb) {
+		const bytes = toUint8Array(buffer)
+		const sniffed = sniffImageMime(bytes)
+		if (sniffed) {
+			resolvedMimeType = sniffed
+		}
+	}
+	const url = toObjectUrl(buffer, resolvedMimeType)
 	if (!url) {
 		return undefined
 	}

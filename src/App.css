@@ -330,7 +330,10 @@
 	border: 1px solid var(--border);
 	cursor: pointer;
 	text-align: left;
-	transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+	transition:
+		transform 200ms ease,
+		box-shadow 200ms ease,
+		border-color 200ms ease;
 	width: 100%;
 	max-width: 100%;
 	box-sizing: border-box;
@@ -398,7 +401,7 @@
 	letter-spacing: 0.12em;
 }
 
-.feed-card-media[data-media-type='video']::after {
+/* .feed-card-media[data-media-type='video']::after {
 	content: '▶';
 	position: absolute;
 	right: 12px;
@@ -411,7 +414,7 @@
 	display: grid;
 	place-items: center;
 	font-size: 0.8rem;
-}
+} */
 
 .feed-card-media-placeholder {
 	display: grid;
