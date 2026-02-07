@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
 	downloadMediaForItem,
 	downloadThumbnailForItem,
@@ -18,10 +18,15 @@ export function FeedCardMedia({ item }: Props) {
 		item.media?.url,
 	)
 	const [videoUrl, setVideoUrl] = useState<string | undefined>(undefined)
+	const videoRef = useRef<HTMLVideoElement | null>(null)
 	const [isDownloading, setIsDownloading] = useState(false)
 	const [downloadProgress, setDownloadProgress] = useState<number | null>(null)
 	const [downloadError, setDownloadError] = useState('')
 	const [previewFailed, setPreviewFailed] = useState(false)
+	const [duration, setDuration] = useState(0)
+	const [currentTime, setCurrentTime] = useState(0)
+	const [isPlaying, setIsPlaying] = useState(false)
+	const [isMuted, setIsMuted] = useState(true)
 
 	const ratio = useMemo(() => {
 		if (!media) return '16 / 9'
@@ -73,6 +78,70 @@ export function FeedCardMedia({ item }: Props) {
 			return 'Downloading...'
 		}
 		return `${Math.round(downloadProgress * 100)}%`
+	}
+
+	function formatTime(seconds: number) {
+		if (!Number.isFinite(seconds) || seconds < 0) {
+			return '0:00'
+		}
+		const totalSeconds = Math.floor(seconds)
+		const minutes = Math.floor(totalSeconds / 60)
+		const remaining = totalSeconds % 60
+		const padded = remaining < 10 ? `0${remaining}` : `${remaining}`
+		return `${minutes}:${padded}`
+	}
+
+	function getTimeLeftLabel() {
+		if (!duration) {
+			return '0:00'
+		}
+		const remaining = Math.max(0, duration - currentTime)
+		return `-${formatTime(remaining)}`
+	}
+
+	function getPlayLabel() {
+		if (isPlaying) {
+			return 'Pause'
+		}
+		return 'Play'
+	}
+
+	function getMuteLabel() {
+		if (isMuted) {
+			return 'Unmute'
+		}
+		return 'Mute'
+	}
+
+	function handleTogglePlay() {
+		const player = videoRef.current
+		if (!player) {
+			return
+		}
+		if (player.paused) {
+			player.play().catch(() => {})
+			return
+		}
+		player.pause()
+	}
+
+	function handleToggleMute() {
+		const player = videoRef.current
+		if (!player) {
+			return
+		}
+		const nextMuted = !player.muted
+		player.muted = nextMuted
+		setIsMuted(nextMuted)
+	}
+
+	function handleScrub(value: number) {
+		const player = videoRef.current
+		if (!player) {
+			return
+		}
+		player.currentTime = value
+		setCurrentTime(value)
 	}
 
 	async function handleDownload() {
@@ -171,16 +240,70 @@ export function FeedCardMedia({ item }: Props) {
 
 		if (media.meta.type === 'video') {
 			return (
-				<video
-					src={videoUrl}
-					poster={previewUrl}
-					controls
-					autoPlay={false}
-					muted
-					playsInline
-					className={styles.mediaVideo}
-					onClick={(event) => event.stopPropagation()}
-				/>
+				<div className={styles.mediaVideoShell}>
+					<video
+						ref={videoRef}
+						src={videoUrl}
+						poster={previewUrl}
+						autoPlay={false}
+						muted={isMuted}
+						playsInline
+						className={styles.mediaVideo}
+						onClick={(event) => event.stopPropagation()}
+						onLoadedMetadata={(event) => {
+							const target = event.currentTarget
+							setDuration(target.duration || 0)
+						}}
+						onTimeUpdate={(event) => {
+							const target = event.currentTarget
+							setCurrentTime(target.currentTime || 0)
+						}}
+						onPlay={() => setIsPlaying(true)}
+						onPause={() => setIsPlaying(false)}
+						onEnded={() => setIsPlaying(false)}
+					/>
+					<div className={styles.mediaControls} onClick={(event) => event.stopPropagation()}>
+						<button
+							type="button"
+							className={styles.mediaControlButton}
+							onClick={handleTogglePlay}
+							disabled={!videoUrl}
+							aria-label={getPlayLabel()}
+						>
+							<img
+								src={isPlaying ? '/icons/pause.svg' : '/icons/play.svg'}
+								alt=""
+								aria-hidden="true"
+								className={styles.mediaControlIcon}
+							/>
+						</button>
+						<input
+							type="range"
+							min={0}
+							max={duration || 0}
+							step={0.1}
+							value={currentTime}
+							onChange={(event) => handleScrub(Number(event.target.value))}
+							className={styles.mediaScrubber}
+							disabled={!videoUrl || duration <= 0}
+						/>
+						<span className={styles.mediaTime}>{getTimeLeftLabel()}</span>
+						<button
+							type="button"
+							className={styles.mediaControlButton}
+							onClick={handleToggleMute}
+							disabled={!videoUrl}
+							aria-label={getMuteLabel()}
+						>
+							<img
+								src={isMuted ? '/icons/volume-x.svg' : '/icons/volume.svg'}
+								alt=""
+								aria-hidden="true"
+								className={styles.mediaControlIcon}
+							/>
+						</button>
+					</div>
+				</div>
 			)
 		}
 
