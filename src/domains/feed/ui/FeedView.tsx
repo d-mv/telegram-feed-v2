@@ -1,4 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Api } from 'telegram'
+import { NewMessage } from 'telegram/events'
 import { createIndexedDbDal } from '../../dal/indexedDbDal'
 import type { FeedItem } from '../model/mockFeed'
 import { getMockFeedBatch, getMockLiveItem } from '../model/mockFeed'
@@ -9,6 +11,8 @@ import styles from './FeedView.module.css'
 import { RadialMenu } from './RadialMenu'
 import { ScrollTopButton } from './ScrollTopButton'
 import { SettingsDialog } from './SettingsDialog'
+import { ensureTelegramConnected } from '../../auth/infra/telegramAuth'
+import { getMediaPreview, toRelativeTime } from '../infra/telegramFeed'
 
 const PAGE_SIZE = 10
 const TOTAL_ITEMS = 60
@@ -35,6 +39,36 @@ export function FeedView({ items: providedItems }: FeedViewProps) {
   const pendingPrependRef = useRef<{ height: number; adjust: boolean } | null>(
     null,
   )
+  const clientRef = useRef<ReturnType<typeof ensureTelegramConnected> | null>(
+    null,
+  )
+
+  function formatSender(entity: unknown, fallback: string) {
+    if (!entity || typeof entity !== 'object') {
+      return fallback
+    }
+    if ('title' in entity && typeof entity.title === 'string') {
+      return entity.title
+    }
+    if ('firstName' in entity && typeof entity.firstName === 'string') {
+      const lastName =
+        'lastName' in entity && typeof entity.lastName === 'string'
+          ? entity.lastName
+          : ''
+      return `${entity.firstName} ${lastName}`.trim()
+    }
+    if ('username' in entity && typeof entity.username === 'string') {
+      return entity.username
+    }
+    return fallback
+  }
+
+  function getFallbackChatName(isPrivate: boolean) {
+    if (isPrivate) {
+      return 'User'
+    }
+    return 'Group'
+  }
 
   function prependItems(nextItems: FeedItem[], adjustScroll: boolean) {
     if (nextItems.length === 0) {
@@ -114,6 +148,98 @@ export function FeedView({ items: providedItems }: FeedViewProps) {
     return () => window.clearInterval(interval)
   }, [providedItems])
 
+  useEffect(() => {
+    if (!providedItems) {
+      return
+    }
+
+    let isActive = true
+    let handler: ((event: { message?: Api.Message }) => void) | null = null
+
+    ensureTelegramConnected()
+      .then(async (client) => {
+        clientRef.current = Promise.resolve(client)
+        const me = await client.getMe()
+        const meId = me?.id?.toString()
+
+        handler = async (event) => {
+          if (!isActive) {
+            return
+          }
+          const message = event.message
+          if (!message || !(message instanceof Api.Message)) {
+            return
+          }
+          if (message.out) {
+            return
+          }
+          if (meId && message.senderId?.toString() === meId) {
+            return
+          }
+
+          const chatEntity = await message.getChat()
+          const chatId = message.chatId?.toString() ?? 'chat'
+          const isPrivate = Boolean(message.isPrivate)
+          const fallbackChatName = getFallbackChatName(isPrivate)
+          const chatName = formatSender(chatEntity, fallbackChatName)
+          const senderEntity = await message.getSender()
+          const senderName = formatSender(senderEntity, chatName)
+          const timestamp = message.date ? toRelativeTime(message.date) : ''
+          const media = getMediaPreview(message)
+          const idPrefix = isPrivate ? 'dm' : 'group'
+          const itemId = `${idPrefix}-${chatId}-${message.id ?? message.date}`
+
+          setItems((current) => {
+            if (current.some((entry) => entry.id === itemId)) {
+              return current
+            }
+            let nextItem: FeedItem
+            if (isPrivate) {
+              nextItem = {
+                id: itemId,
+                type: 'dm',
+                chatName,
+                senderName,
+                timestamp,
+                text: message.message ?? '',
+                media,
+                reactions: [],
+                sourceMessage: message,
+              }
+            } else {
+              nextItem = {
+                id: itemId,
+                type: 'group',
+                chatName,
+                timestamp,
+                text: message.message ?? '',
+                media,
+                sourceMessage: message,
+              }
+            }
+            return [nextItem, ...current]
+          })
+        }
+
+        client.addEventHandler(handler, new NewMessage({ incoming: true }))
+      })
+      .catch(() => {})
+
+    return () => {
+      isActive = false
+      if (handler) {
+        const clientPromise = clientRef.current
+        if (clientPromise) {
+          clientPromise
+            .then((client) => {
+              client.removeEventHandler(handler)
+            })
+            .catch(() => {})
+        }
+      }
+    }
+  }, [providedItems])
+
   const body = document.body
 
   useEffect(() => {
@@ -155,7 +281,6 @@ export function FeedView({ items: providedItems }: FeedViewProps) {
         isLoadingOlder={isLoadingOlder}
         topSentinelRef={topSentinelRef}
         onFocus={setFocusedItem}
-        chatIsOpen={!!focusedItem}
       />
       {focusedItem && (
         <Chat item={focusedItem} onClose={() => setFocusedItem(null)} />
