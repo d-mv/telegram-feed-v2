@@ -1,0 +1,10 @@
+.container {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.9rem;
+  white-space: break-spaces;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  overflow: hidden;
+  display: block;
+}

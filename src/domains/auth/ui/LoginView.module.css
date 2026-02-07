@@ -1,185 +1,185 @@
 .loginShell {
-	width: min(1100px, 100%);
-	display: grid;
-	gap: clamp(16px, 3vw, 28px);
-	grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-	align-items: stretch;
-	animation: float-in 700ms ease-out;
+  width: min(1100px, 100%);
+  display: grid;
+  gap: clamp(16px, 3vw, 28px);
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  align-items: stretch;
+  animation: float-in 700ms ease-out;
 }
 
 .loginCard {
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: 28px;
-	padding: clamp(28px, 5vw, 44px);
-	box-shadow: var(--shadow);
-	display: grid;
-	gap: clamp(20px, 4vw, 28px);
-	position: relative;
-	overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  padding: clamp(28px, 5vw, 44px);
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: clamp(20px, 4vw, 28px);
+  position: relative;
+  overflow: hidden;
 }
 
 .loginCard::before {
-	content: "";
-	position: absolute;
-	inset: 18px;
-	border-radius: 20px;
-	border: 1px dashed rgba(162, 74, 35, 0.25);
-	pointer-events: none;
+  content: "";
+  position: absolute;
+  inset: 18px;
+  border-radius: 20px;
+  border: 1px dashed rgba(162, 74, 35, 0.25);
+  pointer-events: none;
 }
 
 .loginHeader {
-	display: grid;
-	gap: 10px;
+  display: grid;
+  gap: 10px;
 }
 
 .loginEyebrow {
-	font-size: 0.75rem;
-	letter-spacing: 0.3em;
-	text-transform: uppercase;
-	color: var(--muted);
-	margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0;
 }
 
 .loginTitle {
-	font-family: var(--font-display);
-	font-size: clamp(1.9rem, 2.6vw, 2.6rem);
-	line-height: 1.05;
-	margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 2.6vw, 2.6rem);
+  line-height: 1.05;
+  margin: 0;
 }
 
 .loginSubtitle {
-	margin: 0;
-	color: var(--muted);
-	font-size: 0.98rem;
-	max-width: 26ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.98rem;
+  max-width: 26ch;
 }
 
 .loginForm {
-	display: grid;
-	gap: 16px;
+  display: grid;
+  gap: 16px;
 }
 
 .loginToggle {
-	display: flex;
-	gap: 12px;
-	flex-wrap: wrap;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .loginField {
-	display: grid;
-	gap: 8px;
+  display: grid;
+  gap: 8px;
 }
 
 .loginLabel {
-	font-size: 0.85rem;
-	text-transform: uppercase;
-	letter-spacing: 0.12em;
-	color: var(--muted);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
 }
 
 .loginInput {
-	width: 100%;
-	padding: 14px 16px;
-	border-radius: 14px;
-	border: 1px solid var(--border);
-	background: var(--surface-2);
-	color: var(--ink);
-	font-size: 1rem;
-	transition:
-		border-color 200ms ease,
-		box-shadow 200ms ease;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 1rem;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
 }
 
 .loginInput:focus {
-	outline: none;
-	border-color: var(--accent);
-	box-shadow: var(--glow);
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--glow);
 }
 
 .loginHint {
-	margin: 6px 0 0;
-	color: var(--muted);
-	font-size: 0.85rem;
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 
 .loginActions {
-	display: flex;
-	gap: 12px;
-	flex-wrap: wrap;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .loginQr {
-	display: grid;
-	gap: 16px;
+  display: grid;
+  gap: 16px;
 }
 
 .loginQrImage {
-	display: grid;
-	place-items: center;
-	border: 1px solid var(--border);
-	border-radius: 18px;
-	padding: 16px;
-	background: var(--surface-2);
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 16px;
+  background: var(--surface-2);
 }
 
 .loginQrImage img {
-	width: 240px;
-	height: 240px;
-	border-radius: 12px;
-	object-fit: cover;
+  width: 240px;
+  height: 240px;
+  border-radius: 12px;
+  object-fit: cover;
 }
 
 .loginQrMeta {
-	color: var(--muted);
-	font-size: 0.9rem;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .loginPanel {
-	background: var(--surface-2);
-	border-radius: 26px;
-	padding: clamp(24px, 4vw, 36px);
-	border: 1px solid var(--border);
-	display: grid;
-	gap: 18px;
-	align-content: space-between;
-	box-shadow: var(--shadow-soft);
+  background: var(--surface-2);
+  border-radius: 26px;
+  padding: clamp(24px, 4vw, 36px);
+  border: 1px solid var(--border);
+  display: grid;
+  gap: 18px;
+  align-content: space-between;
+  box-shadow: var(--shadow-soft);
 }
 
 .loginPanelTitle {
-	font-family: var(--font-display);
-	font-size: clamp(1.4rem, 2vw, 2rem);
-	margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2vw, 2rem);
+  margin: 0 0 8px;
 }
 
 .loginPanelText {
-	margin: 0;
-	color: var(--muted);
-	font-size: 0.98rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.98rem;
 }
 
 .loginPanelFooter {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 10px;
-	font-size: 0.8rem;
-	text-transform: uppercase;
-	letter-spacing: 0.12em;
-	color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
 }
 
 .loginError {
-	margin: 0;
-	padding: 10px 14px;
-	border-radius: 12px;
-	background: rgba(162, 74, 35, 0.12);
-	color: var(--accent-strong);
-	font-size: 0.9rem;
-	border: 1px solid rgba(162, 74, 35, 0.2);
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(162, 74, 35, 0.12);
+  color: var(--accent-strong);
+  font-size: 0.9rem;
+  border: 1px solid rgba(162, 74, 35, 0.2);
 }
 
 @media (max-width: 900px) {
-	.loginShell {
-		grid-template-columns: 1fr;
-	}
+  .loginShell {
+    grid-template-columns: 1fr;
+  }
 }

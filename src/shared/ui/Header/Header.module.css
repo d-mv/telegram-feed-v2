@@ -1,0 +1,15 @@
+.container {
+  display: grid;
+  grid-template-columns: 1fr 4.5rem;
+}
+
+.header {
+  margin: 0;
+}
+
+.timestamp {
+  color: var(--ink);
+  font-size: 0.7rem;
+  justify-self: end;
+  align-self: center;
+}

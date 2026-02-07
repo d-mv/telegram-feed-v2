@@ -1,11 +1,10 @@
 .feedShell {
-	width: min(1100px, 100%);
-	background: var(--surface);
-	border-radius: 28px;
-	border: 1px solid var(--border);
-	padding: clamp(28px, 5vw, 44px);
-	box-shadow: var(--shadow);
-	display: grid;
-	gap: 24px;
-	overflow: hidden;
+  width: min(1100px, 100%);
+  background: var(--surface);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border);
+  padding: clamp(1rem, 2.5vw, 2.2rem);
+  box-shadow: var(--shadow);
+  display: grid;
+  overflow: hidden;
 }

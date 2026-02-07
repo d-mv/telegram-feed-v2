@@ -1,0 +1,87 @@
+.thread {
+  display: grid;
+  gap: 12px;
+  height: 100%;
+  width: 100%;
+}
+
+.loading {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(162, 74, 35, 0.1);
+  color: var(--accent-strong);
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  justify-self: start;
+}
+
+.error {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(162, 74, 35, 0.12);
+  color: var(--accent-strong);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  justify-self: start;
+}
+
+.threadList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-end;
+  min-height: 100%;
+  width: 100%;
+}
+
+.jumpButton {
+  position: sticky;
+  bottom: 12px;
+  align-self: flex-end;
+  margin-right: 6px;
+  border: 1px solid rgba(162, 74, 35, 0.3);
+  background: var(--surface);
+  color: var(--accent-strong);
+  border-radius: 999px;
+  padding: 8px;
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.jumpIcon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.message {
+  display: grid;
+  gap: 8px;
+  border-radius: var(--border-radius);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.messageFocused {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(162, 74, 35, 0.35);
+}
+
+.header {
+  padding-block-start: 16px;
+  padding-inline: 16px;
+}
+
+.text {
+  padding-inline: 16px;
+  padding-block-end: 16px;
+}
