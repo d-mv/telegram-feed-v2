@@ -287,8 +287,30 @@ function sniffImageMime(bytes: Uint8Array | null): string | null {
 	return null
 }
 
+type DownloadProgressCallback = (downloaded: number, total: number) => void
+
+function toNumber(value: unknown): number {
+	if (value === null || value === undefined) {
+		return 0
+	}
+	if (typeof value === 'number') {
+		return value
+	}
+	if (typeof value === 'bigint') {
+		return Number(value)
+	}
+	if (value && typeof value === 'object' && 'toJSNumber' in value) {
+		const maybeNumber = (value as { toJSNumber?: () => number }).toJSNumber
+		if (typeof maybeNumber === 'function') {
+			return maybeNumber()
+		}
+	}
+	return Number(value)
+}
+
 export async function downloadMediaForItem(
 	item: FeedItem,
+	onProgress?: DownloadProgressCallback,
 ): Promise<string | undefined> {
 	if (!item.media || !item.sourceMessage) {
 		return undefined
@@ -302,7 +324,22 @@ export async function downloadMediaForItem(
 			return URL.createObjectURL(cached)
 		}
 	}
-	const buffer = await client.downloadMedia(item.sourceMessage as Api.Message)
+	const progressCallback = onProgress
+		? (downloaded: unknown, total: unknown) => {
+				try {
+					const downloadedValue = toNumber(downloaded)
+					const totalValue = toNumber(total)
+					if (Number.isFinite(downloadedValue) && Number.isFinite(totalValue)) {
+						onProgress(downloadedValue, totalValue)
+					}
+				} catch {
+					// ignore progress callback errors
+				}
+			}
+		: undefined
+	const buffer = await client.downloadMedia(item.sourceMessage as Api.Message, {
+		progressCallback,
+	})
 	const size = getBinarySize(buffer)
 	if (!buffer || size === 0) {
 		return undefined
@@ -319,6 +356,21 @@ export async function downloadMediaForItem(
 		await dal.setMedia(cacheKey, blob)
 	}
 	return url
+}
+
+export async function getCachedMediaUrl(
+	item: FeedItem,
+): Promise<string | undefined> {
+	if (!item.media) {
+		return undefined
+	}
+	const dal = createIndexedDbDal()
+	const cacheKey = item.media.key ?? item.id
+	const cached = await dal.getMedia(cacheKey)
+	if (!cached || cached.size === 0) {
+		return undefined
+	}
+	return URL.createObjectURL(cached)
 }
 
 export async function downloadThumbnailForItem(
@@ -339,15 +391,6 @@ export async function downloadThumbnailForItem(
 	const sourceMessage = item.sourceMessage as Api.Message
 	const defaultPreviewMimeType = 'image/jpeg'
 	let thumb: Api.TypePhotoSize | number | undefined
-	if (item.media.meta.type === 'video') {
-		console.log('[VideoPreview] download start', {
-			id: item.id,
-			key: item.media.key,
-			targetWidth,
-			cacheKey,
-		})
-	}
-
 	function pickThumbByWidth(sizes: Api.TypePhotoSize[]) {
 		let over: Api.TypePhotoSize | undefined
 		let under: Api.TypePhotoSize | undefined
@@ -384,31 +427,9 @@ export async function downloadThumbnailForItem(
 				: undefined
 		const sizes = doc?.thumbs ?? []
 		thumb = pickThumbByWidth(sizes)
-		if (item.media.meta.type === 'video') {
-			console.log('[VideoPreview] doc thumbs', {
-				id: item.id,
-				thumbCount: sizes.length,
-				thumb,
-			})
-		}
 	}
 
 	if (item.media.meta.type === 'video' && !thumb) {
-		console.log('[VideoPreview] missing thumbs', {
-			key: item.media.key,
-			mimeType: item.media.meta.mimeType,
-			sizeBytes: item.media.meta.sizeBytes,
-			thumbs: sourceMessage.media instanceof Api.MessageMediaDocument
-				? sourceMessage.media.document instanceof Api.Document
-					? sourceMessage.media.document.thumbs ?? []
-					: []
-				: [],
-			attributes:
-				sourceMessage.media instanceof Api.MessageMediaDocument &&
-				sourceMessage.media.document instanceof Api.Document
-					? sourceMessage.media.document.attributes ?? []
-					: [],
-		})
 		return undefined
 	}
 
@@ -416,22 +437,6 @@ export async function downloadThumbnailForItem(
 		? await client.downloadMedia(sourceMessage, { thumb })
 		: await client.downloadMedia(sourceMessage)
 	const bufferSize = getBinarySize(buffer)
-	if (item.media.meta.type === 'video') {
-		const bytes = toUint8Array(buffer)
-		let signature = ''
-		if (bytes) {
-			const view = bytes.slice(0, 12)
-			signature = Array.from(view)
-				.map((value) => value.toString(16).padStart(2, '0'))
-				.join(' ')
-		}
-		console.log('[VideoPreview] buffer info', {
-			id: item.id,
-			bufferSize,
-			signature,
-			hasThumb: Boolean(thumb),
-		})
-	}
 	if (!buffer || bufferSize === 0) {
 		if (item.media.meta.type === 'video') {
 			return undefined

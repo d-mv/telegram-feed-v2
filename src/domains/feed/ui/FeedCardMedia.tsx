@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
 	downloadMediaForItem,
 	downloadThumbnailForItem,
+	getCachedMediaUrl,
 } from '../infra/telegramFeed'
 import type { FeedItem } from '../model/mockFeed'
 import styles from './FeedCardMedia.module.css'
@@ -16,7 +17,9 @@ export function FeedCardMedia({ item }: Props) {
 	const [previewUrl, setPreviewUrl] = useState<string | undefined>(
 		item.media?.url,
 	)
+	const [videoUrl, setVideoUrl] = useState<string | undefined>(undefined)
 	const [isDownloading, setIsDownloading] = useState(false)
+	const [downloadProgress, setDownloadProgress] = useState<number | null>(null)
 	const [downloadError, setDownloadError] = useState('')
 	const [previewFailed, setPreviewFailed] = useState(false)
 
@@ -36,30 +39,75 @@ export function FeedCardMedia({ item }: Props) {
 		return media.meta.type === 'video' || media.meta.sizeBytes >= 524288
 	}, [media])
 
+	function formatBytes(bytes: number) {
+		if (!Number.isFinite(bytes) || bytes <= 0) {
+			return ''
+		}
+		const kb = 1024
+		const mb = kb * 1024
+		const gb = mb * 1024
+		if (bytes >= gb) {
+			return `${(bytes / gb).toFixed(1)} GB`
+		}
+		if (bytes >= mb) {
+			return `${(bytes / mb).toFixed(1)} MB`
+		}
+		if (bytes >= kb) {
+			return `${Math.round(bytes / kb)} KB`
+		}
+		return `${bytes} B`
+	}
+
+	function getDownloadLabel() {
+		if (isDownloading) {
+			return 'Downloading...'
+		}
+		if (media && media.meta.sizeBytes > 0) {
+			return `Download (${formatBytes(media.meta.sizeBytes)})`
+		}
+		return 'Download media'
+	}
+
+	function getProgressLabel() {
+		if (downloadProgress === null) {
+			return 'Downloading...'
+		}
+		return `${Math.round(downloadProgress * 100)}%`
+	}
+
 	async function handleDownload() {
 		if (!item.media) {
 			return
 		}
 		setIsDownloading(true)
+		setDownloadProgress(0)
 		setDownloadError('')
 		try {
-			const url = await downloadMediaForItem(item)
+			let nextUrl: string | undefined
+			if (item.media.meta.type === 'video') {
+				nextUrl = await downloadMediaForItem(item, (downloaded, total) => {
+					if (total > 0) {
+						setDownloadProgress(downloaded / total)
+					}
+				})
+			} else {
+				nextUrl = await downloadMediaForItem(item)
+			}
+			const url = nextUrl
 			if (!url) {
+				setDownloadError('Download failed')
 				return
 			}
 			if (item.media.meta.type === 'video') {
-				const link = document.createElement('a')
-				link.href = url
-				link.download = `${item.id}.${item.media.meta.mimeType?.split('/')[1] ?? 'mp4'}`
-				document.body.appendChild(link)
-				link.click()
-				link.remove()
-				URL.revokeObjectURL(url)
+				setVideoUrl(url)
 				return
 			}
 			setPreviewUrl(url)
-		} catch {
-			setDownloadError('Download failed')
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : 'Download failed'
+			console.error('[FeedCardMedia] download failed', error)
+			setDownloadError(message || 'Download failed')
 		} finally {
 			setIsDownloading(false)
 		}
@@ -68,22 +116,9 @@ export function FeedCardMedia({ item }: Props) {
 	useEffect(() => {
 		if (!media || media.url || previewUrl || previewFailed) return
 
-		if (media.meta.type === 'video') {
-			console.log('[VideoPreview] requesting thumb', {
-				id: item.id,
-				key: media.key,
-				mimeType: media.meta.mimeType,
-				sizeBytes: media.meta.sizeBytes,
-				dims: { width: media.meta.width, height: media.meta.height },
-			})
-		}
-
 		let active = true
 		downloadThumbnailForItem(item, 480)
 			.then((url) => {
-				if (media.meta.type === 'video') {
-					console.log('[VideoPreview] thumb result', { id: item.id, url })
-				}
 				if (active && url) {
 					setPreviewUrl(url)
 				}
@@ -96,6 +131,26 @@ export function FeedCardMedia({ item }: Props) {
 		}
 	}, [media, previewUrl, previewFailed, item])
 
+	useEffect(() => {
+		if (!media || media.meta.type !== 'video') {
+			return
+		}
+		if (videoUrl) {
+			return
+		}
+		let active = true
+		getCachedMediaUrl(item)
+			.then((url) => {
+				if (active && url) {
+					setVideoUrl(url)
+				}
+			})
+			.catch(() => {})
+		return () => {
+			active = false
+		}
+	}, [item, media, videoUrl])
+
 	if (!media) return null
 	function renderMedia() {
 		if (!previewUrl || !media) return null
@@ -107,42 +162,27 @@ export function FeedCardMedia({ item }: Props) {
 					alt={media.alt}
 					loading="lazy"
 					className={styles.mediaImage}
-					onLoad={() => {
-						if (media.meta.type === 'video') {
-							console.log('[VideoPreview] img loaded', {
-								id: item.id,
-								url: previewUrl,
-							})
-						}
-					}}
 					onError={() => {
-						console.log(media)
-						if (media.meta.type === 'video') {
-							console.log('[VideoPreview] img error', {
-								id: item.id,
-								url: previewUrl,
-							})
-						}
 						setPreviewUrl(undefined)
 						setPreviewFailed(true)
 					}}
 				/>
 			)
 
-		if (media.meta.type === 'video')
+		if (media.meta.type === 'video') {
 			return (
 				<video
-					src={previewUrl}
+					src={videoUrl}
+					poster={previewUrl}
 					controls
 					autoPlay={false}
 					muted
 					playsInline
 					className={styles.mediaVideo}
-					onClick={(event) => {
-						event.stopPropagation()
-					}}
+					onClick={(event) => event.stopPropagation()}
 				/>
 			)
+		}
 
 		return (
 			<div className={styles.mediaPlaceholder}>
@@ -153,12 +193,16 @@ export function FeedCardMedia({ item }: Props) {
 	return (
 		<div
 			className={styles.feedCardMedia}
-			aria-hidden="true"
 			data-media-type={media.meta.type}
 			style={{ aspectRatio: ratio }}
 		>
 			{renderMedia()}
-			{(shouldOfferFullDownload || downloadError) && (
+			{isDownloading && media.meta.type === 'video' && (
+				<div className={styles.mediaProgress}>
+					<div className={styles.mediaProgressLabel}>{getProgressLabel()}</div>
+				</div>
+			)}
+			{(shouldOfferFullDownload || downloadError) && !videoUrl && (
 				<button
 					type="button"
 					className={styles.mediaDownload}
@@ -168,7 +212,7 @@ export function FeedCardMedia({ item }: Props) {
 					}}
 					disabled={isDownloading}
 				>
-					{isDownloading ? 'Downloading...' : 'Download media'}
+					{getDownloadLabel()}
 				</button>
 			)}
 			{downloadError && (
