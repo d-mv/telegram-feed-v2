@@ -1,4 +1,4 @@
-# Telegram Feed v2
+# ![logo](public/favicon-32.png) Telegram Feed v2
 
 This a second effort to entertain idea of having a chat application presenting messages as a "river of news", rather than traditional chats abstraction. First being [Telegram Feed v1](https://github.com/d-mv/telegram-feed).
 
