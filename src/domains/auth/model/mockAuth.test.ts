@@ -13,7 +13,7 @@ test('submitCode returns needs_2fa when required', async () => {
 
   const result = await auth.submitCode('12345')
 
-  expect(result).toEqual({ status: 'needs_2fa' })
+  expect(result).toEqual({ status: 'needs_2fa', hint: 'mocked hint' })
 })
 
 test('submitCode returns logged_in when 2fa not required', async () => {

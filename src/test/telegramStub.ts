@@ -5,3 +5,7 @@ export class TelegramClient {
     )
   }
 }
+
+export class Api {
+  static Message = class {}
+}

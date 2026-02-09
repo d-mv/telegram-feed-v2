@@ -18,6 +18,18 @@ export default defineConfig({
 					new URL('./src/test/telegramSessionsStub.ts', import.meta.url),
 				),
 			},
+			{
+				find: /^telegram\/events$/,
+				replacement: fileURLToPath(
+					new URL('./src/test/telegramEventsStub.ts', import.meta.url),
+				),
+			},
+			{
+				find: /^telegram\/Password$/,
+				replacement: fileURLToPath(
+					new URL('./src/test/telegramPasswordStub.ts', import.meta.url),
+				),
+			},
 		],
 	},
 	test: {
