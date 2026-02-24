@@ -17,6 +17,8 @@ vi.mock('./domains/dal/indexedDbDal', () => ({
   createIndexedDbDal: () => ({
     getSession: vi.fn().mockResolvedValue(undefined),
     setSession: vi.fn().mockResolvedValue(undefined),
+    getNotificationSettings: vi.fn().mockResolvedValue(undefined),
+    setNotificationSettings: vi.fn().mockResolvedValue(undefined),
     getFeedCache: vi.fn().mockResolvedValue(undefined),
     setFeedCache: vi.fn().mockResolvedValue(undefined),
     getSaved: vi.fn().mockResolvedValue(undefined),

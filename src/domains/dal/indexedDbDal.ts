@@ -74,6 +74,9 @@ export function createIndexedDbDal(): Dal {
   return {
     getSession: () => getValue('session'),
     setSession: (session) => setValue('session', session),
+    getNotificationSettings: () => getValue('notification-settings'),
+    setNotificationSettings: (settings) =>
+      setValue('notification-settings', settings),
     getFeedCache: () => getValue('feed'),
     setFeedCache: (feed) => setValue('feed', feed),
     getSaved: () => getValue('saved'),

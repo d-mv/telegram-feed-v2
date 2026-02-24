@@ -1,27 +1,40 @@
-import type { ButtonHTMLAttributes } from 'react'
-import styles from './Button.module.css'
+import type { ButtonHTMLAttributes } from "react";
+import styles from "./Button.module.css";
 
-type ButtonVariant = 'default' | 'primary' | 'ghost'
+type ButtonVariant = "default" | "primary" | "ghost" | "image";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: ButtonVariant
-}
+  variant?: ButtonVariant;
+  imgSrc?: string;
+  imgAlt?: string;
+};
 
-export function Button({
-  variant = 'default',
-  className,
-  ...props
-}: ButtonProps) {
-  const classNames = [styles.button]
-  if (variant === 'primary') {
-    classNames.push(styles.primary)
+export function Button({ variant = "default", className, imgSrc, imgAlt, ...props }: ButtonProps) {
+  const classNames = [styles.button];
+
+  if (variant === "primary") {
+    classNames.push(styles.primary);
   }
-  if (variant === 'ghost') {
-    classNames.push(styles.ghost)
+
+  if (variant === "ghost") {
+    classNames.push(styles.ghost);
   }
+
+  if (variant === "image") {
+    classNames.push(styles.image);
+  }
+
   if (className) {
-    classNames.push(className)
+    classNames.push(className);
   }
 
-  return <button {...props} className={classNames.join(' ')} />
+  if (variant === "image") {
+    return (
+      <button type="button" {...props} className={classNames.join(" ")}>
+        <img src={imgSrc} alt={imgAlt} />
+      </button>
+    );
+  }
+
+  return <button {...props} className={classNames.join(" ")} />;
 }

@@ -19,28 +19,21 @@
   z-index: 1;
   width: min(520px, 92vw);
   display: grid;
-  gap: 18px;
+  gap: 0.8rem;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 22px;
+  border-radius: 0.4rem;
   box-shadow: var(--shadow);
-  padding: 22px 24px;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.title {
-  margin: 0;
-  font-family: var(--font-display);
+  max-height: 80vh;
+  overflow: hidden;
+  padding-inline: 1.2rem;
+  padding-block: 0.8rem;
 }
 
 .content {
   display: grid;
+  height: fit-content;
+  overflow: auto;
   gap: 12px;
 }
 
@@ -62,13 +55,14 @@
 
 .settingLabel {
   margin: 0;
+  font-size: 1.4rem;
   font-weight: 600;
 }
 
 .settingHint {
   margin: 0;
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 1.2rem;
 }
 
 .actions {

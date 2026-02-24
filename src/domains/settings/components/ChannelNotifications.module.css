@@ -1,0 +1,24 @@
+.container {
+  display: grid;
+  gap: 0.8rem;
+  /* max-height: 70%; */
+  overflow: auto;
+  padding-inline-end: 1rem;
+}
+
+.row {
+  display: grid;
+  grid-template-areas: "label toggle";
+  grid-template-columns: 1fr 35px;
+}
+
+.label-wrapper {
+  display: grid;
+  gap: 4px;
+}
+
+.label {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 400;
+}

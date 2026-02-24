@@ -1,0 +1,19 @@
+.container {
+  display: grid;
+  grid-template-columns: 1fr 35px;
+  grid-template-areas: "title button";
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 1.4rem;
+}
+
+.title {
+  grid-area: title;
+  margin: 0;
+  font-family: var(--font-display);
+}
+
+.button {
+  grid-area: button;
+}

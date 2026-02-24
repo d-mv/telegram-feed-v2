@@ -8,3 +8,14 @@
   overflow: hidden;
   display: block;
 }
+
+.container a {
+  color: var(--accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
+}
+
+.container a:hover {
+  color: var(--accent);
+}

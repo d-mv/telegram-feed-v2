@@ -1,0 +1,7 @@
+node_modules
+dist
+.git
+.fly
+.DS_Store
+npm-debug.log*
+fly.toml

@@ -1,6 +1,8 @@
 export type Dal = {
   getSession: () => Promise<unknown | undefined>
   setSession: (session: unknown) => Promise<void>
+  getNotificationSettings: () => Promise<unknown | undefined>
+  setNotificationSettings: (settings: unknown) => Promise<void>
   getFeedCache: () => Promise<unknown | undefined>
   setFeedCache: (feed: unknown) => Promise<void>
   getSaved: () => Promise<unknown | undefined>
