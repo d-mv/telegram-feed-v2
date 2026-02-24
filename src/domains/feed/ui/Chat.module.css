@@ -17,8 +17,8 @@
 .panel {
   position: relative;
   z-index: 1;
-  width: min(760px, 92vw);
-  max-height: 93vh;
+  width: 100%;
+  max-height: 100%;
   display: grid;
   grid-template-rows: auto 1fr auto;
   background: var(--surface);
@@ -39,6 +39,7 @@
 .title {
   margin: 0;
   font-family: var(--font-display);
+  font-size: 1.2rem;
 }
 
 .eyebrow {

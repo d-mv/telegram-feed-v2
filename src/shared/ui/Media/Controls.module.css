@@ -8,11 +8,7 @@
   align-items: center;
   flex-wrap: nowrap;
   padding: 10px 12px;
-  background: linear-gradient(
-    180deg,
-    rgba(12, 10, 8, 0) 0%,
-    rgba(12, 10, 8, 0.65) 100%
-  );
+  background: linear-gradient(180deg, rgba(12, 10, 8, 0.3) 0%, rgba(12, 10, 8, 0.65) 100%);
   color: #fff7ef;
   box-sizing: border-box;
 }
@@ -28,6 +24,7 @@
   text-transform: uppercase;
   cursor: pointer;
   flex: 0 0 auto;
+  opacity: 0.6;
 }
 
 .button:disabled {
@@ -46,6 +43,9 @@
   flex: 1;
   min-width: 0;
   accent-color: var(--accent-strong);
+  background-color: var(--bg);
+  opacity: 0.6;
+  border-radius: 1rem;
 }
 
 .scrubber:active {

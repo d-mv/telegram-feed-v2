@@ -1,6 +1,13 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useAtom } from "jotai/react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Api } from "telegram";
 import { NewMessage } from "telegram/events";
+import { feedItemsAtom } from "./atoms/feedItems.atom";
+import {
+  hasEnabledChannels,
+  notificationPermissionAtom,
+  notificationSettingsAtom,
+} from "./atoms/notifications.atom";
 import { AppContext } from "./domains/app/AppContext";
 import { Message } from "./domains/app/components/Message";
 import { createAuthFromEnv } from "./domains/auth/infra/authFactory";
@@ -16,18 +23,13 @@ import {
 import type { FeedItem } from "./domains/feed/model/mockFeed";
 import { FeedView } from "./domains/feed/ui/FeedView";
 import { Loading } from "./shared/ui/Loading/Loading";
+import type { NotificationSettings } from "./types";
 
 const Empty = lazy(() => import("./domains/app/components/Empty"));
 
 type AppProps = {
   auth?: AuthClient;
 };
-
-type NotificationSettings = Record<string, boolean>;
-
-function getChannelKey(item: FeedItem) {
-  return `${item.type}:${item.chatName}`;
-}
 
 function isNotificationSettings(value: unknown): value is NotificationSettings {
   if (!value || typeof value !== "object") {
@@ -36,22 +38,18 @@ function isNotificationSettings(value: unknown): value is NotificationSettings {
   return Object.values(value).every((entry) => typeof entry === "boolean");
 }
 
-function hasEnabledChannels(settings: NotificationSettings) {
-  return Object.values(settings).some((entry) => entry === true);
-}
-
 function App({ auth }: AppProps) {
+  const [feedItems, setFeedItems] = useAtom(feedItemsAtom);
+  const [notificationSettings, setNotificationSettings] = useAtom(notificationSettingsAtom);
+  const [notificationPermission, setNotificationPermission] = useAtom(notificationPermissionAtom);
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [feedError, setFeedError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingFeed, setIsLoadingFeed] = useState(false);
-  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({});
-  const [notificationPermission, setNotificationPermission] = useState<
-    NotificationPermission | "unsupported"
-  >(typeof Notification === "undefined" ? "unsupported" : Notification.permission);
   const [authClient, setAuthClient] = useState<AuthClient | null>(auth ?? null);
   const [isAuthLoading, setIsAuthLoading] = useState(auth ? false : true);
+
   const dal = useMemo(() => createIndexedDbDal(), []);
   const clientRef = useRef<ReturnType<typeof ensureTelegramConnected> | null>(null);
   const notificationSettingsRef = useRef<NotificationSettings>({});
@@ -75,57 +73,57 @@ function App({ auth }: AppProps) {
   }
 
   function getFallbackChatName(isPrivate: boolean) {
-    if (isPrivate) {
-      return "User";
-    }
+    if (isPrivate) return "User";
+
     return "Group";
   }
 
-  useEffect(() => {
-    if (auth) {
-      setAuthClient(auth);
-      setIsAuthLoading(false);
-      return;
-    }
-    dal
-      .getSession()
-      .then((session) => {
-        const sessionValue = typeof session === "string" ? session : undefined;
-        const client = createAuthFromEnv(import.meta.env, {
-          session: sessionValue,
-          onSession: (nextSession) => {
-            dal.setSession(nextSession).catch(() => {});
-          },
-        });
-        setAuthClient(client);
-      })
-      .catch(() => {
-        const client = createAuthFromEnv(import.meta.env, {
-          onSession: (nextSession) => {
-            dal.setSession(nextSession).catch(() => {});
-          },
-        });
-        setAuthClient(client);
-      })
-      .finally(() => {
-        setIsAuthLoading(false);
+  const authenticate = useCallback(async () => {
+    try {
+      const session = await dal.getSession();
+      const sessionValue = typeof session === "string" ? session : undefined;
+      const client = createAuthFromEnv(import.meta.env, {
+        session: sessionValue,
+        onSession: (nextSession) => {
+          dal.setSession(nextSession).catch(() => {});
+        },
       });
-  }, [auth, dal]);
+      setAuthClient(client);
+    } catch {
+      const client = createAuthFromEnv(import.meta.env, {
+        onSession: (nextSession) => {
+          dal.setSession(nextSession).catch(() => {});
+        },
+      });
+      setAuthClient(client);
+    } finally {
+      setIsAuthLoading(false);
+    }
+  }, [dal, setIsAuthLoading, setAuthClient]);
 
-  useEffect(() => {
-    dal
-      .getNotificationSettings()
-      .then((stored) => {
-        if (isNotificationSettings(stored)) {
-          setNotificationSettings(stored);
-        }
-      })
-      .catch(() => {});
+  const getNotificationSettings = useCallback(async () => {
+    try {
+      const stored = await dal.getNotificationSettings();
+
+      if (isNotificationSettings(stored)) {
+        setNotificationSettings(stored);
+      }
+    } catch (e) {
+      console.log("getNotificationSettings", e);
+    }
   }, [dal]);
 
   useEffect(() => {
-    notificationSettingsRef.current = notificationSettings;
-  }, [notificationSettings]);
+    if (!auth) authenticate();
+    else {
+      setAuthClient(auth);
+      setIsAuthLoading(false);
+    }
+  }, [auth, authenticate]);
+
+  useEffect(() => {
+    getNotificationSettings();
+  }, [dal, getNotificationSettings]);
 
   useEffect(() => {
     if (!authClient || isAuthenticated) {
@@ -166,7 +164,7 @@ function App({ auth }: AppProps) {
     fetchRecentFeed({ perChat: 10, maxAgeDays: 7 })
       .then((items) => {
         setFeedItems(items);
-        const cacheItems = items.map(({ sourceMessage, ...rest }) => rest);
+        const cacheItems = items.map(({ sourceMessage: _sourceMessage, ...rest }) => rest);
         return dal.setFeedCache(cacheItems);
       })
       .catch((error) => {
@@ -319,10 +317,9 @@ function App({ auth }: AppProps) {
 
   function handleToggleChannelNotification(channelKey: string, enabled: boolean) {
     const nextSettings = {
-      ...notificationSettingsRef.current,
+      ...notificationSettings,
       [channelKey]: enabled,
     };
-    notificationSettingsRef.current = nextSettings;
     setNotificationSettings(nextSettings);
     dal.setNotificationSettings(nextSettings).catch(() => {});
 
@@ -355,20 +352,14 @@ function App({ auth }: AppProps) {
     setNotificationPermission(nextPermission);
   }
 
-  if (isLoading) {
-    return <Message>Loading...</Message>;
-  }
+  if (isLoading) return <Message>Loading...</Message>;
 
   if (isAuthLoading || !authClient) return <Message>Preparing session...</Message>;
 
   if (isAuthenticated) {
-    if (isLoadingFeed) {
-      return <Message>Loading feed...</Message>;
-    }
+    if (isLoadingFeed) return <Message>Loading feed...</Message>;
 
-    if (feedError) {
-      return <Message>Feed error: {feedError}</Message>;
-    }
+    if (feedError) return <Message>Feed error: {feedError}</Message>;
 
     if (feedItems.length === 0)
       return (
@@ -380,10 +371,7 @@ function App({ auth }: AppProps) {
     return (
       <AppContext.Provider
         value={{
-          items: feedItems,
-          notificationSettings: notificationSettings,
-          hasEnabledNotifications: hasEnabledChannels(notificationSettings),
-          notificationPermission: notificationPermission,
+          dal,
           onToggleChannelNotification: handleToggleChannelNotification,
           onRequestNotificationPermission: handleRequestNotificationPermission,
           onDisableNotifications: handleDisableNotifications,

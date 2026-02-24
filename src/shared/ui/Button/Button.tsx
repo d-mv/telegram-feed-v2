@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from "react";
 import styles from "./Button.module.css";
 
-type ButtonVariant = "default" | "primary" | "ghost" | "image";
+export type ButtonVariant = "default" | "primary" | "ghost" | "image";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;

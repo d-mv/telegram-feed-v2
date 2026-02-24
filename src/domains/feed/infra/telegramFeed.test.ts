@@ -74,13 +74,19 @@ vi.mock('telegram', () => ({
 }))
 
 const ensureTelegramConnectedMock = vi.hoisted(() => vi.fn())
+const createIndexedDbDalMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../../auth/infra/telegramAuth', () => ({
   ensureTelegramConnected: ensureTelegramConnectedMock,
 }))
 
+vi.mock('../../dal/indexedDbDal', () => ({
+  createIndexedDbDal: createIndexedDbDalMock,
+}))
+
 import { Api } from 'telegram'
 import {
+  downloadMediaForItem,
   fetchRecentFeed,
   getMediaPreview,
   toRelativeTime,
@@ -93,6 +99,13 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers()
+})
+
+beforeEach(() => {
+  createIndexedDbDalMock.mockReturnValue({
+    getMedia: vi.fn().mockResolvedValue(undefined),
+    setMedia: vi.fn().mockResolvedValue(undefined),
+  })
 })
 
 describe('toRelativeTime', () => {
@@ -226,5 +239,47 @@ describe('fetchRecentFeed', () => {
     expect(items[0]?.type).toBe('dm')
     expect(items[1]?.id).toBe('group-202-4')
     expect(items[1]?.type).toBe('group')
+  })
+})
+
+describe('downloadMediaForItem', () => {
+  test('passes through NativeBigInt progress values to callback', async () => {
+    const sourceMessage = new Api.Message({ id: 55 })
+    const item = {
+      id: 'group-1-55',
+      type: 'group' as const,
+      chatName: 'Team',
+      timestamp: 'now',
+      text: 'video',
+      media: {
+        meta: {
+          type: 'video' as const,
+          width: 640,
+          height: 360,
+          sizeBytes: 1000,
+          mimeType: 'video/mp4',
+        },
+        alt: 'Media',
+      },
+      sourceMessage,
+    }
+    const progress = vi.fn()
+    const client = {
+      downloadMedia: vi.fn().mockImplementation((_message, options?: unknown) => {
+        const callback = (options as { progressCallback?: (d: unknown, t: unknown) => void })
+          ?.progressCallback
+        callback?.({ value: 131072n }, { value: 10289371n })
+        return undefined
+      }),
+    }
+
+    ensureTelegramConnectedMock.mockResolvedValue(client)
+
+    await downloadMediaForItem(item, progress)
+
+    expect(progress).toHaveBeenCalledWith(
+      expect.objectContaining({ value: 131072n }),
+      expect.objectContaining({ value: 10289371n }),
+    )
   })
 })

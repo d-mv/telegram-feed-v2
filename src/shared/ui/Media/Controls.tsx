@@ -1,4 +1,4 @@
-import styles from './Media.module.css'
+import styles from './Controls.module.css'
 
 type Props = {
   handleTogglePlay: () => void

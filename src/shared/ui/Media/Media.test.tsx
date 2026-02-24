@@ -1,0 +1,86 @@
+import userEvent from '@testing-library/user-event'
+import { act, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import type { FeedItem } from '../../../types'
+import { downloadMediaForItem } from '../../../domains/feed/infra/telegramFeed'
+import { Media } from './Media'
+
+vi.mock('../../../domains/feed/infra/telegramFeed', () => ({
+  downloadMediaForItem: vi.fn(),
+  downloadThumbnailForItem: vi.fn(),
+  getCachedMediaUrl: vi.fn().mockResolvedValue(undefined),
+}))
+
+describe('Media video controls', () => {
+  it('uses a dedicated controls container class instead of the media root container class', () => {
+    const item: FeedItem = {
+      id: 'video-1',
+      type: 'group',
+      chatName: 'Test',
+      timestamp: 'now',
+      text: 'video',
+      media: {
+        meta: {
+          type: 'video',
+          width: 640,
+          height: 360,
+          sizeBytes: 1024,
+        },
+        url: 'https://example.com/poster.jpg',
+        alt: 'preview',
+      },
+    }
+
+    const { container } = render(<Media item={item} />)
+
+    const mediaContainer = container.querySelector('[data-media-type="video"]')
+    const playButton = screen.getByRole('button', { name: 'Play' })
+    const controlsContainer = playButton.parentElement
+
+    expect(mediaContainer).toBeTruthy()
+    expect(controlsContainer).toBeTruthy()
+    expect(controlsContainer?.className).not.toBe(mediaContainer?.className)
+  })
+
+  it('updates video download progress when total is provided', async () => {
+    let progressHandler: ((downloaded: number, total: number) => void) | undefined
+    let resolveDownload: ((value: string | undefined) => void) | undefined
+
+    vi.mocked(downloadMediaForItem).mockImplementationOnce((_, onProgress) => {
+      progressHandler = onProgress
+      return new Promise<string | undefined>((resolve) => {
+        resolveDownload = resolve
+      })
+    })
+
+    const item: FeedItem = {
+      id: 'video-2',
+      type: 'group',
+      chatName: 'Test',
+      timestamp: 'now',
+      text: 'video',
+      media: {
+        meta: {
+          type: 'video',
+          width: 640,
+          height: 360,
+          sizeBytes: 1000,
+        },
+        url: 'https://example.com/poster.jpg',
+        alt: 'preview',
+      },
+    }
+
+    const user = userEvent.setup()
+    render(<Media item={item} />)
+    await user.click(screen.getByRole('button', { name: /download/i }))
+
+    act(() => {
+      progressHandler?.(500, 1000)
+    })
+    expect(await screen.findByText('50%')).toBeInTheDocument()
+    await act(async () => {
+      resolveDownload?.('blob:test')
+    })
+  })
+})

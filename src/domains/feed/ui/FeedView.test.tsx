@@ -1,25 +1,27 @@
-import { render, screen } from '@testing-library/react'
+import { Provider } from 'jotai/react'
+import { createStore } from 'jotai/vanilla'
+import { act, render, screen } from '@testing-library/react'
+import { feedItemsAtom } from '../../../atoms/feedItems.atom'
 import type { FeedItem } from '../model/mockFeed'
 import { FeedView } from './FeedView'
 
-const defaultProps = {
-  notificationSettings: {},
-  hasEnabledNotifications: false,
-  notificationPermission: 'default' as NotificationPermission,
-  onToggleChannelNotification: () => {},
-  onRequestNotificationPermission: () => {},
-  onDisableNotifications: () => {},
+function renderWithStore(store = createStore()) {
+  return render(
+    <Provider store={store}>
+      <FeedView />
+    </Provider>,
+  )
 }
 
 test('renders feed placeholder', () => {
-  render(<FeedView {...defaultProps} />)
+  renderWithStore()
 
   expect(
     screen.getByRole('heading', { name: /your feed is ready/i }),
   ).toBeInTheDocument()
 })
 
-test('updates visible messages when items prop changes', () => {
+test('updates visible messages when feed atom changes', () => {
   const first: FeedItem[] = [
     {
       id: 'dm-first',
@@ -44,9 +46,20 @@ test('updates visible messages when items prop changes', () => {
     },
   ]
 
-  const { rerender } = render(<FeedView {...defaultProps} items={first} />)
+  const store = createStore()
+  act(() => {
+    store.set(feedItemsAtom, first)
+  })
+  const { rerender } = renderWithStore(store)
   expect(screen.getByText('First message')).toBeInTheDocument()
 
-  rerender(<FeedView {...defaultProps} items={second} />)
+  act(() => {
+    store.set(feedItemsAtom, second)
+  })
+  rerender(
+    <Provider store={store}>
+      <FeedView />
+    </Provider>,
+  )
   expect(screen.getByText('Second message')).toBeInTheDocument()
 })

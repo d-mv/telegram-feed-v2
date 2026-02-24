@@ -1,9 +1,26 @@
 .header {
   display: grid;
-  gap: 10px;
+  grid-template-areas: "left right" "left right";
+  position: relative;
+  grid-template-columns: 1fr;
 }
 
-.eyebrow {
+.left {
+  grid-area: left;
+  grid-template-areas: "title" "subtitle";
+  gap: 2rem;
+}
+
+.right {
+  grid-area: right;
+}
+
+.title {
+  grid-area: title;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   font-size: 1rem;
   letter-spacing: 0.3em;
   text-transform: uppercase;
@@ -11,7 +28,16 @@
   margin: 0;
 }
 
-.title {
+.subtitle {
+  grid-area: subtitle;
+  display: grid;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2.8vw, 2.8rem);
+  margin: 0;
+}
+
+/* .title {
   font-family: var(--font-display);
   font-size: clamp(1.4rem, 2.8vw, 2.8rem);
   margin: 0;
@@ -22,4 +48,4 @@
   color: var(--muted);
   max-width: 36ch;
   font-size: 0.8rem;
-}
+} */

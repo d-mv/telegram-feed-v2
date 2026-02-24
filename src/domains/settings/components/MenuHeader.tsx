@@ -1,14 +1,15 @@
+import type { PropsWithChildren } from "react";
 import { Button } from "../../../shared/ui/Button/Button";
-import styles from "./Header.module.css";
+import styles from "./MenuHeader.module.css";
 
 type Props = {
   onClose: () => void;
 };
 
-export function Header({ onClose }: Props) {
+export function MenuHeader({ onClose, children }: PropsWithChildren<Props>) {
   return (
     <header className={styles.container}>
-      <h2 className={styles.title}>Settings</h2>
+      <h3 className={styles.title}>{children}</h3>
       <Button
         variant="image"
         type="button"

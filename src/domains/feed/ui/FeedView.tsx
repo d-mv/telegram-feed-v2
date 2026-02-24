@@ -1,13 +1,12 @@
+import { useAtomValue, useSetAtom } from "jotai/react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useContextSelector } from "use-context-selector";
-import { AppContext } from "../../app/AppContext";
-import { createIndexedDbDal } from "../../dal/indexedDbDal";
-import { Settings } from "../../settings/Settings";
+import { channelsAtom } from "../../../atoms/channels.atom";
+import { feedItemsAtom } from "../../../atoms/feedItems.atom";
 import type { FeedItem } from "../model/mockFeed";
 import { getMockFeedBatch, getMockLiveItem } from "../model/mockFeed";
 import { Chat } from "./Chat";
+import { FeedCard } from "./FeedCard";
 import { FeedHeader } from "./FeedHeader";
-import { FeedList } from "./FeedList";
 import styles from "./FeedView.module.css";
 import { ScrollTopButton } from "./ScrollTopButton";
 
@@ -25,9 +24,9 @@ const TOTAL_ITEMS = 60;
 // };
 
 export function FeedView() {
-  const providedItems = useContextSelector(AppContext, (c) => c.items);
+  const providedItems = useAtomValue(feedItemsAtom);
+  const setChannels = useSetAtom(channelsAtom);
   const allItems = useMemo(() => getMockFeedBatch(TOTAL_ITEMS), []);
-  const dal = useMemo(() => createIndexedDbDal(), []);
   const initialStart = Math.max(0, allItems.length - PAGE_SIZE);
   const [items, setItems] = useState<FeedItem[]>(
     () => providedItems ?? allItems.slice(initialStart),
@@ -41,35 +40,51 @@ export function FeedView() {
   const pendingPrependRef = useRef<{ height: number; adjust: boolean } | null>(null);
 
   useEffect(() => {
-    if (!providedItems) {
-      return;
-    }
+    if (!providedItems) return;
+
     setItems(providedItems);
   }, [providedItems]);
 
   function prependItems(nextItems: FeedItem[], adjustScroll: boolean) {
-    if (nextItems.length === 0) {
-      return;
-    }
+    if (nextItems.length === 0) return;
+
     const prevHeight = document.documentElement.scrollHeight;
     pendingPrependRef.current = { height: prevHeight, adjust: adjustScroll };
     setItems((current) => [...nextItems, ...current]);
   }
 
   function prependMore() {
-    if (cursor <= 0) {
-      return;
-    }
+    if (cursor <= 0) return;
+
     const nextCursor = Math.max(0, cursor - PAGE_SIZE);
     setIsLoadingOlder(true);
     prependItems(allItems.slice(nextCursor, cursor), true);
     setCursor(nextCursor);
   }
 
-  useLayoutEffect(() => {
-    if (!pendingPrependRef.current) {
-      return;
+  function updateChannels() {
+    const entries = new Map<string, { key: string; label: string }>();
+
+    for (const item of items) {
+      const key = `${item.type}:${item.chatName}`;
+      if (!entries.has(key)) {
+        entries.set(key, {
+          key,
+          label: item.chatName,
+        });
+      }
     }
+
+    setChannels(() => [...entries.values()].sort((a, b) => a.label.localeCompare(b.label)));
+  }
+
+  useEffect(() => {
+    updateChannels();
+  }, [items]);
+
+  useLayoutEffect(() => {
+    if (!pendingPrependRef.current) return;
+
     const { height, adjust } = pendingPrependRef.current;
     pendingPrependRef.current = null;
     if (adjust) {
@@ -93,9 +108,8 @@ export function FeedView() {
   }, []);
 
   useEffect(() => {
-    if (providedItems) {
-      return;
-    }
+    if (providedItems) return;
+
     const target = topSentinelRef.current;
     if (!target) {
       return;
@@ -113,9 +127,8 @@ export function FeedView() {
   }, [cursor, allItems, providedItems]);
 
   useEffect(() => {
-    if (providedItems) {
-      return;
-    }
+    if (providedItems) return;
+
     const interval = window.setInterval(() => {
       const shouldKeepScroll = window.scrollY > 80;
       const nextItem = getMockLiveItem();
@@ -127,20 +140,6 @@ export function FeedView() {
 
   const body = document.body;
 
-  const channels = useMemo(() => {
-    const entries = new Map<string, { key: string; label: string }>();
-    for (const item of items) {
-      const key = `${item.type}:${item.chatName}`;
-      if (!entries.has(key)) {
-        entries.set(key, {
-          key,
-          label: item.chatName,
-        });
-      }
-    }
-    return [...entries.values()].sort((a, b) => a.label.localeCompare(b.label));
-  }, [items]);
-
   useEffect(() => {
     if (focusedItem) {
       setCursor(items.findIndex((item) => item.id === focusedItem.id));
@@ -150,20 +149,26 @@ export function FeedView() {
     }
   }, [focusedItem, items]);
 
+  const renderItem = (item: FeedItem) => (
+    <FeedCard key={item.id} item={item} onFocus={setFocusedItem} />
+  );
+
   return (
     <section className={styles.feedShell}>
       <FeedHeader />
-      <FeedList
-        items={items}
-        isLoadingOlder={isLoadingOlder}
-        topSentinelRef={topSentinelRef}
-        onFocus={setFocusedItem}
-      />
+      <div className={styles.list}>
+        <div ref={topSentinelRef} className={styles.sentinel} />
+        {isLoadingOlder && (
+          <p className={styles.loading} aria-live="polite">
+            Loading older...
+          </p>
+        )}
+        {items.map(renderItem)}
+      </div>
       {focusedItem && <Chat item={focusedItem} onClose={() => setFocusedItem(null)} />}
       {showScrollTop && (
         <ScrollTopButton onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
       )}
-      <Settings isOpen={Boolean(focusedItem)} dal={dal} channels={channels} />
     </section>
   );
 }

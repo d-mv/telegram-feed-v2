@@ -1,7 +1,6 @@
 .container {
   display: grid;
-  gap: 0.8rem;
-  /* max-height: 70%; */
+  gap: 1.2rem;
   overflow: auto;
   padding-inline-end: 1rem;
 }

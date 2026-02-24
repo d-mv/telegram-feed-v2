@@ -272,26 +272,7 @@ function sniffImageMime(bytes: Uint8Array | null): string | null {
   return null;
 }
 
-type DownloadProgressCallback = (downloaded: number, total: number) => void;
-
-function toNumber(value: unknown): number {
-  if (value === null || value === undefined) {
-    return 0;
-  }
-  if (typeof value === "number") {
-    return value;
-  }
-  if (typeof value === "bigint") {
-    return Number(value);
-  }
-  if (value && typeof value === "object" && "toJSNumber" in value) {
-    const maybeNumber = (value as { toJSNumber?: () => number }).toJSNumber;
-    if (typeof maybeNumber === "function") {
-      return maybeNumber();
-    }
-  }
-  return Number(value);
-}
+type DownloadProgressCallback = (downloaded: bigInt.BigInteger, total: bigInt.BigInteger) => void;
 
 export async function downloadMediaForItem(
   item: FeedItem,
@@ -309,21 +290,9 @@ export async function downloadMediaForItem(
       return URL.createObjectURL(cached);
     }
   }
-  const progressCallback = onProgress
-    ? (downloaded: unknown, total: unknown) => {
-        try {
-          const downloadedValue = toNumber(downloaded);
-          const totalValue = toNumber(total);
-          if (Number.isFinite(downloadedValue) && Number.isFinite(totalValue)) {
-            onProgress(downloadedValue, totalValue);
-          }
-        } catch {
-          // ignore progress callback errors
-        }
-      }
-    : undefined;
+
   const buffer = await client.downloadMedia(item.sourceMessage as Api.Message, {
-    progressCallback,
+    progressCallback: onProgress,
   });
   const size = getBinarySize(buffer);
   if (!buffer || size === 0) {

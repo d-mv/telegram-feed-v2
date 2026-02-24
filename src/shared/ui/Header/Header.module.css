@@ -1,15 +1,19 @@
 .container {
   display: grid;
-  grid-template-columns: 1fr 4.5rem;
+  grid-template-columns: 1fr auto;
 }
 
 .header {
   margin: 0;
+  font-size: 1.2rem;
+  font-weight: 300;
 }
 
 .timestamp {
   color: var(--ink);
-  font-size: 0.7rem;
+  font-size: 1.2rem;
+  font-weight: 300;
+  white-space: nowrap;
   justify-self: end;
   align-self: center;
 }

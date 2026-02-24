@@ -1,0 +1,28 @@
+.container {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: 2rem 2rem;
+  grid-template-areas: "title button" "subtitle button";
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.title {
+  grid-area: title;
+  font-size: 1.6rem;
+  font-weight: 500;
+  margin-inline: 0;
+  margin-block: 0;
+}
+
+.subtitle {
+  grid-area: subtitle;
+  font-size: 1.4rem;
+  margin-inline: 0;
+  margin-block: 0;
+  color: var(--muted);
+}
+
+.button {
+  grid-area: button;
+}
