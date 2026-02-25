@@ -1,4 +1,4 @@
-import { Menu } from "../../settings/Menu";
+import { Menu } from "../../menu/Menu";
 import styles from "./FeedHeader.module.css";
 
 export function FeedHeader() {
@@ -8,7 +8,7 @@ export function FeedHeader() {
         <p className={styles.title}>Feed</p>
         <h1 className={styles.subtitle}>Your feed is ready.</h1>
       </div>
-      <Menu className={styles.right} />
+      <Menu />
     </header>
   );
 }

@@ -1,15 +1,25 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react";
-import { lazy } from "react";
+import { lazy, useContext } from "react";
 import { menuIsOpenAtom, menuItemAtom, toggleMenuAtom } from "../../atoms/menu.atom";
+import { AppContext } from "../app/AppContext";
 import styles from "./Menu.module.css";
 
 const NotificationSettings = lazy(() => import("./components/NotificationsSettings"));
+const FiltersSettings = lazy(() => import("./components/FiltersSettings"));
 const Maintenance = lazy(() => import("./components/Maintenance"));
 
 const MENU_ITEMS = [
   {
+    label: "Refresh",
+    action: "refresh",
+  },
+  {
     label: "Notifications",
     module: NotificationSettings,
+  },
+  {
+    label: "Filters",
+    module: FiltersSettings,
   },
   {
     label: "Maintenance",
@@ -21,37 +31,27 @@ export function Menu() {
   const toggleMenu = useSetAtom(toggleMenuAtom);
   const [module, setModule] = useAtom(menuItemAtom);
   const isMenuOpen = useAtomValue(menuIsOpenAtom);
-  // const [isMenuOpen, setIsMenuOpen] = useState(false);
-  // const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  // const [isClearingCache, setIsClearingCache] = useState(false);
-
-  // function handleCloseSettings() {
-  //   setIsSettingsOpen(false);
-  //   setIsMenuOpen(false);
-  // }
-
-  // async function handleClearCache() {
-  //   setIsClearingCache(true);
-  //   try {
-  //     await dal.clearCache();
-  //   } finally {
-  //     setIsClearingCache(false);
-  //   }
-  // }
-  // if (isOpen) {
-  //   return null;
-  // }
+  const { onManualRefresh } = useContext(AppContext);
 
   function renderModule() {
     if (module === null) {
       return null;
     }
-    const Module = MENU_ITEMS[module].module;
+    const menuItem = MENU_ITEMS[module];
+    if (!("module" in menuItem)) {
+      return null;
+    }
+    const Module = menuItem.module;
     return <Module />;
   }
 
   function handleClick(index: number) {
     return function call() {
+      if ("action" in MENU_ITEMS[index] && MENU_ITEMS[index].action === "refresh") {
+        onManualRefresh();
+        toggleMenu();
+        return;
+      }
       setModule(index);
       toggleMenu();
     };

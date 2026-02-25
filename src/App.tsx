@@ -3,6 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { Api } from "telegram";
 import { NewMessage } from "telegram/events";
 import { feedItemsAtom } from "./atoms/feedItems.atom";
+import { feedFilterSettingsAtom } from "./atoms/feedFilters.atom";
 import {
   hasEnabledChannels,
   notificationPermissionAtom,
@@ -23,7 +24,7 @@ import {
 import type { FeedItem } from "./domains/feed/model/mockFeed";
 import { FeedView } from "./domains/feed/ui/FeedView";
 import { Loading } from "./shared/ui/Loading/Loading";
-import type { NotificationSettings } from "./types";
+import type { FeedFilterSettings, NotificationSettings } from "./types";
 
 const Empty = lazy(() => import("./domains/app/components/Empty"));
 
@@ -38,8 +39,16 @@ function isNotificationSettings(value: unknown): value is NotificationSettings {
   return Object.values(value).every((entry) => typeof entry === "boolean");
 }
 
+function isFeedFilterSettings(value: unknown): value is FeedFilterSettings {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  return Object.values(value).every((entry) => typeof entry === "boolean");
+}
+
 function App({ auth }: AppProps) {
   const [feedItems, setFeedItems] = useAtom(feedItemsAtom);
+  const [feedFilterSettings, setFeedFilterSettings] = useAtom(feedFilterSettingsAtom);
   const [notificationSettings, setNotificationSettings] = useAtom(notificationSettingsAtom);
   const [notificationPermission, setNotificationPermission] = useAtom(notificationPermissionAtom);
 
@@ -53,6 +62,11 @@ function App({ auth }: AppProps) {
   const dal = useMemo(() => createIndexedDbDal(), []);
   const clientRef = useRef<ReturnType<typeof ensureTelegramConnected> | null>(null);
   const notificationSettingsRef = useRef<NotificationSettings>({});
+  const feedItemsRef = useRef<FeedItem[]>([]);
+
+  useEffect(() => {
+    feedItemsRef.current = feedItems;
+  }, [feedItems]);
 
   function formatSender(entity: unknown, fallback: string) {
     if (!entity || typeof entity !== "object") {
@@ -113,6 +127,17 @@ function App({ auth }: AppProps) {
     }
   }, [dal]);
 
+  const getFeedFilterSettings = useCallback(async () => {
+    try {
+      const stored = await dal.getFeedFilterSettings();
+      if (isFeedFilterSettings(stored)) {
+        setFeedFilterSettings(stored);
+      }
+    } catch (e) {
+      console.log("getFeedFilterSettings", e);
+    }
+  }, [dal, setFeedFilterSettings]);
+
   useEffect(() => {
     if (!auth) authenticate();
     else {
@@ -123,7 +148,8 @@ function App({ auth }: AppProps) {
 
   useEffect(() => {
     getNotificationSettings();
-  }, [dal, getNotificationSettings]);
+    getFeedFilterSettings();
+  }, [dal, getFeedFilterSettings, getNotificationSettings]);
 
   useEffect(() => {
     if (!authClient || isAuthenticated) {
@@ -146,23 +172,23 @@ function App({ auth }: AppProps) {
     };
   }, [authClient, isAuthenticated]);
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      return;
-    }
+  const refreshFeed = useCallback(() => {
     setIsLoadingFeed(true);
     setFeedError("");
     dal
       .getFeedCache()
       .then((cached) => {
         if (Array.isArray(cached)) {
-          setFeedItems(cached as FeedItem[]);
+          const nextItems = cached as FeedItem[];
+          feedItemsRef.current = nextItems;
+          setFeedItems(nextItems);
         }
       })
       .catch(() => {});
 
     fetchRecentFeed({ perChat: 10, maxAgeDays: 7 })
       .then((items) => {
+        feedItemsRef.current = items;
         setFeedItems(items);
         const cacheItems = items.map(({ sourceMessage: _sourceMessage, ...rest }) => rest);
         return dal.setFeedCache(cacheItems);
@@ -177,7 +203,14 @@ function App({ auth }: AppProps) {
       .finally(() => {
         setIsLoadingFeed(false);
       });
-  }, [isAuthenticated]);
+  }, [dal, setFeedItems]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+    refreshFeed();
+  }, [isAuthenticated, refreshFeed]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -218,66 +251,74 @@ function App({ auth }: AppProps) {
           const timestamp = message.date ? toRelativeTime(message.date) : "";
           const media = getMediaPreview(message);
           const idPrefix = isPrivate ? "dm" : "group";
+          const channelKey = `${isPrivate ? "dm" : "group"}:${chatId}`;
+          const legacyChannelKey = `${isPrivate ? "dm" : "group"}:${chatName}`;
           const itemId = `${idPrefix}-${chatId}-${message.id ?? message.date}`;
+          const currentFeedItems = feedItemsRef.current;
+          if (currentFeedItems.some((entry) => entry.id === itemId)) {
+            return;
+          }
+          let nextItem: FeedItem;
+          if (isPrivate) {
+            nextItem = {
+              id: itemId,
+              channelKey,
+              type: "dm",
+              chatName,
+              senderName,
+              timestamp,
+              text: message.message ?? "",
+              media,
+              reactions: [],
+              sourceMessage: message,
+            };
+          } else {
+            nextItem = {
+              id: itemId,
+              channelKey,
+              type: "group",
+              chatName,
+              timestamp,
+              text: message.message ?? "",
+              media,
+              sourceMessage: message,
+            };
+          }
+          const nextFeedItems = [nextItem, ...currentFeedItems];
+          feedItemsRef.current = nextFeedItems;
+          setFeedItems(nextFeedItems);
 
-          let inserted = false;
-
-          setFeedItems((current) => {
-            if (current.some((entry) => entry.id === itemId)) {
-              return current;
-            }
-            let nextItem: FeedItem;
-            if (isPrivate) {
-              nextItem = {
-                id: itemId,
-                type: "dm",
-                chatName,
-                senderName,
-                timestamp,
-                text: message.message ?? "",
-                media,
-                reactions: [],
-                sourceMessage: message,
-              };
-            } else {
-              nextItem = {
-                id: itemId,
-                type: "group",
-                chatName,
-                timestamp,
-                text: message.message ?? "",
-                media,
-                sourceMessage: message,
-              };
-            }
-            inserted = true;
-            return [nextItem, ...current];
-          });
-
-          const channelKey = `${isPrivate ? "dm" : "group"}:${chatName}`;
-          const notificationsEnabled = notificationSettings[channelKey] === true;
+          const notificationsEnabled =
+            notificationSettings[channelKey] === true ||
+            notificationSettings[legacyChannelKey] === true;
           const canNotify =
-            typeof Notification !== "undefined" &&
-            notificationPermission === "granted" &&
-            document.visibilityState !== "visible";
+            typeof Notification !== "undefined" && notificationPermission === "granted";
 
-          if (inserted && notificationsEnabled && canNotify) {
+          if (notificationsEnabled && canNotify) {
             const body = message.message ?? "";
+            const payload = {
+              body: body === "" ? "New message" : body,
+              tag: channelKey,
+              icon: "/favicon-192.png",
+            };
             try {
+              let shown = false;
               if ("serviceWorker" in navigator) {
-                const registration = await navigator.serviceWorker.ready;
-                await registration.showNotification(chatName, {
-                  body: body === "" ? "New message" : body,
-                  tag: channelKey,
-                  icon: "/favicon-192.png",
-                  badge: "/favicon-96.png",
-                });
-              } else {
-                new Notification(chatName, {
-                  body: body === "" ? "New message" : body,
-                  tag: channelKey,
-                  icon: "/favicon-192.png",
-                });
+                try {
+                  const registration = await navigator.serviceWorker.getRegistration();
+                  if (registration && "showNotification" in registration) {
+                    await registration.showNotification(chatName, {
+                      ...payload,
+                      badge: "/favicon-96.png",
+                    });
+                    shown = true;
+                  }
+                } catch {
+                  shown = false;
+                }
+              }
+              if (!shown) {
+                new Notification(chatName, payload);
               }
             } catch {
               // ignore notification errors
@@ -343,6 +384,23 @@ function App({ auth }: AppProps) {
     closeVisibleNotifications();
   }
 
+  function handleToggleChannelFilter(channelKey: string, enabled: boolean) {
+    const nextSettings = { ...feedFilterSettings };
+    if (enabled) {
+      delete nextSettings[channelKey];
+    } else {
+      nextSettings[channelKey] = false;
+    }
+    setFeedFilterSettings(nextSettings);
+    dal.setFeedFilterSettings(nextSettings).catch(() => {});
+  }
+
+  function handleEnableAllFeedFilters() {
+    const nextSettings: FeedFilterSettings = {};
+    setFeedFilterSettings(nextSettings);
+    dal.setFeedFilterSettings(nextSettings).catch(() => {});
+  }
+
   async function handleRequestNotificationPermission() {
     if (typeof Notification === "undefined") {
       setNotificationPermission("unsupported");
@@ -372,9 +430,12 @@ function App({ auth }: AppProps) {
       <AppContext.Provider
         value={{
           dal,
+          onManualRefresh: refreshFeed,
           onToggleChannelNotification: handleToggleChannelNotification,
+          onToggleChannelFilter: handleToggleChannelFilter,
           onRequestNotificationPermission: handleRequestNotificationPermission,
           onDisableNotifications: handleDisableNotifications,
+          onEnableAllFeedFilters: handleEnableAllFeedFilters,
         }}
       >
         <FeedView />

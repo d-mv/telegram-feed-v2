@@ -77,6 +77,8 @@ export function createIndexedDbDal(): Dal {
     getNotificationSettings: () => getValue('notification-settings'),
     setNotificationSettings: (settings) =>
       setValue('notification-settings', settings),
+    getFeedFilterSettings: () => getValue('feed-filter-settings'),
+    setFeedFilterSettings: (settings) => setValue('feed-filter-settings', settings),
     getFeedCache: () => getValue('feed'),
     setFeedCache: (feed) => setValue('feed', feed),
     getSaved: () => getValue('saved'),

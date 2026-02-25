@@ -3,9 +3,12 @@ import { createContext } from "react";
 import type { Dal } from "../dal/types";
 
 type AppContextType = {
+  onManualRefresh: () => void;
   onToggleChannelNotification: (channelKey: string, enabled: boolean) => void;
+  onToggleChannelFilter: (channelKey: string, enabled: boolean) => void;
   onRequestNotificationPermission: () => void;
   onDisableNotifications: () => void;
+  onEnableAllFeedFilters: () => void;
   dal: Dal;
 };
 

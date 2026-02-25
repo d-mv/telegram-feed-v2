@@ -142,6 +142,8 @@ export async function fetchRecentFeed(
       }
 
       const chatName = dialog.name || dialog.title || (dialog.isUser ? "User" : "Group");
+      const chatId = dialog.id?.toString() ?? "chat";
+      const channelKey = `${dialog.isUser ? "dm" : "group"}:${chatId}`;
       const timestamp = toRelativeTime(message.date);
       const text = message.message ?? "";
       const media = getMediaPreview(message);
@@ -151,6 +153,7 @@ export async function fetchRecentFeed(
         items.push({
           item: {
             id: `dm-${dialog.id?.toString() ?? "chat"}-${idSuffix}`,
+            channelKey,
             type: "dm",
             chatName,
             senderName: chatName,
@@ -166,6 +169,7 @@ export async function fetchRecentFeed(
         items.push({
           item: {
             id: `group-${dialog.id?.toString() ?? "chat"}-${idSuffix}`,
+            channelKey,
             type: "group",
             chatName,
             timestamp,

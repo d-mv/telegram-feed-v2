@@ -1,6 +1,7 @@
 import { useAtomValue, useSetAtom } from "jotai/react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { channelsAtom } from "../../../atoms/channels.atom";
+import { feedFilterSettingsAtom } from "../../../atoms/feedFilters.atom";
 import { feedItemsAtom } from "../../../atoms/feedItems.atom";
 import type { FeedItem } from "../model/mockFeed";
 import { getMockFeedBatch, getMockLiveItem } from "../model/mockFeed";
@@ -12,6 +13,17 @@ import { ScrollTopButton } from "./ScrollTopButton";
 
 const PAGE_SIZE = 10;
 const TOTAL_ITEMS = 60;
+
+function getItemChannelKey(item: FeedItem): string {
+  if (item.channelKey) {
+    return item.channelKey;
+  }
+  const [prefix, chatId] = item.id.split("-");
+  if ((prefix === "dm" || prefix === "group") && chatId) {
+    return `${prefix}:${chatId}`;
+  }
+  return `${item.type}:${item.chatName}`;
+}
 
 // type FeedViewProps = {
 //   items?: FeedItem[];
@@ -25,6 +37,7 @@ const TOTAL_ITEMS = 60;
 
 export function FeedView() {
   const providedItems = useAtomValue(feedItemsAtom);
+  const feedFilterSettings = useAtomValue(feedFilterSettingsAtom);
   const setChannels = useSetAtom(channelsAtom);
   const allItems = useMemo(() => getMockFeedBatch(TOTAL_ITEMS), []);
   const initialStart = Math.max(0, allItems.length - PAGE_SIZE);
@@ -66,7 +79,8 @@ export function FeedView() {
     const entries = new Map<string, { key: string; label: string }>();
 
     for (const item of items) {
-      const key = `${item.type}:${item.chatName}`;
+      const parsedChannelKey = getItemChannelKey(item);
+      const key = parsedChannelKey;
       if (!entries.has(key)) {
         entries.set(key, {
           key,
@@ -153,6 +167,11 @@ export function FeedView() {
     <FeedCard key={item.id} item={item} onFocus={setFocusedItem} />
   );
 
+  const visibleItems = useMemo(
+    () => items.filter((item) => feedFilterSettings[getItemChannelKey(item)] !== false),
+    [feedFilterSettings, items],
+  );
+
   return (
     <section className={styles.feedShell}>
       <FeedHeader />
@@ -163,7 +182,7 @@ export function FeedView() {
             Loading older...
           </p>
         )}
-        {items.map(renderItem)}
+        {visibleItems.map(renderItem)}
       </div>
       {focusedItem && <Chat item={focusedItem} onClose={() => setFocusedItem(null)} />}
       {showScrollTop && (

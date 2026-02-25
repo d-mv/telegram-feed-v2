@@ -20,6 +20,7 @@ type Reaction = {
 
 interface Message {
   id: string;
+  channelKey?: string;
   chatName: string;
   timestamp: string;
   text: string;
@@ -45,3 +46,4 @@ export type Channel = {
 };
 
 export type NotificationSettings = Record<string, boolean>;
+export type FeedFilterSettings = Record<string, boolean>;

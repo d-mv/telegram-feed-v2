@@ -21,6 +21,7 @@ type Reaction = {
 export type FeedItem =
   | {
       id: string
+      channelKey?: string
       type: 'dm'
       chatName: string
       senderName: string
@@ -32,6 +33,7 @@ export type FeedItem =
     }
   | {
       id: string
+      channelKey?: string
       type: 'group'
       chatName: string
       timestamp: string

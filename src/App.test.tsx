@@ -19,6 +19,8 @@ vi.mock('./domains/dal/indexedDbDal', () => ({
     setSession: vi.fn().mockResolvedValue(undefined),
     getNotificationSettings: vi.fn().mockResolvedValue(undefined),
     setNotificationSettings: vi.fn().mockResolvedValue(undefined),
+    getFeedFilterSettings: vi.fn().mockResolvedValue(undefined),
+    setFeedFilterSettings: vi.fn().mockResolvedValue(undefined),
     getFeedCache: vi.fn().mockResolvedValue(undefined),
     setFeedCache: vi.fn().mockResolvedValue(undefined),
     getSaved: vi.fn().mockResolvedValue(undefined),
