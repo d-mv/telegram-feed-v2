@@ -71,6 +71,10 @@ const telegramMock = vi.hoisted(() => {
     }
   }
 
+  class GetUserPhotos {
+    constructor(public data: Record<string, unknown> = {}) {}
+  }
+
   return {
     Message,
     Photo,
@@ -81,6 +85,9 @@ const telegramMock = vi.hoisted(() => {
     DocumentAttributeAudio,
     MessageMediaPhoto,
     MessageMediaDocument,
+    photos: {
+      GetUserPhotos,
+    },
   }
 })
 
@@ -101,9 +108,15 @@ vi.mock('../../dal/indexedDbDal', () => ({
 
 import { Api } from 'telegram'
 import {
+  downloadThumbnailForItem,
   downloadMediaForItem,
   fetchRecentFeed,
+  getAvatarPhotoGallery,
+  getAvatarPhotoUrl,
+  getCachedMediaUrl,
+  getMessageCommentsCount,
   getMediaPreview,
+  sendMessageToFeedItem,
   toRelativeTime,
 } from './telegramFeed'
 
@@ -121,6 +134,14 @@ beforeEach(() => {
     getMedia: vi.fn().mockResolvedValue(undefined),
     setMedia: vi.fn().mockResolvedValue(undefined),
   })
+  vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock')
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+    blob: async () => new Blob(['mock']),
+  } as Response)
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 describe('toRelativeTime', () => {
@@ -286,6 +307,103 @@ describe('fetchRecentFeed', () => {
   })
 })
 
+describe('avatar helpers', () => {
+  test('reads latest avatar from gallery and caches it', async () => {
+    const client = {
+      invoke: vi.fn().mockResolvedValue({
+        photos: [new Api.Photo({ id: 11 }), new Api.Photo({ id: 12 })],
+      }),
+      downloadMedia: vi
+        .fn()
+        .mockResolvedValueOnce(new Uint8Array([0x89, 0x50, 0x4e, 0x47]))
+        .mockResolvedValueOnce(new Uint8Array([0xff, 0xd8, 0xff])),
+      downloadProfilePhoto: vi.fn(),
+    }
+    ensureTelegramConnectedMock.mockResolvedValue(client)
+
+    const first = await getAvatarPhotoUrl({ id: 1 }, 'avatar:test')
+    const second = await getAvatarPhotoUrl({ id: 1 }, 'avatar:test')
+
+    expect(first).toBe('blob:mock')
+    expect(second).toBe('blob:mock')
+    expect(client.invoke).toHaveBeenCalledTimes(1)
+    expect(client.downloadProfilePhoto).not.toHaveBeenCalled()
+  })
+
+  test('falls back to profile photo when gallery is empty', async () => {
+    const client = {
+      invoke: vi.fn().mockResolvedValue({ photos: [] }),
+      downloadMedia: vi.fn(),
+      downloadProfilePhoto: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
+    }
+    ensureTelegramConnectedMock.mockResolvedValue(client)
+
+    const url = await getAvatarPhotoUrl({ id: 2 }, 'avatar:profile')
+    expect(url).toBe('blob:mock')
+    expect(client.downloadProfilePhoto).toHaveBeenCalled()
+  })
+
+  test('returns avatar gallery and handles invalid entity', async () => {
+    const client = {
+      invoke: vi.fn().mockResolvedValue({
+        photos: [new Api.Photo({ id: 22 })],
+      }),
+      downloadMedia: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
+    }
+    ensureTelegramConnectedMock.mockResolvedValue(client)
+
+    const gallery = await getAvatarPhotoGallery({ id: 2 }, 'avatar:gallery')
+    const empty = await getAvatarPhotoGallery(undefined, 'avatar:none')
+
+    expect(gallery).toEqual(['blob:mock'])
+    expect(empty).toEqual([])
+  })
+})
+
+describe('message helpers', () => {
+  test('extracts message comments count', () => {
+    expect(getMessageCommentsCount(new Api.Message({ replies: { replies: 3 } }))).toBe(3)
+    expect(getMessageCommentsCount(new Api.Message({ replies: { replies: 2n } }))).toBe(2)
+    expect(getMessageCommentsCount(new Api.Message({}))).toBe(0)
+  })
+
+  test('sends messages with trimmed text and throws for invalid source', async () => {
+    const sendMessage = vi.fn().mockResolvedValue(undefined)
+    ensureTelegramConnectedMock.mockResolvedValue({ sendMessage })
+
+    await sendMessageToFeedItem(
+      {
+        id: 'group-1',
+        type: 'group',
+        chatName: 'Team',
+        timestamp: 'now',
+        text: '',
+        sourceMessage: new Api.Message({
+          getInputChat: vi.fn().mockResolvedValue('chat'),
+        }),
+        isFocused: false,
+      },
+      '  hi  ',
+    )
+    expect(sendMessage).toHaveBeenCalledWith('chat', { message: 'hi' })
+
+    await expect(
+      sendMessageToFeedItem(
+        {
+          id: 'group-2',
+          type: 'group',
+          chatName: 'Team',
+          timestamp: 'now',
+          text: '',
+          sourceMessage: {},
+          isFocused: false,
+        },
+        'hello',
+      ),
+    ).rejects.toThrow('Cannot send message for this conversation')
+  })
+})
+
 describe('downloadMediaForItem', () => {
   test('passes through NativeBigInt progress values to callback', async () => {
     const sourceMessage = new Api.Message({ id: 55 })
@@ -325,5 +443,74 @@ describe('downloadMediaForItem', () => {
       expect.objectContaining({ value: 131072n }),
       expect.objectContaining({ value: 10289371n }),
     )
+  })
+
+  test('returns undefined for missing media and cached media for existing blob', async () => {
+    const dal = {
+      getMedia: vi.fn().mockResolvedValueOnce(new Blob(['x'])).mockResolvedValueOnce(undefined),
+      setMedia: vi.fn(),
+    }
+    createIndexedDbDalMock.mockReturnValue(dal)
+    ensureTelegramConnectedMock.mockResolvedValue({ downloadMedia: vi.fn() })
+
+    const cached = await getCachedMediaUrl({
+      id: 'group-1',
+      type: 'group',
+      chatName: 'Team',
+      timestamp: 'now',
+      text: 'x',
+      media: {
+        key: 'key-1',
+        meta: { type: 'file', width: 0, height: 0, sizeBytes: 1, mimeType: 'text/plain' },
+        alt: 'x',
+      },
+      isFocused: false,
+    })
+
+    const none = await downloadMediaForItem({
+      id: 'group-2',
+      type: 'group',
+      chatName: 'Team',
+      timestamp: 'now',
+      text: 'x',
+      isFocused: false,
+    })
+
+    expect(cached).toBe('blob:mock')
+    expect(none).toBeUndefined()
+  })
+
+  test('downloads thumbnail and handles no-video-thumb case', async () => {
+    const sourceMessage = new Api.Message({
+      id: 99,
+      media: new Api.MessageMediaDocument({
+        document: new Api.Document({ thumbs: [] }),
+      }),
+    })
+    const client = { downloadMedia: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])) }
+    ensureTelegramConnectedMock.mockResolvedValue(client)
+    createIndexedDbDalMock.mockReturnValue({
+      getMedia: vi.fn().mockResolvedValue(undefined),
+      setMedia: vi.fn().mockResolvedValue(undefined),
+    })
+
+    const noThumb = await downloadThumbnailForItem(
+      {
+        id: 'group-video',
+        type: 'group',
+        chatName: 'Team',
+        timestamp: 'now',
+        text: '',
+        media: {
+          meta: { type: 'video', width: 640, height: 360, sizeBytes: 10, mimeType: 'video/mp4' },
+          alt: 'video',
+        },
+        sourceMessage,
+        isFocused: false,
+      },
+      320,
+    )
+
+    expect(noThumb).toBeUndefined()
   })
 })

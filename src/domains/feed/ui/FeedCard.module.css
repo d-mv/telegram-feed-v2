@@ -34,6 +34,22 @@
   padding-block-end: 16px;
 }
 
+.metaRow {
+  padding-inline: 16px;
+  padding-block-end: 12px;
+}
+
+.commentsIndicator {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+}
+
+.commentsIcon {
+  width: 18px;
+  height: 18px;
+}
+
 .feedCardReactions {
   display: flex;
   gap: 8px;

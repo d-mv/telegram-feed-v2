@@ -142,6 +142,21 @@ export function toRelativeTime(unixSeconds: number): string {
   return `${days} d ago`;
 }
 
+export function getMessageCommentsCount(message: Api.Message): number {
+  const replies = message.replies;
+  if (!replies || typeof replies !== "object" || !("replies" in replies)) {
+    return 0;
+  }
+  const raw = replies.replies;
+  if (typeof raw === "number") {
+    return raw;
+  }
+  if (typeof raw === "bigint") {
+    return Number(raw);
+  }
+  return 0;
+}
+
 export function getMediaPreview(message: Api.Message): FeedItem["media"] | undefined {
   const media = message.media;
   if (!media || !("className" in media)) {
@@ -290,6 +305,7 @@ export async function fetchRecentFeed(
             senderName: chatName,
             timestamp,
             text,
+            commentsCount: getMessageCommentsCount(message),
             media,
             reactions: [],
             sourceMessage: message,
@@ -305,6 +321,7 @@ export async function fetchRecentFeed(
             chatName,
             timestamp,
             text,
+            commentsCount: getMessageCommentsCount(message),
             media,
             sourceMessage: message,
           },

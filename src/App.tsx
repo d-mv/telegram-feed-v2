@@ -20,6 +20,7 @@ import { createIndexedDbDal } from "./domains/dal/indexedDbDal";
 import {
   fetchRecentFeed,
   getAvatarPhotoUrl,
+  getMessageCommentsCount,
   getMediaPreview,
   sendMessageToFeedItem,
   toRelativeTime,
@@ -301,6 +302,7 @@ function App({ auth }: AppProps) {
               senderName,
               timestamp,
               text: message.message ?? "",
+              commentsCount: getMessageCommentsCount(message),
               media,
               reactions: [],
               sourceMessage: message,
@@ -313,6 +315,7 @@ function App({ auth }: AppProps) {
               chatName,
               timestamp,
               text: message.message ?? "",
+              commentsCount: getMessageCommentsCount(message),
               media,
               sourceMessage: message,
             };

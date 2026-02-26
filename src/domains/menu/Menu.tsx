@@ -47,7 +47,10 @@ export function Menu() {
       return null;
     }
     const Module = menuItem.module;
-    return <Module />;
+
+    if (Module) return <Module />;
+
+    return null;
   }
 
   function handleClick(index: number) {

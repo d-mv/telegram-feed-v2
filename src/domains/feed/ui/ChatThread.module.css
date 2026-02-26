@@ -91,3 +91,62 @@
   padding-inline: 16px;
   padding-block-end: 16px;
 }
+
+.commentsAccordion {
+  border-top: 1px solid var(--border);
+}
+
+.commentsSummary {
+  list-style: none;
+  cursor: pointer;
+  padding: 10px 16px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+}
+
+.commentsSummary::-webkit-details-marker {
+  display: none;
+}
+
+.commentsIcon {
+  width: 18px;
+  height: 18px;
+}
+
+.commentsPanel {
+  padding: 0 16px 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.commentsLoading,
+.commentsEmpty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.2rem;
+}
+
+.comment {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: calc(var(--border-radius) - 2px);
+  padding: 8px 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.commentHeader {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 1.1rem;
+  color: var(--muted);
+}
+
+.commentText {
+  margin: 0;
+  font-size: 1.3rem;
+  line-height: 1.4;
+}

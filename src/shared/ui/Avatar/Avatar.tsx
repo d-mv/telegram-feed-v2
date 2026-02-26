@@ -8,9 +8,10 @@ import { getAvatarColor, getAvatarInitials } from "./utils";
 type Props = {
   noPreview?: boolean;
   message: FeedItem;
+  isThread?: boolean;
 };
 
-export function Avatar({ message, noPreview }: Props) {
+export function Avatar({ message, noPreview, isThread }: Props) {
   const {
     handleOpenAvatar,
     avatarPhotoMap,
@@ -19,7 +20,7 @@ export function Avatar({ message, noPreview }: Props) {
     carouselIndex,
     closeCarousel,
     isAvatarVisible,
-  } = useAvatar(message);
+  } = useAvatar(message, isThread);
 
   if (!isAvatarVisible) return null;
 

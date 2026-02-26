@@ -4,9 +4,9 @@ import { AppContext } from "../../../domains/app/AppContext";
 import { getAvatarPhotoGallery, getAvatarPhotoUrl } from "../../../domains/feed/infra/telegramFeed";
 import type { FeedItem } from "../../../types";
 
-export function useAvatar(message: FeedItem) {
+export function useAvatar(message: FeedItem, isThread?: boolean) {
   const { avatarVisibility } = useContext(AppContext);
-  const isAvatarVisible = avatarVisibility?.thread ?? true;
+  const isAvatarVisible = isThread ? avatarVisibility?.thread : avatarVisibility?.feed;
 
   const [avatarPhotoMap, setAvatarPhotoMap] = useState<Record<string, string>>({});
   const [avatarGallery, setAvatarGallery] = useState<string[]>([]);
@@ -23,7 +23,7 @@ export function useAvatar(message: FeedItem) {
     if (!(source instanceof Api.Message)) {
       return;
     }
-    const cacheKey = `thread:${message.id}`;
+    const cacheKey = isThread ? `thread:${message.id}` : `feed:${message.id}`;
     if (avatarPhotoMap[cacheKey]) {
       return;
     }

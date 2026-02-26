@@ -7,11 +7,18 @@ import { Media } from "../../../shared/ui/Media/Media";
 import { Text } from "../../../shared/ui/Text/Text";
 import type { FeedItem } from "../../../types";
 import { ensureTelegramConnected } from "../../auth/infra/telegramAuth";
-import { getMediaPreview, toRelativeTime } from "../infra/telegramFeed";
+import { getMediaPreview, getMessageCommentsCount, toRelativeTime } from "../infra/telegramFeed";
 import styles from "./ChatThread.module.css";
 
 type ChatThreadProps = {
   item: FeedItem;
+};
+
+type ThreadComment = {
+  id: string;
+  senderName: string;
+  text: string;
+  timestamp: string;
 };
 
 function getSenderLabel(message: Api.Message, fallback: string) {
@@ -32,11 +39,33 @@ function getSenderLabel(message: Api.Message, fallback: string) {
   return fallback;
 }
 
+function CommentsIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={styles.commentsIcon}
+    >
+      <path d="M2.25 12.76c0 1.6.72 3.13 1.98 4.22l-.52 3.49 3.24-1.86c1 .38 2.09.58 3.2.58 4.59 0 8.25-3.21 8.25-7.23 0-4.01-3.66-7.22-8.25-7.22s-8.25 3.21-8.25 7.22Z" />
+      <path d="M7.5 10.5h7.5" />
+      <path d="M7.5 13.5h4.5" />
+    </svg>
+  );
+}
+
 export function ChatThread({ item }: ChatThreadProps) {
   const [messages, setMessages] = useState<FeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showJump, setShowJump] = useState(false);
+  const [commentsByMessage, setCommentsByMessage] = useState<Record<string, ThreadComment[]>>({});
+  const [commentsLoading, setCommentsLoading] = useState<Record<string, boolean>>({});
   const focusedRef = useRef<HTMLDivElement | null>(null);
   const threadRef = useRef<HTMLDivElement | null>(null);
   const sourceMessage = item.sourceMessage as Api.Message | undefined;
@@ -51,6 +80,7 @@ export function ChatThread({ item }: ChatThreadProps) {
       senderName: item.type === "dm" ? item.senderName : item.chatName,
       text: item.text,
       timestamp: item.timestamp,
+      commentsCount: item.commentsCount,
       media: item.media,
       isFocused: true,
     };
@@ -94,6 +124,7 @@ export function ChatThread({ item }: ChatThreadProps) {
               text: message.message ?? "",
               timestamp,
               media: getMediaPreview(message),
+              commentsCount: getMessageCommentsCount(message),
               sourceMessage: message,
               isFocused: focusId ? message.id === focusId : false,
               reactions: path(["reactions"], message),
@@ -159,6 +190,42 @@ export function ChatThread({ item }: ChatThreadProps) {
     container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
   }
 
+  async function loadComments(message: FeedItem) {
+    if (commentsByMessage[message.id] || commentsLoading[message.id]) {
+      return;
+    }
+    const source = message.sourceMessage;
+    if (!(source instanceof Api.Message)) {
+      setCommentsByMessage((current) => ({ ...current, [message.id]: [] }));
+      return;
+    }
+    setCommentsLoading((current) => ({ ...current, [message.id]: true }));
+    try {
+      const client = await ensureTelegramConnected();
+      const inputChat = source.getInputChat
+        ? await source.getInputChat()
+        : (source as Api.Message & { inputChat?: unknown }).inputChat;
+      const comments = await client.getMessages(inputChat ?? undefined, {
+        limit: 30,
+        replyTo: source.id,
+      });
+      const normalized = comments
+        .filter((comment): comment is Api.Message => comment instanceof Api.Message)
+        .reverse()
+        .map((comment) => ({
+          id: String(comment.id),
+          senderName: getSenderLabel(comment, message.chatName),
+          text: comment.message ?? "",
+          timestamp: comment.date ? toRelativeTime(comment.date) : "",
+        }));
+      setCommentsByMessage((current) => ({ ...current, [message.id]: normalized }));
+    } catch {
+      setCommentsByMessage((current) => ({ ...current, [message.id]: [] }));
+    } finally {
+      setCommentsLoading((current) => ({ ...current, [message.id]: false }));
+    }
+  }
+
   return (
     <div className={clsx(styles.thread, (messages.length === 0 || isLoading) && styles.empty)}>
       {isLoading && <p className={styles.loading}>Loading thread...</p>}
@@ -171,7 +238,7 @@ export function ChatThread({ item }: ChatThreadProps) {
             ref={message.isFocused ? focusedRef : null}
             tabIndex={message.isFocused ? -1 : undefined}
           >
-            <Header message={message} className={styles.header}>
+            <Header isThread message={message} className={styles.header}>
               {message.senderName}
             </Header>
             <Text className={styles.text}>{message.text}</Text>
@@ -190,6 +257,39 @@ export function ChatThread({ item }: ChatThreadProps) {
                   isFocused: message.isFocused,
                 }}
               />
+            )}
+            {(message.commentsCount ?? 0) > 0 && (
+              <details
+                className={styles.commentsAccordion}
+                onToggle={(event) => {
+                  if (event.currentTarget.open) {
+                    void loadComments(message);
+                  }
+                }}
+              >
+                <summary className={styles.commentsSummary} aria-label="Comments">
+                  <CommentsIcon />
+                </summary>
+                <div className={styles.commentsPanel}>
+                  {commentsLoading[message.id] && (
+                    <p className={styles.commentsLoading}>Loading comments...</p>
+                  )}
+                  {!commentsLoading[message.id] &&
+                    (commentsByMessage[message.id]?.length ?? 0) === 0 && (
+                      <p className={styles.commentsEmpty}>No comments.</p>
+                    )}
+                  {!commentsLoading[message.id] &&
+                    (commentsByMessage[message.id] ?? []).map((comment) => (
+                      <div key={comment.id} className={styles.comment}>
+                        <p className={styles.commentHeader}>
+                          <span>{comment.senderName}</span>
+                          <span>{comment.timestamp}</span>
+                        </p>
+                        <p className={styles.commentText}>{comment.text || "…"}</p>
+                      </div>
+                    ))}
+                </div>
+              </details>
             )}
           </div>
         ))}

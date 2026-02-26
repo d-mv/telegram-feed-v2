@@ -27,6 +27,7 @@ interface Message {
   chatName: string;
   timestamp: string;
   text: string;
+  commentsCount?: number;
   media?: MediaPreview;
   senderName?: string;
   // fix this

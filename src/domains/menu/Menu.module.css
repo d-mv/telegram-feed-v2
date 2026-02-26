@@ -28,6 +28,7 @@
   padding-block: 1.4rem;
   padding-inline: 1.4rem;
   cursor: pointer;
+  text-align: start;
 
   &:hover {
     background-color: var(--surface-2);
