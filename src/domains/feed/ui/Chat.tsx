@@ -1,47 +1,47 @@
-import { useContext, useEffect, useState } from 'react'
-import { AppContext } from '../../app/AppContext'
-import { Button } from '../../../shared/ui/Button/Button'
-import type { FeedItem } from '../model/mockFeed'
-import styles from './Chat.module.css'
-import { ChatThread } from './ChatThread'
+import { useContext, useEffect, useState } from "react";
+import { Button } from "../../../shared/ui/Button/Button";
+import { AppContext } from "../../app/AppContext";
+import type { FeedItem } from "../model/mockFeed";
+import styles from "./Chat.module.css";
+import { ChatThread } from "./ChatThread";
 
 type ChatProps = {
-  item: FeedItem
-  onClose: () => void
-}
+  item: FeedItem;
+  onClose: () => void;
+};
 
 export function Chat({ item, onClose }: ChatProps) {
-  const title = item.type === 'dm' ? item.chatName : item.chatName
-  const { onSendMessage } = useContext(AppContext)
-  const [draft, setDraft] = useState('')
-  const [isSending, setIsSending] = useState(false)
-  const [error, setError] = useState('')
+  const title = item.type === "dm" ? item.chatName : item.chatName;
+  const { onSendMessage } = useContext(AppContext);
+  const [draft, setDraft] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        onClose()
+      if (event.key === "Escape") {
+        onClose();
       }
     }
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   async function handleSend() {
-    const next = draft.trim()
-    if (next === '' || isSending) {
-      return
+    const next = draft.trim();
+    if (next === "" || isSending) {
+      return;
     }
-    setIsSending(true)
-    setError('')
+    setIsSending(true);
+    setError("");
     try {
-      await onSendMessage(item, next)
-      setDraft('')
+      await onSendMessage(item, next);
+      setDraft("");
     } catch {
-      setError('Could not send message.')
+      setError("Could not send message.");
     } finally {
-      setIsSending(false)
+      setIsSending(false);
     }
   }
 
@@ -63,7 +63,7 @@ export function Chat({ item, onClose }: ChatProps) {
           <ChatThread item={item} />
         </div>
         <footer className={styles.composer}>
-          {error !== '' && <p className={styles.error}>{error}</p>}
+          {error !== "" && <p className={styles.error}>{error}</p>}
           <input
             className={styles.composerInput}
             type="text"
@@ -72,9 +72,9 @@ export function Chat({ item, onClose }: ChatProps) {
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault()
-                void handleSend()
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void handleSend();
               }
             }}
             disabled={isSending}
@@ -83,12 +83,12 @@ export function Chat({ item, onClose }: ChatProps) {
             variant="primary"
             type="button"
             onClick={() => void handleSend()}
-            disabled={isSending || draft.trim() === ''}
+            disabled={isSending || draft.trim() === ""}
           >
-            {isSending ? 'Sending...' : 'Send'}
+            {isSending ? "Sending..." : "Send"}
           </Button>
         </footer>
       </section>
     </div>
-  )
+  );
 }

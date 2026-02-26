@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import clsx from "clsx";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Api } from "telegram";
-import { useContext } from "react";
 import { getAvatarColor, getAvatarInitials } from "../../../shared/ui/Avatar/avatar";
 import { Header } from "../../../shared/ui/Header/Header";
 import { Media } from "../../../shared/ui/Media/Media";
@@ -160,7 +160,7 @@ export function ChatThread({ item }: ChatThreadProps) {
   }
 
   return (
-    <div className={styles.thread}>
+    <div className={clsx(styles.thread, (messages.length === 0 || isLoading) && styles.empty)}>
       {isLoading && <p className={styles.loading}>Loading thread...</p>}
       {error !== "" && <p className={styles.error}>{error}</p>}
       <div className={styles.threadList} ref={threadRef}>

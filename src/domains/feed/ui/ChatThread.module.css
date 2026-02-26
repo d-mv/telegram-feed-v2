@@ -5,6 +5,12 @@
   width: 100%;
 }
 
+.empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+}
+
 .loading {
   margin: 0;
   padding: 8px 12px;
@@ -14,7 +20,7 @@
   font-size: 0.75rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  justify-self: start;
+  justify-self: center;
 }
 
 .error {
