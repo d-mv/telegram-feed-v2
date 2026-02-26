@@ -42,6 +42,19 @@ const telegramMock = vi.hoisted(() => {
     }
   }
 
+  class DocumentAttributeFilename {
+    fileName = ''
+    constructor(data: Record<string, unknown> = {}) {
+      Object.assign(this, data)
+    }
+  }
+
+  class DocumentAttributeAudio {
+    constructor(data: Record<string, unknown> = {}) {
+      Object.assign(this, data)
+    }
+  }
+
   class MessageMediaPhoto {
     className = 'MessageMediaPhoto'
     photo?: Photo
@@ -64,6 +77,8 @@ const telegramMock = vi.hoisted(() => {
     Document,
     DocumentAttributeVideo,
     DocumentAttributeImageSize,
+    DocumentAttributeFilename,
+    DocumentAttributeAudio,
     MessageMediaPhoto,
     MessageMediaDocument,
   }
@@ -172,9 +187,38 @@ describe('getMediaPreview', () => {
         height: 720,
         sizeBytes: 2048,
         mimeType: 'video/mp4',
+        fileName: '',
       },
       alt: 'Media',
       key: 'doc-7',
+    })
+  })
+
+  test('builds file preview metadata for generic documents', () => {
+    const document = new Api.Document({
+      id: 8,
+      size: 4096,
+      mimeType: 'application/pdf',
+      attributes: [new Api.DocumentAttributeFilename({ fileName: 'report.pdf' })],
+    })
+    const message = new Api.Message({
+      id: 12,
+      media: new Api.MessageMediaDocument({ document }),
+    })
+
+    const preview = getMediaPreview(message)
+
+    expect(preview).toEqual({
+      meta: {
+        type: 'file',
+        width: 0,
+        height: 0,
+        sizeBytes: 4096,
+        mimeType: 'application/pdf',
+        fileName: 'report.pdf',
+      },
+      alt: 'Media',
+      key: 'doc-8',
     })
   })
 })

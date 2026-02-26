@@ -1,9 +1,10 @@
 type MediaMeta = {
-  type: "image" | "video";
+  type: "image" | "video" | "audio" | "file";
   width: number;
   height: number;
   sizeBytes: number;
   mimeType?: string;
+  fileName?: string;
 };
 
 type MediaPreview = {
@@ -47,3 +48,9 @@ export type Channel = {
 
 export type NotificationSettings = Record<string, boolean>;
 export type FeedFilterSettings = Record<string, boolean>;
+
+export type AvatarVisibilitySettings = {
+  feed: boolean;
+  thread: boolean;
+  notifications: boolean;
+};

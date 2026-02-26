@@ -13,6 +13,8 @@ function createDalStub() {
     setNotificationSettings: vi.fn(),
     getFeedFilterSettings: vi.fn(),
     setFeedFilterSettings: vi.fn(),
+    getAvatarVisibilitySettings: vi.fn(),
+    setAvatarVisibilitySettings: vi.fn(),
     getFeedCache: vi.fn(),
     setFeedCache: vi.fn(),
     getSaved: vi.fn(),
@@ -35,6 +37,9 @@ test("refresh menu item triggers manual refresh callback", async () => {
         value={{
           dal: createDalStub(),
           onManualRefresh,
+          onSendMessage: vi.fn().mockResolvedValue(undefined),
+          avatarVisibility: { feed: true, thread: true, notifications: true },
+          onSetAvatarVisibility: vi.fn(),
           onToggleChannelNotification: vi.fn(),
           onToggleChannelFilter: vi.fn(),
           onRequestNotificationPermission: vi.fn(),
@@ -52,4 +57,3 @@ test("refresh menu item triggers manual refresh callback", async () => {
 
   expect(onManualRefresh).toHaveBeenCalledTimes(1);
 });
-

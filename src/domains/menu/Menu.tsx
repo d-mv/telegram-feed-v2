@@ -6,6 +6,7 @@ import styles from "./Menu.module.css";
 
 const NotificationSettings = lazy(() => import("./components/NotificationsSettings"));
 const FiltersSettings = lazy(() => import("./components/FiltersSettings"));
+const AvatarsSettings = lazy(() => import("./components/AvatarsSettings"));
 const Maintenance = lazy(() => import("./components/Maintenance"));
 
 const MENU_ITEMS = [
@@ -20,6 +21,10 @@ const MENU_ITEMS = [
   {
     label: "Filters",
     module: FiltersSettings,
+  },
+  {
+    label: "Avatars",
+    module: AvatarsSettings,
   },
   {
     label: "Maintenance",

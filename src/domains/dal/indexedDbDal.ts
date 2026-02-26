@@ -79,6 +79,9 @@ export function createIndexedDbDal(): Dal {
       setValue('notification-settings', settings),
     getFeedFilterSettings: () => getValue('feed-filter-settings'),
     setFeedFilterSettings: (settings) => setValue('feed-filter-settings', settings),
+    getAvatarVisibilitySettings: () => getValue('avatar-visibility-settings'),
+    setAvatarVisibilitySettings: (settings) =>
+      setValue('avatar-visibility-settings', settings),
     getFeedCache: () => getValue('feed'),
     setFeedCache: (feed) => setValue('feed', feed),
     getSaved: () => getValue('saved'),

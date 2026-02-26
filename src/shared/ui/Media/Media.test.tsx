@@ -7,7 +7,7 @@ import { Media } from './Media'
 
 vi.mock('../../../domains/feed/infra/telegramFeed', () => ({
   downloadMediaForItem: vi.fn(),
-  downloadThumbnailForItem: vi.fn(),
+  downloadThumbnailForItem: vi.fn().mockResolvedValue(undefined),
   getCachedMediaUrl: vi.fn().mockResolvedValue(undefined),
 }))
 
@@ -82,5 +82,31 @@ describe('Media video controls', () => {
     await act(async () => {
       resolveDownload?.('blob:test')
     })
+  })
+
+  it('renders attachment card for non-image/video media', () => {
+    const item: FeedItem = {
+      id: 'file-1',
+      type: 'group',
+      chatName: 'Docs',
+      timestamp: 'now',
+      text: 'file',
+      media: {
+        meta: {
+          type: 'file',
+          width: 0,
+          height: 0,
+          sizeBytes: 2048,
+          mimeType: 'application/pdf',
+          fileName: 'spec.pdf',
+        },
+        alt: 'file',
+      },
+    }
+
+    render(<Media item={item} />)
+
+    expect(screen.getByText('spec.pdf')).toBeInTheDocument()
+    expect(screen.getByText('2 KB')).toBeInTheDocument()
   })
 })

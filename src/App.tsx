@@ -4,6 +4,7 @@ import { Api } from "telegram";
 import { NewMessage } from "telegram/events";
 import { feedItemsAtom } from "./atoms/feedItems.atom";
 import { feedFilterSettingsAtom } from "./atoms/feedFilters.atom";
+import { avatarVisibilityAtom } from "./atoms/avatarVisibility.atom";
 import {
   hasEnabledChannels,
   notificationPermissionAtom,
@@ -19,12 +20,14 @@ import { createIndexedDbDal } from "./domains/dal/indexedDbDal";
 import {
   fetchRecentFeed,
   getMediaPreview,
+  sendMessageToFeedItem,
   toRelativeTime,
 } from "./domains/feed/infra/telegramFeed";
 import type { FeedItem } from "./domains/feed/model/mockFeed";
 import { FeedView } from "./domains/feed/ui/FeedView";
 import { Loading } from "./shared/ui/Loading/Loading";
-import type { FeedFilterSettings, NotificationSettings } from "./types";
+import { getAvatarDataUrl } from "./shared/ui/Avatar/avatar";
+import type { AvatarVisibilitySettings, FeedFilterSettings, NotificationSettings } from "./types";
 
 const Empty = lazy(() => import("./domains/app/components/Empty"));
 
@@ -46,9 +49,22 @@ function isFeedFilterSettings(value: unknown): value is FeedFilterSettings {
   return Object.values(value).every((entry) => typeof entry === "boolean");
 }
 
+function isAvatarVisibilitySettings(value: unknown): value is AvatarVisibilitySettings {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const candidate = value as AvatarVisibilitySettings;
+  return (
+    typeof candidate.feed === "boolean" &&
+    typeof candidate.thread === "boolean" &&
+    typeof candidate.notifications === "boolean"
+  );
+}
+
 function App({ auth }: AppProps) {
   const [feedItems, setFeedItems] = useAtom(feedItemsAtom);
   const [feedFilterSettings, setFeedFilterSettings] = useAtom(feedFilterSettingsAtom);
+  const [avatarVisibility, setAvatarVisibility] = useAtom(avatarVisibilityAtom);
   const [notificationSettings, setNotificationSettings] = useAtom(notificationSettingsAtom);
   const [notificationPermission, setNotificationPermission] = useAtom(notificationPermissionAtom);
 
@@ -138,6 +154,17 @@ function App({ auth }: AppProps) {
     }
   }, [dal, setFeedFilterSettings]);
 
+  const getAvatarVisibilitySettings = useCallback(async () => {
+    try {
+      const stored = await dal.getAvatarVisibilitySettings();
+      if (isAvatarVisibilitySettings(stored)) {
+        setAvatarVisibility(stored);
+      }
+    } catch (e) {
+      console.log("getAvatarVisibilitySettings", e);
+    }
+  }, [dal, setAvatarVisibility]);
+
   useEffect(() => {
     if (!auth) authenticate();
     else {
@@ -149,7 +176,8 @@ function App({ auth }: AppProps) {
   useEffect(() => {
     getNotificationSettings();
     getFeedFilterSettings();
-  }, [dal, getFeedFilterSettings, getNotificationSettings]);
+    getAvatarVisibilitySettings();
+  }, [dal, getAvatarVisibilitySettings, getFeedFilterSettings, getNotificationSettings]);
 
   useEffect(() => {
     if (!authClient || isAuthenticated) {
@@ -299,7 +327,9 @@ function App({ auth }: AppProps) {
             const payload = {
               body: body === "" ? "New message" : body,
               tag: channelKey,
-              icon: "/favicon-192.png",
+              icon: avatarVisibility.notifications
+                ? getAvatarDataUrl(senderName)
+                : "/favicon-192.png",
             };
             try {
               let shown = false;
@@ -343,7 +373,7 @@ function App({ auth }: AppProps) {
         }
       }
     };
-  }, [isAuthenticated, notificationPermission, notificationSettings]);
+  }, [avatarVisibility.notifications, isAuthenticated, notificationPermission, notificationSettings]);
 
   function closeVisibleNotifications() {
     if ("serviceWorker" in navigator) {
@@ -401,6 +431,16 @@ function App({ auth }: AppProps) {
     dal.setFeedFilterSettings(nextSettings).catch(() => {});
   }
 
+  function handleSetAvatarVisibility(next: AvatarVisibilitySettings) {
+    setAvatarVisibility(next);
+    dal.setAvatarVisibilitySettings(next).catch(() => {});
+  }
+
+  async function handleSendMessage(item: FeedItem, text: string) {
+    await sendMessageToFeedItem(item, text);
+    refreshFeed();
+  }
+
   async function handleRequestNotificationPermission() {
     if (typeof Notification === "undefined") {
       setNotificationPermission("unsupported");
@@ -431,6 +471,9 @@ function App({ auth }: AppProps) {
         value={{
           dal,
           onManualRefresh: refreshFeed,
+          onSendMessage: handleSendMessage,
+          avatarVisibility,
+          onSetAvatarVisibility: handleSetAvatarVisibility,
           onToggleChannelNotification: handleToggleChannelNotification,
           onToggleChannelFilter: handleToggleChannelFilter,
           onRequestNotificationPermission: handleRequestNotificationPermission,

@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Api } from "telegram";
+import { useContext } from "react";
+import { getAvatarColor, getAvatarInitials } from "../../../shared/ui/Avatar/avatar";
 import { Header } from "../../../shared/ui/Header/Header";
 import { Media } from "../../../shared/ui/Media/Media";
 import { Text } from "../../../shared/ui/Text/Text";
+import { AppContext } from "../../app/AppContext";
 import { ensureTelegramConnected } from "../../auth/infra/telegramAuth";
 import { getMediaPreview, toRelativeTime } from "../infra/telegramFeed";
 import type { FeedItem } from "../model/mockFeed";
@@ -41,6 +44,8 @@ function getSenderLabel(message: Api.Message, fallback: string) {
 }
 
 export function ChatThread({ item }: ChatThreadProps) {
+  const { avatarVisibility } = useContext(AppContext);
+  const isAvatarVisible = avatarVisibility?.thread ?? true;
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -166,6 +171,18 @@ export function ChatThread({ item }: ChatThreadProps) {
             ref={message.isFocused ? focusedRef : null}
             tabIndex={message.isFocused ? -1 : undefined}
           >
+            {isAvatarVisible && (
+              <div className={styles.avatarWrap}>
+                <div
+                  className={styles.avatar}
+                  style={{ background: getAvatarColor(message.senderName) }}
+                  aria-label={`Avatar for ${message.senderName}`}
+                  title={message.senderName}
+                >
+                  {getAvatarInitials(message.senderName)}
+                </div>
+              </div>
+            )}
             <Header timestamp={message.timestamp} className={styles.header}>
               {message.senderName}
             </Header>

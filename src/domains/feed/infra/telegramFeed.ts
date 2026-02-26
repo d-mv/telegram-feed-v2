@@ -75,12 +75,13 @@ export function getMediaPreview(message: Api.Message): FeedItem["media"] | undef
       return undefined;
     }
     const mimeType = document.mimeType ? String(document.mimeType) : "";
-    const type = mimeType.startsWith("video") ? "video" : "image";
     const sizeBytesRaw = document.size ?? 0;
     const sizeBytes =
       typeof sizeBytesRaw === "bigint" ? Number(sizeBytesRaw) : Number(sizeBytesRaw);
     let width = 0;
     let height = 0;
+    let fileName = "";
+    let hasAudioAttribute = false;
     for (const attribute of document.attributes ?? []) {
       if (attribute instanceof Api.DocumentAttributeVideo) {
         width = attribute.w;
@@ -90,10 +91,28 @@ export function getMediaPreview(message: Api.Message): FeedItem["media"] | undef
         width = attribute.w;
         height = attribute.h;
       }
+      if (
+        attribute instanceof Api.DocumentAttributeFilename &&
+        typeof attribute.fileName === "string"
+      ) {
+        fileName = attribute.fileName;
+      }
+      if (attribute instanceof Api.DocumentAttributeAudio) {
+        hasAudioAttribute = true;
+      }
     }
+    const type = mimeType.startsWith("video")
+      ? "video"
+      : mimeType.startsWith("image")
+        ? "image"
+        : mimeType.startsWith("audio") || hasAudioAttribute
+          ? "audio"
+          : "file";
     if (!width || !height) {
-      width = 640;
-      height = 360;
+      if (type === "video" || type === "image") {
+        width = 640;
+        height = 360;
+      }
     }
     return {
       meta: {
@@ -102,6 +121,7 @@ export function getMediaPreview(message: Api.Message): FeedItem["media"] | undef
         height,
         sizeBytes,
         mimeType,
+        fileName,
       },
       alt: "Media",
       key: `doc-${document.id?.toString() ?? message.id}`,
@@ -184,6 +204,24 @@ export async function fetchRecentFeed(
   }
 
   return items.sort((a, b) => b.sortDate - a.sortDate).map(({ item }) => item);
+}
+
+export async function sendMessageToFeedItem(item: FeedItem, text: string): Promise<void> {
+  const trimmed = text.trim();
+  if (trimmed === "") {
+    return;
+  }
+  const sourceMessage = item.sourceMessage;
+  if (!(sourceMessage instanceof Api.Message)) {
+    throw new Error("Cannot send message for this conversation");
+  }
+  const client = await ensureTelegramConnected();
+  const inputChat = sourceMessage.getInputChat
+    ? await sourceMessage.getInputChat()
+    : (sourceMessage as Api.Message & { inputChat?: unknown }).inputChat;
+  await client.sendMessage(inputChat ?? undefined, {
+    message: trimmed,
+  });
 }
 
 function toObjectUrl(input: unknown, mimeType: string): string | undefined {

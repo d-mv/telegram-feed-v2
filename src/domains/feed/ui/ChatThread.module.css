@@ -71,13 +71,29 @@
   overflow: hidden;
 }
 
+.avatarWrap {
+  padding-inline: 16px;
+  padding-block-start: 14px;
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 .messageFocused {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px rgba(162, 74, 35, 0.35);
 }
 
 .header {
-  padding-block-start: 16px;
+  padding-block-start: 0;
   padding-inline: 16px;
 }
 

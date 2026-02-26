@@ -323,9 +323,24 @@ export function Media({ item }: Props) {
       );
     }
 
+    return null;
+  }
+
+  function renderAttachment() {
+    if (!media || media.meta.type === "image" || media.meta.type === "video") {
+      return null;
+    }
+    const icon = media.meta.type === "audio" ? "🎵" : "📎";
+    const fileLabel = media.meta.fileName || media.meta.mimeType || "Attachment";
     return (
-      <div className={styles.placeholder}>
-        <span>Media preview</span>
+      <div className={styles.attachment}>
+        <span className={styles.attachmentIcon} aria-hidden="true">
+          {icon}
+        </span>
+        <div className={styles.attachmentMeta}>
+          <p className={styles.attachmentName}>{fileLabel}</p>
+          <p className={styles.attachmentType}>{formatBytes(media.meta.sizeBytes)}</p>
+        </div>
       </div>
     );
   }
@@ -337,6 +352,7 @@ export function Media({ item }: Props) {
       style={{ aspectRatio: ratio }}
     >
       {renderMedia()}
+      {renderAttachment()}
       {isDownloading && media.meta.type === "video" && (
         <div className={styles.progress}>
           <div className={styles["progress-label"]}>{getProgressLabel()}</div>

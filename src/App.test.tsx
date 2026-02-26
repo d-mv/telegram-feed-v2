@@ -21,6 +21,8 @@ vi.mock('./domains/dal/indexedDbDal', () => ({
     setNotificationSettings: vi.fn().mockResolvedValue(undefined),
     getFeedFilterSettings: vi.fn().mockResolvedValue(undefined),
     setFeedFilterSettings: vi.fn().mockResolvedValue(undefined),
+    getAvatarVisibilitySettings: vi.fn().mockResolvedValue(undefined),
+    setAvatarVisibilitySettings: vi.fn().mockResolvedValue(undefined),
     getFeedCache: vi.fn().mockResolvedValue(undefined),
     setFeedCache: vi.fn().mockResolvedValue(undefined),
     getSaved: vi.fn().mockResolvedValue(undefined),
