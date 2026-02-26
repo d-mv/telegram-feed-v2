@@ -13,9 +13,11 @@
   "dependencies": {
     "@mv-d/toolbelt": "^10.1.1",
     "clsx": "^2.1.1",
+    "embla-carousel-react": "^8.6.0",
     "jotai": "^2.18.0",
     "oxfmt": "^0.35.0",
     "oxlint": "^1.50.0",
+    "ramda": "^0.32.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "telegram": "npm:telegram@browser"

@@ -2,9 +2,9 @@ import { useAtom } from "jotai/react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Api } from "telegram";
 import { NewMessage } from "telegram/events";
-import { feedItemsAtom } from "./atoms/feedItems.atom";
-import { feedFilterSettingsAtom } from "./atoms/feedFilters.atom";
 import { avatarVisibilityAtom } from "./atoms/avatarVisibility.atom";
+import { feedFilterSettingsAtom } from "./atoms/feedFilters.atom";
+import { feedItemsAtom } from "./atoms/feedItems.atom";
 import {
   hasEnabledChannels,
   notificationPermissionAtom,
@@ -19,15 +19,20 @@ import { LoginView } from "./domains/auth/ui/LoginView";
 import { createIndexedDbDal } from "./domains/dal/indexedDbDal";
 import {
   fetchRecentFeed,
+  getAvatarPhotoUrl,
   getMediaPreview,
   sendMessageToFeedItem,
   toRelativeTime,
 } from "./domains/feed/infra/telegramFeed";
-import type { FeedItem } from "./domains/feed/model/mockFeed";
 import { FeedView } from "./domains/feed/ui/FeedView";
+import { getAvatarDataUrl } from "./shared/ui/Avatar/utils";
 import { Loading } from "./shared/ui/Loading/Loading";
-import { getAvatarDataUrl } from "./shared/ui/Avatar/avatar";
-import type { AvatarVisibilitySettings, FeedFilterSettings, NotificationSettings } from "./types";
+import type {
+  AvatarVisibilitySettings,
+  FeedFilterSettings,
+  FeedItem,
+  NotificationSettings,
+} from "./types";
 
 const Empty = lazy(() => import("./domains/app/components/Empty"));
 
@@ -324,12 +329,17 @@ function App({ auth }: AppProps) {
 
           if (notificationsEnabled && canNotify) {
             const body = message.message ?? "";
+            const notificationAvatar = avatarVisibility.notifications
+              ? await getAvatarPhotoUrl(senderEntity, `notify:${channelKey}`)
+              : undefined;
             const payload = {
               body: body === "" ? "New message" : body,
               tag: channelKey,
-              icon: avatarVisibility.notifications
-                ? getAvatarDataUrl(senderName)
-                : "/favicon-192.png",
+              icon:
+                notificationAvatar ??
+                (avatarVisibility.notifications
+                  ? getAvatarDataUrl(senderName)
+                  : "/favicon-192.png"),
             };
             try {
               let shown = false;
@@ -373,7 +383,12 @@ function App({ auth }: AppProps) {
         }
       }
     };
-  }, [avatarVisibility.notifications, isAuthenticated, notificationPermission, notificationSettings]);
+  }, [
+    avatarVisibility.notifications,
+    isAuthenticated,
+    notificationPermission,
+    notificationSettings,
+  ]);
 
   function closeVisibleNotifications() {
     if ("serviceWorker" in navigator) {

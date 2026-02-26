@@ -1,3 +1,5 @@
+import type { AnyValue } from "@mv-d/toolbelt";
+
 type MediaMeta = {
   type: "image" | "video" | "audio" | "file";
   width: number;
@@ -26,16 +28,19 @@ interface Message {
   timestamp: string;
   text: string;
   media?: MediaPreview;
-  sourceMessage?: unknown;
+  senderName?: string;
+  // fix this
+  sourceMessage?: AnyValue;
+  isFocused: boolean;
 }
 
-interface DirectMessage extends Message {
+export interface DirectMessage extends Message {
   type: "dm";
   reactions: Reaction[];
   senderName: string;
 }
 
-interface GroupMessage extends Message {
+export interface GroupMessage extends Message {
   type: "group";
 }
 

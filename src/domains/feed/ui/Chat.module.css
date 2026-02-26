@@ -35,12 +35,18 @@
   justify-content: space-between;
   padding: 20px 24px;
   border-bottom: 1px solid var(--border);
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-size: 1.4rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .eyebrow {

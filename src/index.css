@@ -10,35 +10,35 @@
   --font-display: "Bricolage Grotesque", "Segoe UI", sans-serif;
   --font-body: "IBM Plex Sans", "Segoe UI", sans-serif;
 
-  --bg: #f5f1e8;
-  --bg-accent: #dfd7c6;
-  --surface: #fffdf7;
-  --surface-2: #f1ece0;
-  --ink: #1d1f1b;
-  --muted: #5e5a52;
-  --accent: #a24a23;
-  --accent-strong: #7c3819;
-  --border: #d9d2c4;
-  --shadow: 0 24px 60px rgba(22, 20, 16, 0.15);
-  --shadow-soft: 0 12px 30px rgba(30, 26, 20, 0.12);
-  --glow: 0 0 0 1px rgba(162, 74, 35, 0.16);
+  --bg: oklch(1 0 0);
+  --bg-accent: oklch(0.97 0 0);
+  --surface: oklch(1 0 0);
+  --surface-2: oklch(0.97 0 0);
+  --ink: oklch(0.145 0 0);
+  --muted: oklch(0.556 0 0);
+  --accent: oklch(0.205 0 0);
+  --accent-strong: oklch(0.145 0 0);
+  --border: oklch(0.922 0 0);
+  --shadow: 0 24px 60px oklch(0.145 0 0 / 12%);
+  --shadow-soft: 0 12px 30px oklch(0.145 0 0 / 8%);
+  --glow: 0 0 0 1px oklch(0.708 0 0 / 24%);
   --border-radius: 0.4rem;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #151614;
-    --bg-accent: #2a2b27;
-    --surface: #1e201b;
-    --surface-2: #262824;
-    --ink: #f1eee5;
-    --muted: #b7b1a6;
-    --accent: #e08b63;
-    --accent-strong: #f1a77f;
-    --border: #343630;
-    --shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
-    --shadow-soft: 0 12px 30px rgba(0, 0, 0, 0.35);
-    --glow: 0 0 0 1px rgba(224, 139, 99, 0.22);
+    --bg: oklch(0.145 0 0);
+    --bg-accent: oklch(0.205 0 0);
+    --surface: oklch(0.205 0 0);
+    --surface-2: oklch(0.269 0 0);
+    --ink: oklch(0.985 0 0);
+    --muted: oklch(0.708 0 0);
+    --accent: oklch(0.922 0 0);
+    --accent-strong: oklch(0.985 0 0);
+    --border: oklch(1 0 0 / 10%);
+    --shadow: 0 24px 60px oklch(0 0 0 / 55%);
+    --shadow-soft: 0 12px 30px oklch(0 0 0 / 35%);
+    --glow: 0 0 0 1px oklch(0.556 0 0 / 30%);
   }
 }
 
@@ -58,8 +58,8 @@ body {
   font-family: var(--font-body);
   color: var(--ink);
   background:
-    radial-gradient(circle at top, var(--bg-accent), transparent 55%),
-    linear-gradient(160deg, var(--bg), var(--bg-accent));
+    radial-gradient(circle at top, var(--bg-accent), transparent 56%),
+    var(--bg);
   position: relative;
   overflow-x: hidden;
   font-size: 62.5%;
@@ -70,8 +70,8 @@ body::before {
   position: fixed;
   inset: 0;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(oklch(0.145 0 0 / 4%) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(0.145 0 0 / 4%) 1px, transparent 1px);
   background-size: 120px 120px;
   opacity: 0.5;
   pointer-events: none;
@@ -83,7 +83,7 @@ body::after {
   inset: 0;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E");
   mix-blend-mode: soft-light;
-  opacity: 0.5;
+  opacity: 0.2;
   pointer-events: none;
 }
 

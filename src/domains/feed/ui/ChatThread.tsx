@@ -1,25 +1,14 @@
 import clsx from "clsx";
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { path } from "ramda";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Api } from "telegram";
-import { getAvatarColor, getAvatarInitials } from "../../../shared/ui/Avatar/avatar";
 import { Header } from "../../../shared/ui/Header/Header";
 import { Media } from "../../../shared/ui/Media/Media";
 import { Text } from "../../../shared/ui/Text/Text";
-import { AppContext } from "../../app/AppContext";
+import type { FeedItem } from "../../../types";
 import { ensureTelegramConnected } from "../../auth/infra/telegramAuth";
 import { getMediaPreview, toRelativeTime } from "../infra/telegramFeed";
-import type { FeedItem } from "../model/mockFeed";
 import styles from "./ChatThread.module.css";
-
-type ThreadMessage = {
-  id: string;
-  senderName: string;
-  text: string;
-  timestamp: string;
-  media?: FeedItem["media"];
-  sourceMessage?: Api.Message;
-  isFocused: boolean;
-};
 
 type ChatThreadProps = {
   item: FeedItem;
@@ -44,9 +33,7 @@ function getSenderLabel(message: Api.Message, fallback: string) {
 }
 
 export function ChatThread({ item }: ChatThreadProps) {
-  const { avatarVisibility } = useContext(AppContext);
-  const isAvatarVisible = avatarVisibility?.thread ?? true;
-  const [messages, setMessages] = useState<ThreadMessage[]>([]);
+  const [messages, setMessages] = useState<FeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showJump, setShowJump] = useState(false);
@@ -55,17 +42,28 @@ export function ChatThread({ item }: ChatThreadProps) {
   const sourceMessage = item.sourceMessage as Api.Message | undefined;
   const focusId = sourceMessage?.id;
 
-  const fallbackMessage = useMemo<ThreadMessage[]>(() => {
-    return [
-      {
-        id: item.id,
-        senderName: item.type === "dm" ? item.senderName : item.chatName,
-        text: item.text,
-        timestamp: item.timestamp,
-        media: item.media,
-        isFocused: true,
-      },
-    ];
+  const fallbackMessage = useMemo<FeedItem[]>(() => {
+    const message = {
+      id: item.id,
+      type: item.type,
+      chatName: item.chatName,
+
+      senderName: item.type === "dm" ? item.senderName : item.chatName,
+      text: item.text,
+      timestamp: item.timestamp,
+      media: item.media,
+      isFocused: true,
+    };
+
+    if (item.type !== "dm")
+      return [
+        {
+          ...message,
+          reactions: path(["reactions"], item),
+        } as FeedItem,
+      ];
+
+    return [message as FeedItem];
   }, [item]);
 
   useEffect(() => {
@@ -98,7 +96,10 @@ export function ChatThread({ item }: ChatThreadProps) {
               media: getMediaPreview(message),
               sourceMessage: message,
               isFocused: focusId ? message.id === focusId : false,
-            };
+              reactions: path(["reactions"], message),
+              type: message.toId instanceof Api.PeerUser ? "dm" : "group",
+              chatName: message.toId instanceof Api.PeerUser ? senderName : item.chatName,
+            } as FeedItem;
           });
         if (active) {
           setMessages(normalized);
@@ -122,7 +123,6 @@ export function ChatThread({ item }: ChatThreadProps) {
     };
   }, [fallbackMessage, focusId, item.chatName, sourceMessage]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: we react to 'messages' changes
   useEffect(() => {
     if (!focusedRef.current) return;
 
@@ -171,19 +171,7 @@ export function ChatThread({ item }: ChatThreadProps) {
             ref={message.isFocused ? focusedRef : null}
             tabIndex={message.isFocused ? -1 : undefined}
           >
-            {isAvatarVisible && (
-              <div className={styles.avatarWrap}>
-                <div
-                  className={styles.avatar}
-                  style={{ background: getAvatarColor(message.senderName) }}
-                  aria-label={`Avatar for ${message.senderName}`}
-                  title={message.senderName}
-                >
-                  {getAvatarInitials(message.senderName)}
-                </div>
-              </div>
-            )}
-            <Header timestamp={message.timestamp} className={styles.header}>
+            <Header message={message} className={styles.header}>
               {message.senderName}
             </Header>
             <Text className={styles.text}>{message.text}</Text>
@@ -193,12 +181,13 @@ export function ChatThread({ item }: ChatThreadProps) {
                   id: message.id,
                   type: item.type,
                   chatName: item.chatName,
-                  senderName: message.senderName,
+                  senderName: message.senderName || "",
                   timestamp: message.timestamp,
                   text: message.text,
                   media: message.media,
                   reactions: [],
                   sourceMessage: message.sourceMessage,
+                  isFocused: message.isFocused,
                 }}
               />
             )}
@@ -229,6 +218,13 @@ export function ChatThread({ item }: ChatThreadProps) {
           </button>
         )}
       </div>
+      {/* {isCarouselOpen && avatarGallery.length > 0 && (
+        <AvatarCarousel
+          photos={avatarGallery}
+          initialIndex={carouselIndex}
+          onClose={() => setIsCarouselOpen(false)}
+        />
+      )} */}
     </div>
   );
 }

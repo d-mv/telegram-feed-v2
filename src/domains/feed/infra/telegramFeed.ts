@@ -13,6 +13,117 @@ const DEFAULT_OPTIONS: FetchFeedOptions = {
   maxAgeDays: 7,
 };
 
+const avatarPhotoCache = new Map<string, string | undefined>();
+const avatarPhotoPending = new Map<string, Promise<string | undefined>>();
+const avatarGalleryCache = new Map<string, string[]>();
+const avatarGalleryPending = new Map<string, Promise<string[]>>();
+
+function toBinaryObjectUrl(input: unknown): string | undefined {
+  if (!input) {
+    return undefined;
+  }
+  if (typeof input === "string") {
+    if (input.startsWith("blob:") || input.startsWith("data:") || input.startsWith("http")) {
+      return input;
+    }
+    return undefined;
+  }
+  if (input instanceof ArrayBuffer) {
+    return URL.createObjectURL(new Blob([input], { type: "image/jpeg" }));
+  }
+  if (input instanceof Uint8Array) {
+    if (input.byteLength === 0) return undefined;
+    return URL.createObjectURL(new Blob([input], { type: "image/jpeg" }));
+  }
+  return undefined;
+}
+
+export async function getAvatarPhotoUrl(
+  entity: unknown,
+  cacheKey: string,
+): Promise<string | undefined> {
+  if (!entity || typeof entity !== "object") {
+    return undefined;
+  }
+  if (avatarPhotoCache.has(cacheKey)) {
+    return avatarPhotoCache.get(cacheKey);
+  }
+  const pending = avatarPhotoPending.get(cacheKey);
+  if (pending) {
+    return pending;
+  }
+  const task = (async () => {
+    try {
+      const gallery = await getAvatarPhotoGallery(entity, cacheKey);
+      if (gallery.length > 0) {
+        const latest = gallery[0];
+        avatarPhotoCache.set(cacheKey, latest);
+        return latest;
+      }
+
+      const client = await ensureTelegramConnected();
+      const photo = await client.downloadProfilePhoto(entity as never, { isBig: false });
+      const url = toBinaryObjectUrl(photo);
+      avatarPhotoCache.set(cacheKey, url);
+      return url;
+    } catch {
+      avatarPhotoCache.set(cacheKey, undefined);
+      return undefined;
+    } finally {
+      avatarPhotoPending.delete(cacheKey);
+    }
+  })();
+  avatarPhotoPending.set(cacheKey, task);
+  return task;
+}
+
+export async function getAvatarPhotoGallery(entity: unknown, cacheKey: string): Promise<string[]> {
+  if (!entity || typeof entity !== "object") {
+    return [];
+  }
+  if (avatarGalleryCache.has(cacheKey)) {
+    return avatarGalleryCache.get(cacheKey) ?? [];
+  }
+  const pending = avatarGalleryPending.get(cacheKey);
+  if (pending) {
+    return pending;
+  }
+  const task = (async () => {
+    try {
+      const client = await ensureTelegramConnected();
+      const response = await client.invoke(
+        new Api.photos.GetUserPhotos({
+          userId: entity as never,
+          offset: 0,
+          maxId: BigInt(0),
+          limit: 20,
+        }),
+      );
+      const photos = "photos" in response && Array.isArray(response.photos) ? response.photos : [];
+      const urls: string[] = [];
+      for (const photo of photos) {
+        if (!(photo instanceof Api.Photo)) {
+          continue;
+        }
+        const binary = await client.downloadMedia(photo, {});
+        const url = toBinaryObjectUrl(binary);
+        if (url) {
+          urls.push(url);
+        }
+      }
+      avatarGalleryCache.set(cacheKey, urls);
+      return urls;
+    } catch {
+      avatarGalleryCache.set(cacheKey, []);
+      return [];
+    } finally {
+      avatarGalleryPending.delete(cacheKey);
+    }
+  })();
+  avatarGalleryPending.set(cacheKey, task);
+  return task;
+}
+
 export function toRelativeTime(unixSeconds: number): string {
   const now = Date.now() / 1000;
   const diff = Math.max(0, Math.floor(now - unixSeconds));

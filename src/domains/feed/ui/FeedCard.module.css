@@ -1,7 +1,7 @@
 .feedCard {
   display: block;
   gap: 16px;
-  border-radius: .4rem;
+  border-radius: 0.4rem;
   background: var(--surface-2);
   border: 1px solid var(--border);
   cursor: pointer;
@@ -27,27 +27,6 @@
   width: 100%;
   display: flex;
   flex-flow: column;
-}
-
-.avatarWrap {
-  padding-inline: 16px;
-  padding-block-start: 14px;
-}
-
-.avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  color: #fff;
-  display: grid;
-  place-items: center;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.header {
-  padding-block-start: 0;
-  padding-inline: 16px;
 }
 
 .text {

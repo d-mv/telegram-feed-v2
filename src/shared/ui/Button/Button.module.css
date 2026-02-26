@@ -26,7 +26,7 @@
 
 .primary {
   background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-  color: #fff7ef;
+  color: var(--surface);
   border-color: transparent;
 }
 

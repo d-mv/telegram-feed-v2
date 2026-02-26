@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { Button } from "../../../shared/ui/Button/Button";
+import type { FeedItem } from "../../../types";
 import { AppContext } from "../../app/AppContext";
-import type { FeedItem } from "../model/mockFeed";
 import styles from "./Chat.module.css";
 import { ChatThread } from "./ChatThread";
 
@@ -52,9 +52,7 @@ export function Chat({ item, onClose }: ChatProps) {
       </button>
       <section className={styles.panel}>
         <header className={styles.header}>
-          <div>
-            <h2 className={styles.title}>{title}</h2>
-          </div>
+          <h2 className={styles.title}>{title}</h2>
           <Button variant="ghost" type="button" onClick={onClose}>
             Close
           </Button>

@@ -1,0 +1,77 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(0, 0, 0, 0.76);
+}
+
+.panel {
+  position: relative;
+  z-index: 1;
+  width: min(92vw, 760px);
+  height: min(92vh, 760px);
+  display: flex;
+  align-items: center;
+}
+
+.viewport {
+  overflow: hidden;
+  width: 100%;
+}
+
+.container {
+  display: flex;
+}
+
+.slide {
+  min-width: 100%;
+  padding: 0.5rem;
+  display: grid;
+  place-items: center;
+}
+
+.image {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 12px;
+}
+
+.prev,
+.next,
+.close {
+  position: absolute;
+  border: none;
+  background: rgba(0, 0, 0, 0.45);
+  color: white;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 24px;
+}
+
+.prev {
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.next {
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.close {
+  right: 12px;
+  top: 12px;
+  font-size: 18px;
+}

@@ -47,6 +47,7 @@ vi.mock('./domains/feed/infra/telegramFeed', () => ({
       reactions: [],
     },
   ]),
+  getAvatarPhotoUrl: vi.fn().mockResolvedValue(undefined),
 }))
 
 test('renders login view', async () => {

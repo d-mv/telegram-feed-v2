@@ -1,21 +1,23 @@
-import clsx from 'clsx'
-import type { PropsWithChildren } from 'react'
-import styles from './Header.module.css'
+import clsx from "clsx";
+import type { PropsWithChildren } from "react";
+import type { FeedItem } from "../../../types";
+import { Avatar } from "../Avatar/Avatar";
+import styles from "./Header.module.css";
 
 type Props = {
-  timestamp: string
-  className: string
-}
+  noPreview?: boolean;
+  message: FeedItem;
+  className?: string;
+};
 
-export function Header({
-  children,
-  timestamp,
-  className,
-}: PropsWithChildren<Props>) {
+export function Header({ children, message, className, noPreview }: PropsWithChildren<Props>) {
   return (
     <div className={clsx(styles.container, className)}>
-      <h2 className={styles.header}>{children}</h2>
-      <span className={styles.timestamp}>{timestamp}</span>
+      <div className={styles.left}>
+        <Avatar noPreview={noPreview} message={message} />
+        <h2 className={styles.header}>{children}</h2>
+      </div>
+      <span className={styles.timestamp}>{message.timestamp}</span>
     </div>
-  )
+  );
 }

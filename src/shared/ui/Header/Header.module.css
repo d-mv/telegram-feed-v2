@@ -1,12 +1,33 @@
 .container {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr 2rem;
+  margin-block-start: 1rem;
+  gap: 1rem;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  padding-block-start: 0;
+  padding-inline: 16px;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .header {
   margin: 0;
   font-size: 1.2rem;
   font-weight: 300;
+  width: calc(100% - 6rem);
+  max-width: calc(100% - 6rem);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .timestamp {
