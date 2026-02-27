@@ -84,6 +84,32 @@ describe('Media video controls', () => {
     })
   })
 
+  it('renders icon-only download button with accessible label', () => {
+    const item: FeedItem = {
+      id: 'video-3',
+      type: 'group',
+      chatName: 'Test',
+      timestamp: 'now',
+      text: 'video',
+      media: {
+        meta: {
+          type: 'video',
+          width: 640,
+          height: 360,
+          sizeBytes: 1000,
+        },
+        url: 'https://example.com/poster.jpg',
+        alt: 'preview',
+      },
+    }
+
+    render(<Media item={item} />)
+
+    const button = screen.getByRole('button', { name: /download/i })
+    expect(button).toBeInTheDocument()
+    expect(button).not.toHaveTextContent(/download/i)
+  })
+
   it('renders attachment card for non-image/video media', () => {
     const item: FeedItem = {
       id: 'file-1',

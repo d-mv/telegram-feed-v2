@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { ChatThread } from "./ChatThread";
@@ -83,4 +83,102 @@ test("loads message comments in accordion and shows comments icon", async () => 
   await waitFor(() => {
     expect(screen.getByText("First comment")).toBeInTheDocument();
   });
+});
+
+test("marks clicked message and previous ones as read", async () => {
+  const user = userEvent.setup();
+  const now = Math.floor(Date.now() / 1000);
+  const { Api } = await import("telegram");
+  const onMarkRead = vi.fn();
+
+  const firstMessage = new Api.Message({
+    id: 10,
+    date: now - 120,
+    message: "First",
+    toId: {},
+    sender: { firstName: "Alice" },
+  });
+
+  const secondMessage = new Api.Message({
+    id: 11,
+    date: now - 60,
+    message: "Second",
+    toId: {},
+    sender: { firstName: "Bob" },
+  });
+
+  const sourceMessage = new Api.Message({
+    id: 11,
+    date: now - 60,
+    message: "Second",
+    toId: {},
+    getInputChat: vi.fn().mockResolvedValue("chat"),
+    sender: { firstName: "Bob" },
+  });
+
+  ensureTelegramConnectedMock.mockResolvedValue({
+    getMessages: vi.fn().mockResolvedValue([secondMessage, firstMessage]),
+  });
+
+  render(
+    <ChatThread
+      item={{
+        id: "group-1-11",
+        type: "group",
+        chatName: "Team",
+        timestamp: "now",
+        text: "Second",
+        sourceMessage,
+        isFocused: true,
+      }}
+      onMarkReadThrough={onMarkRead}
+    />, 
+  );
+
+  expect(await screen.findByText("First")).toBeInTheDocument();
+  expect(screen.getAllByLabelText("Unread message")).toHaveLength(2);
+
+  await user.click(screen.getByText("Second"));
+
+  await waitFor(() => {
+    expect(screen.queryByLabelText("Unread message")).not.toBeInTheDocument();
+  });
+  expect(onMarkRead).toHaveBeenCalledWith(["10", "11"]);
+});
+
+test("marks a video message as read when play starts", async () => {
+  const onMarkRead = vi.fn();
+
+  render(
+    <ChatThread
+      item={{
+        id: "group-1-20",
+        type: "group",
+        chatName: "Team",
+        timestamp: "now",
+        text: "Video",
+        media: {
+          meta: {
+            type: "video",
+            width: 640,
+            height: 360,
+            sizeBytes: 2048,
+            mimeType: "video/mp4",
+          },
+          url: "https://example.com/preview.jpg",
+          alt: "video",
+        },
+        isFocused: true,
+      }}
+      onMarkReadThrough={onMarkRead}
+    />, 
+  );
+
+  const video = await screen.findByLabelText("Video media");
+  fireEvent.play(video);
+
+  await waitFor(() => {
+    expect(screen.queryByLabelText("Unread message")).not.toBeInTheDocument();
+  });
+  expect(onMarkRead).toHaveBeenCalledWith(["group-1-20"]);
 });

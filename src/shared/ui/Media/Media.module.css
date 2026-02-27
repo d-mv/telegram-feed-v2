@@ -39,9 +39,25 @@
   width: 32px;
   height: 32px;
   border-radius: 999px;
-  display: grid;
-  place-items: center;
+  display: inline-block;
   background: rgba(162, 74, 35, 0.15);
+  color: var(--accent-strong);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: 18px 18px;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: 18px 18px;
+}
+
+.attachmentAudioIcon {
+  -webkit-mask-image: url('/icons/musical-note.svg');
+  mask-image: url('/icons/musical-note.svg');
+}
+
+.attachmentFileIcon {
+  -webkit-mask-image: url('/icons/paper-clip.svg');
+  mask-image: url('/icons/paper-clip.svg');
 }
 
 .attachmentMeta {
@@ -68,15 +84,15 @@
   top: 12px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(12, 12, 12, 0.5);
-  color: #fff7ef;
-  padding: 6px 12px;
+  color: var(--text);
+  padding: 6px;
   border-radius: 999px;
-  font-size: 1.4rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   cursor: pointer;
   z-index: 2;
   backdrop-filter: blur(6px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .download-button:disabled {
@@ -95,6 +111,21 @@
   font-size: 0.7rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.downloadIcon {
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  background: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-image: url('/icons/arrow-down-tray.svg');
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  mask-image: url('/icons/arrow-down-tray.svg');
 }
 
 .progress {

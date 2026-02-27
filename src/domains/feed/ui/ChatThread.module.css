@@ -75,6 +75,7 @@
   width: 100%;
   box-sizing: border-box;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .messageFocused {
@@ -90,6 +91,18 @@
 .text {
   padding-inline: 16px;
   padding-block-end: 16px;
+}
+
+.unreadIndicator {
+  padding-inline: 16px;
+  color: var(--accent-strong);
+  display: inline-flex;
+  align-items: center;
+}
+
+.unreadIcon {
+  width: 18px;
+  height: 18px;
 }
 
 .commentsAccordion {

@@ -33,6 +33,7 @@ interface Message {
   // fix this
   sourceMessage?: AnyValue;
   isFocused: boolean;
+  isRead?: boolean;
 }
 
 export interface DirectMessage extends Message {

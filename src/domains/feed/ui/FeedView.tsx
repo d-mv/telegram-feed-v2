@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { channelsAtom } from "../../../atoms/channels.atom";
 import { feedFilterSettingsAtom } from "../../../atoms/feedFilters.atom";
 import { feedItemsAtom } from "../../../atoms/feedItems.atom";
+import { markFeedItemReadThrough } from "../infra/telegramFeed";
 import type { FeedItem } from "../model/mockFeed";
 import { getMockFeedBatch, getMockLiveItem } from "../model/mockFeed";
 import { Chat } from "./Chat";
@@ -13,6 +14,21 @@ import { ScrollTopButton } from "./ScrollTopButton";
 
 const PAGE_SIZE = 10;
 const TOTAL_ITEMS = 60;
+
+function toReadableKey(item: FeedItem): string {
+  const sourceId = (item.sourceMessage as { id?: unknown } | undefined)?.id;
+  if (typeof sourceId === "number" || typeof sourceId === "string") {
+    return String(sourceId);
+  }
+  return item.id;
+}
+
+function normalizeReadState(items: FeedItem[]): FeedItem[] {
+  return items.map((item) => ({
+    ...item,
+    isRead: item.isRead === true,
+  }));
+}
 
 function getItemChannelKey(item: FeedItem): string {
   if (item.channelKey) {
@@ -42,7 +58,7 @@ export function FeedView() {
   const allItems = useMemo(() => getMockFeedBatch(TOTAL_ITEMS), []);
   const initialStart = Math.max(0, allItems.length - PAGE_SIZE);
   const [items, setItems] = useState<FeedItem[]>(
-    () => providedItems ?? allItems.slice(initialStart),
+    () => normalizeReadState(providedItems ?? allItems.slice(initialStart)),
   );
   const [cursor, setCursor] = useState(providedItems ? 0 : initialStart);
   const [focusedItem, setFocusedItem] = useState<FeedItem | null>(null);
@@ -55,7 +71,7 @@ export function FeedView() {
   useEffect(() => {
     if (!providedItems) return;
 
-    setItems(providedItems);
+    setItems(normalizeReadState(providedItems));
   }, [providedItems]);
 
   function prependItems(nextItems: FeedItem[], adjustScroll: boolean) {
@@ -63,7 +79,44 @@ export function FeedView() {
 
     const prevHeight = document.documentElement.scrollHeight;
     pendingPrependRef.current = { height: prevHeight, adjust: adjustScroll };
-    setItems((current) => [...nextItems, ...current]);
+    setItems((current) => [...normalizeReadState(nextItems), ...current]);
+  }
+
+  function markReadByKeys(targetKeys: string[], scopeItem?: FeedItem) {
+    if (targetKeys.length === 0) {
+      return;
+    }
+    const scopeChannelKey = scopeItem ? getItemChannelKey(scopeItem) : null;
+    setItems((current) => {
+      let furthestIndex = -1;
+      for (const key of targetKeys) {
+        const index = current.findIndex(
+          (item) =>
+            (scopeChannelKey === null || getItemChannelKey(item) === scopeChannelKey) &&
+            (toReadableKey(item) === key || item.id === key),
+        );
+        if (index > furthestIndex) {
+          furthestIndex = index;
+        }
+      }
+      if (furthestIndex < 0) {
+        return current;
+      }
+      return current.map((item, index) => {
+        if (
+          index > furthestIndex ||
+          item.isRead === true ||
+          (scopeChannelKey !== null && getItemChannelKey(item) !== scopeChannelKey)
+        ) {
+          return item;
+        }
+        return { ...item, isRead: true };
+      });
+    });
+
+    if (scopeItem) {
+      void markFeedItemReadThrough(scopeItem).catch(() => {});
+    }
   }
 
   function prependMore() {
@@ -164,7 +217,14 @@ export function FeedView() {
   }, [focusedItem, items]);
 
   const renderItem = (item: FeedItem) => (
-    <FeedCard key={item.id} item={item} onFocus={setFocusedItem} />
+    <FeedCard
+      key={item.id}
+      item={item}
+      onFocus={setFocusedItem}
+      onMarkRead={(targetItem) =>
+        markReadByKeys([toReadableKey(targetItem), targetItem.id], targetItem)
+      }
+    />
   );
 
   const visibleItems = useMemo(
@@ -184,7 +244,13 @@ export function FeedView() {
         )}
         {visibleItems.map(renderItem)}
       </div>
-      {focusedItem && <Chat item={focusedItem} onClose={() => setFocusedItem(null)} />}
+      {focusedItem && (
+        <Chat
+          item={focusedItem}
+          onClose={() => setFocusedItem(null)}
+          onMarkReadThrough={(readMessageIds) => markReadByKeys(readMessageIds, focusedItem)}
+        />
+      )}
       {showScrollTop && (
         <ScrollTopButton onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
       )}

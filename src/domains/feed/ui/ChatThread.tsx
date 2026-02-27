@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { path } from "ramda";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Api } from "telegram";
+import { CommentsIcon } from "../../../shared/ui/CommentsIcon/CommentsIcon";
 import { Header } from "../../../shared/ui/Header/Header";
 import { Media } from "../../../shared/ui/Media/Media";
 import { Text } from "../../../shared/ui/Text/Text";
@@ -12,6 +13,7 @@ import styles from "./ChatThread.module.css";
 
 type ChatThreadProps = {
   item: FeedItem;
+  onMarkReadThrough?: (readMessageIds: string[]) => void;
 };
 
 type ThreadComment = {
@@ -39,27 +41,15 @@ function getSenderLabel(message: Api.Message, fallback: string) {
   return fallback;
 }
 
-function CommentsIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className={styles.commentsIcon}
-    >
-      <path d="M2.25 12.76c0 1.6.72 3.13 1.98 4.22l-.52 3.49 3.24-1.86c1 .38 2.09.58 3.2.58 4.59 0 8.25-3.21 8.25-7.23 0-4.01-3.66-7.22-8.25-7.22s-8.25 3.21-8.25 7.22Z" />
-      <path d="M7.5 10.5h7.5" />
-      <path d="M7.5 13.5h4.5" />
-    </svg>
-  );
+function getMessageReadKey(message: FeedItem): string {
+  const sourceId = (message.sourceMessage as { id?: unknown } | undefined)?.id;
+  if (typeof sourceId === "number" || typeof sourceId === "string") {
+    return String(sourceId);
+  }
+  return message.id;
 }
 
-export function ChatThread({ item }: ChatThreadProps) {
+export function ChatThread({ item, onMarkReadThrough }: ChatThreadProps) {
   const [messages, setMessages] = useState<FeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -83,6 +73,7 @@ export function ChatThread({ item }: ChatThreadProps) {
       commentsCount: item.commentsCount,
       media: item.media,
       isFocused: true,
+      isRead: item.isRead,
     };
 
     if (item.type !== "dm")
@@ -127,6 +118,7 @@ export function ChatThread({ item }: ChatThreadProps) {
               commentsCount: getMessageCommentsCount(message),
               sourceMessage: message,
               isFocused: focusId ? message.id === focusId : false,
+              isRead: false,
               reactions: path(["reactions"], message),
               type: message.toId instanceof Api.PeerUser ? "dm" : "group",
               chatName: message.toId instanceof Api.PeerUser ? senderName : item.chatName,
@@ -226,6 +218,25 @@ export function ChatThread({ item }: ChatThreadProps) {
     }
   }
 
+  function markReadThroughIndex(targetIndex: number) {
+    setMessages((current) =>
+      current.map((message, index) => {
+        if (index > targetIndex || message.isRead === true) {
+          return message;
+        }
+        return { ...message, isRead: true };
+      }),
+    );
+
+    const readKeys = messages
+      .slice(0, targetIndex + 1)
+      .map(getMessageReadKey)
+      .filter((key, index, all) => all.indexOf(key) === index);
+    if (readKeys.length > 0) {
+      onMarkReadThrough?.(readKeys);
+    }
+  }
+
   return (
     <div className={clsx(styles.thread, (messages.length === 0 || isLoading) && styles.empty)}>
       {isLoading && <p className={styles.loading}>Loading thread...</p>}
@@ -236,13 +247,23 @@ export function ChatThread({ item }: ChatThreadProps) {
             key={message.id}
             className={`${styles.message} ${message.isFocused ? styles.messageFocused : ""}`}
             ref={message.isFocused ? focusedRef : null}
-            tabIndex={message.isFocused ? -1 : undefined}
+            role="button"
+            tabIndex={0}
+            onClick={() =>
+              markReadThroughIndex(messages.findIndex((item) => item.id === message.id))
+            }
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                markReadThroughIndex(messages.findIndex((item) => item.id === message.id));
+              }
+            }}
           >
             <Header isThread message={message} className={styles.header}>
               {message.senderName}
             </Header>
             <Text className={styles.text}>{message.text}</Text>
-            {message.media && message.sourceMessage && (
+            {message.media && (
               <Media
                 item={{
                   id: message.id,
@@ -255,6 +276,13 @@ export function ChatThread({ item }: ChatThreadProps) {
                   reactions: [],
                   sourceMessage: message.sourceMessage,
                   isFocused: message.isFocused,
+                  isRead: message.isRead,
+                }}
+                onVideoPlay={() => {
+                  const targetIndex = messages.findIndex((item) => item.id === message.id);
+                  if (targetIndex >= 0) {
+                    markReadThroughIndex(targetIndex);
+                  }
                 }}
               />
             )}
@@ -318,13 +346,6 @@ export function ChatThread({ item }: ChatThreadProps) {
           </button>
         )}
       </div>
-      {/* {isCarouselOpen && avatarGallery.length > 0 && (
-        <AvatarCarousel
-          photos={avatarGallery}
-          initialIndex={carouselIndex}
-          onClose={() => setIsCarouselOpen(false)}
-        />
-      )} */}
     </div>
   );
 }

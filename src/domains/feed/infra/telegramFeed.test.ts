@@ -116,6 +116,7 @@ import {
   getCachedMediaUrl,
   getMessageCommentsCount,
   getMediaPreview,
+  markFeedItemReadThrough,
   sendMessageToFeedItem,
   toRelativeTime,
 } from './telegramFeed'
@@ -401,6 +402,42 @@ describe('message helpers', () => {
         'hello',
       ),
     ).rejects.toThrow('Cannot send message for this conversation')
+  })
+
+  test('marks item as read in Telegram for source message id', async () => {
+    const markAsRead = vi.fn().mockResolvedValue(true)
+    ensureTelegramConnectedMock.mockResolvedValue({ markAsRead })
+
+    await markFeedItemReadThrough({
+      id: 'group-1',
+      type: 'group',
+      chatName: 'Team',
+      timestamp: 'now',
+      text: 'hello',
+      sourceMessage: new Api.Message({
+        id: 42,
+        getInputChat: vi.fn().mockResolvedValue('chat'),
+      }),
+      isFocused: false,
+    })
+
+    expect(markAsRead).toHaveBeenCalledWith('chat', 42)
+  })
+
+  test('skips Telegram read mark when message source is missing', async () => {
+    const markAsRead = vi.fn().mockResolvedValue(true)
+    ensureTelegramConnectedMock.mockResolvedValue({ markAsRead })
+
+    await markFeedItemReadThrough({
+      id: 'group-1',
+      type: 'group',
+      chatName: 'Team',
+      timestamp: 'now',
+      text: 'hello',
+      isFocused: false,
+    })
+
+    expect(markAsRead).not.toHaveBeenCalled()
   })
 })
 

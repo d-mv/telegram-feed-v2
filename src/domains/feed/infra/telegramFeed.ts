@@ -352,6 +352,22 @@ export async function sendMessageToFeedItem(item: FeedItem, text: string): Promi
   });
 }
 
+export async function markFeedItemReadThrough(item: FeedItem): Promise<void> {
+  const sourceMessage = item.sourceMessage;
+  if (!(sourceMessage instanceof Api.Message)) {
+    return;
+  }
+  const maxId = sourceMessage.id;
+  if (typeof maxId !== "number") {
+    return;
+  }
+  const client = await ensureTelegramConnected();
+  const inputChat = sourceMessage.getInputChat
+    ? await sourceMessage.getInputChat()
+    : (sourceMessage as Api.Message & { inputChat?: unknown }).inputChat;
+  await client.markAsRead(inputChat ?? undefined, maxId);
+}
+
 function toObjectUrl(input: unknown, mimeType: string): string | undefined {
   if (!input) {
     return undefined;

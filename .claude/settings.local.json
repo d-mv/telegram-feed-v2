@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__todoist__get_tasks",
+      "mcp__todoist__close_task"
+    ]
+  }
+}

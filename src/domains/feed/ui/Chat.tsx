@@ -8,9 +8,10 @@ import { ChatThread } from "./ChatThread";
 type ChatProps = {
   item: FeedItem;
   onClose: () => void;
+  onMarkReadThrough?: (readMessageIds: string[]) => void;
 };
 
-export function Chat({ item, onClose }: ChatProps) {
+export function Chat({ item, onClose, onMarkReadThrough }: ChatProps) {
   const title = item.type === "dm" ? item.chatName : item.chatName;
   const { onSendMessage } = useContext(AppContext);
   const [draft, setDraft] = useState("");
@@ -58,7 +59,7 @@ export function Chat({ item, onClose }: ChatProps) {
           </Button>
         </header>
         <div className={styles.body}>
-          <ChatThread item={item} />
+          <ChatThread item={item} onMarkReadThrough={onMarkReadThrough} />
         </div>
         <footer className={styles.composer}>
           {error !== "" && <p className={styles.error}>{error}</p>}

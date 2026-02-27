@@ -10,9 +10,10 @@ import styles from "./Media.module.css";
 
 type Props = {
   item: FeedItem;
+  onVideoPlay?: () => void;
 };
 
-export function Media({ item }: Props) {
+export function Media({ item, onVideoPlay }: Props) {
   const media = item.media;
 
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(item.media?.url);
@@ -249,6 +250,7 @@ export function Media({ item }: Props) {
             muted={isMuted}
             playsInline
             className={styles.video}
+            aria-label="Video media"
             onClick={(event) => event.stopPropagation()}
             onLoadedMetadata={(event) => {
               const target = event.currentTarget;
@@ -258,7 +260,10 @@ export function Media({ item }: Props) {
               const target = event.currentTarget;
               setCurrentTime(target.currentTime || 0);
             }}
-            onPlay={() => setIsPlaying(true)}
+            onPlay={() => {
+              setIsPlaying(true);
+              onVideoPlay?.();
+            }}
             onPause={() => setIsPlaying(false)}
             onEnded={() => setIsPlaying(false)}
           />
@@ -274,51 +279,8 @@ export function Media({ item }: Props) {
             duration={duration}
             currentTime={currentTime}
             videoUrl={videoUrl}
+            disabled={Boolean((shouldOfferFullDownload || downloadError) && !videoUrl)}
           />
-          {/* <div
-            className={styles['container-controls']}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              className={styles['control-button']}
-              onClick={handleTogglePlay}
-              disabled={!videoUrl}
-              aria-label={getPlayLabel()}
-            >
-              <img
-                src={isPlaying ? '/icons/pause.svg' : '/icons/play.svg'}
-                alt=""
-                aria-hidden="true"
-                className={styles['control-icon']}
-              />
-            </button>
-            <input
-              type="range"
-              min={0}
-              max={duration || 0}
-              step={0.1}
-              value={currentTime}
-              onChange={(event) => handleScrub(Number(event.target.value))}
-              className={styles['control-scrubber']}
-              disabled={!videoUrl || duration <= 0}
-            />
-            <span className={styles['control-time']}>{getTimeLeftLabel()}</span>
-            <button
-              type="button"
-              className={styles['control-button']}
-              onClick={handleToggleMute}
-              disabled={!videoUrl}
-              aria-label={getMuteLabel()}
-            >
-              <img
-                src={isMuted ? '/icons/volume-x.svg' : '/icons/volume.svg'}
-                alt=""
-                aria-hidden="true"
-                className={styles['control-icon']}
-              />
-            </button>
-          </div> */}
         </div>
       );
     }
@@ -330,13 +292,12 @@ export function Media({ item }: Props) {
     if (!media || media.meta.type === "image" || media.meta.type === "video") {
       return null;
     }
-    const icon = media.meta.type === "audio" ? "🎵" : "📎";
+    const iconClass =
+      media.meta.type === "audio" ? styles.attachmentAudioIcon : styles.attachmentFileIcon;
     const fileLabel = media.meta.fileName || media.meta.mimeType || "Attachment";
     return (
       <div className={styles.attachment}>
-        <span className={styles.attachmentIcon} aria-hidden="true">
-          {icon}
-        </span>
+        <span className={`${styles.attachmentIcon} ${iconClass}`} aria-hidden="true" />
         <div className={styles.attachmentMeta}>
           <p className={styles.attachmentName}>{fileLabel}</p>
           <p className={styles.attachmentType}>{formatBytes(media.meta.sizeBytes)}</p>
@@ -362,13 +323,14 @@ export function Media({ item }: Props) {
         <button
           type="button"
           className={styles["download-button"]}
+          aria-label={getDownloadLabel()}
           onClick={(event) => {
             event.stopPropagation();
             handleDownload();
           }}
           disabled={isDownloading}
         >
-          {getDownloadLabel()}
+          <span className={styles.downloadIcon} aria-hidden="true" />
         </button>
       )}
       {downloadError && <span className={styles["download-error"]}>{downloadError}</span>}
