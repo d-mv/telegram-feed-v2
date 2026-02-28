@@ -19,5 +19,11 @@ export function createMockAuth(options: MockAuthOptions = {}): AuthClient {
     async submitPassword(_password: string) {
       return { status: 'logged_in' }
     },
+    async requestQrLogin() {
+      return { status: 'pending' }
+    },
+    async checkQrLogin() {
+      return { status: 'pending' }
+    },
   }
 }

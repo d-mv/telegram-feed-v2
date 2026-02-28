@@ -1,11 +1,14 @@
 .container {
   position: relative;
   overflow: hidden;
-  filter: grayscale(1);
   background: rgba(20, 20, 20, 0.08);
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+.grayscale {
+  filter: grayscale(1);
 }
 
 .container-video {
@@ -39,25 +42,17 @@
   width: 32px;
   height: 32px;
   border-radius: 999px;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: rgba(162, 74, 35, 0.15);
   color: var(--accent-strong);
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  -webkit-mask-size: 18px 18px;
-  mask-repeat: no-repeat;
-  mask-position: center;
-  mask-size: 18px 18px;
 }
 
-.attachmentAudioIcon {
-  -webkit-mask-image: url('/icons/musical-note.svg');
-  mask-image: url('/icons/musical-note.svg');
-}
-
-.attachmentFileIcon {
-  -webkit-mask-image: url('/icons/paper-clip.svg');
-  mask-image: url('/icons/paper-clip.svg');
+.attachmentIconSvg {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 .attachmentMeta {

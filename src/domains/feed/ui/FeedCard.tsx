@@ -36,8 +36,16 @@ export function FeedCard({ item, onFocus, onMarkRead }: FeedCardProps) {
         <Media item={item} onVideoPlay={() => onMarkRead?.(item)} />
         {(hasComments || isUnread) && (
           <div className={styles["meta-column"]}>
-            {isUnread && <UnreadIcon />}
-            {hasComments && <CommentsIcon />}
+            {isUnread && (
+              <span aria-label="Unread message">
+                <UnreadIcon />
+              </span>
+            )}
+            {hasComments && (
+              <span aria-label="Has comments">
+                <CommentsIcon />
+              </span>
+            )}
           </div>
         )}
         {item.type === "dm" && (

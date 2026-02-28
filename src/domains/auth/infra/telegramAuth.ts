@@ -155,12 +155,13 @@ export function createTelegramAuth(config: TelegramAuthConfig): AuthClient {
             }),
           }),
         )
-        phoneCodeHash = result.phoneCodeHash
-        logger.info('[TelegramAuth] sent code type', result.type?.className)
-        if (result.nextType) {
+        const sentCode = result as Api.auth.SentCode
+        phoneCodeHash = sentCode.phoneCodeHash
+        logger.info('[TelegramAuth] sent code type', sentCode.type?.className)
+        if (sentCode.nextType) {
           logger.info(
             '[TelegramAuth] next code type',
-            result.nextType.className,
+            sentCode.nextType.className,
           )
         }
         return { ok: true }

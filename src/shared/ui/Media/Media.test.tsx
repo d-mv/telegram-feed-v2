@@ -2,7 +2,7 @@ import userEvent from '@testing-library/user-event'
 import { act, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { FeedItem } from '../../../types'
-import { downloadMediaForItem } from '../../../domains/feed/infra/telegramFeed'
+import { downloadMediaForItem, getCachedMediaUrl } from '../../../domains/feed/infra/telegramFeed'
 import { Media } from './Media'
 
 vi.mock('../../../domains/feed/infra/telegramFeed', () => ({
@@ -12,7 +12,9 @@ vi.mock('../../../domains/feed/infra/telegramFeed', () => ({
 }))
 
 describe('Media video controls', () => {
-  it('uses a dedicated controls container class instead of the media root container class', () => {
+  it('uses a dedicated controls container class instead of the media root container class', async () => {
+    vi.mocked(getCachedMediaUrl).mockResolvedValueOnce('blob:test')
+
     const item: FeedItem = {
       id: 'video-1',
       type: 'group',
@@ -34,7 +36,7 @@ describe('Media video controls', () => {
     const { container } = render(<Media item={item} />)
 
     const mediaContainer = container.querySelector('[data-media-type="video"]')
-    const playButton = screen.getByRole('button', { name: 'Play' })
+    const playButton = await screen.findByRole('button', { name: 'Play' })
     const controlsContainer = playButton.parentElement
 
     expect(mediaContainer).toBeTruthy()
@@ -110,6 +112,32 @@ describe('Media video controls', () => {
     expect(button).not.toHaveTextContent(/download/i)
   })
 
+  it('renders grayscale by default and allows full color when disabled', () => {
+    const item: FeedItem = {
+      id: 'image-1',
+      type: 'group',
+      chatName: 'Test',
+      timestamp: 'now',
+      text: 'image',
+      media: {
+        meta: {
+          type: 'image',
+          width: 640,
+          height: 360,
+          sizeBytes: 1000,
+        },
+        url: 'https://example.com/poster.jpg',
+        alt: 'preview',
+      },
+    }
+
+    const { container, rerender } = render(<Media item={item} />)
+    expect((container.firstChild as HTMLElement).className).toMatch(/grayscale/)
+
+    rerender(<Media item={item} grayscale={false} />)
+    expect((container.firstChild as HTMLElement).className).not.toMatch(/grayscale/)
+  })
+
   it('renders attachment card for non-image/video media', () => {
     const item: FeedItem = {
       id: 'file-1',
@@ -134,5 +162,35 @@ describe('Media video controls', () => {
 
     expect(screen.getByText('spec.pdf')).toBeInTheDocument()
     expect(screen.getByText('2 KB')).toBeInTheDocument()
+    expect(document.querySelector('svg')).toBeTruthy()
+  })
+
+  it('renders named video documents as videos', async () => {
+    vi.mocked(getCachedMediaUrl).mockResolvedValueOnce('blob:test')
+
+    const item: FeedItem = {
+      id: 'file-2',
+      type: 'group',
+      chatName: 'Docs',
+      timestamp: 'now',
+      text: 'file',
+      media: {
+        meta: {
+          type: 'video',
+          width: 640,
+          height: 360,
+          sizeBytes: 4096,
+          mimeType: 'video/mp4',
+          fileName: 'clip.mp4',
+        },
+        url: 'https://example.com/poster.jpg',
+        alt: 'file',
+      },
+    }
+
+    render(<Media item={item} />)
+
+    expect(await screen.findByLabelText('Video media')).toBeInTheDocument()
+    expect(screen.queryByText('clip.mp4')).not.toBeInTheDocument()
   })
 })

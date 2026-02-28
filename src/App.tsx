@@ -253,6 +253,7 @@ function App({ auth }: AppProps) {
 
     let isActive = true;
     let handler: ((event: { message?: Api.Message }) => void) | null = null;
+    let eventBuilder: NewMessage | null = null;
 
     ensureTelegramConnected()
       .then(async (client) => {
@@ -306,6 +307,7 @@ function App({ auth }: AppProps) {
               media,
               reactions: [],
               sourceMessage: message,
+              isFocused: false,
             };
           } else {
             nextItem = {
@@ -318,6 +320,7 @@ function App({ auth }: AppProps) {
               commentsCount: getMessageCommentsCount(message),
               media,
               sourceMessage: message,
+              isFocused: false,
             };
           }
           const nextFeedItems = [nextItem, ...currentFeedItems];
@@ -369,7 +372,8 @@ function App({ auth }: AppProps) {
           }
         };
 
-        client.addEventHandler(handler, new NewMessage({ incoming: true }));
+        eventBuilder = new NewMessage({ incoming: true });
+        client.addEventHandler(handler, eventBuilder);
       })
       .catch(() => {});
 
@@ -380,7 +384,9 @@ function App({ auth }: AppProps) {
         if (clientPromise) {
           clientPromise
             .then((client) => {
-              client.removeEventHandler(handler);
+              if (handler && eventBuilder) {
+                client.removeEventHandler(handler, eventBuilder);
+              }
             })
             .catch(() => {});
         }

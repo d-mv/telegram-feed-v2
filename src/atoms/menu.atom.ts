@@ -8,7 +8,7 @@ export const toggleMenuAtom = atom(null, (get, set) => {
 
 export const menuItemAtom = atom<number | null>(null);
 
-export const closeMenuAtom = atom(null, (get, set) => {
+export const closeMenuAtom = atom(null, (_get, set) => {
   set(menuItemAtom, null);
   set(menuIsOpenAtom, false);
 });

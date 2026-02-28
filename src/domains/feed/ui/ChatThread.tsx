@@ -6,6 +6,7 @@ import { CommentsIcon } from "../../../shared/ui/CommentsIcon/CommentsIcon";
 import { Header } from "../../../shared/ui/Header/Header";
 import { Media } from "../../../shared/ui/Media/Media";
 import { Text } from "../../../shared/ui/Text/Text";
+import { UnreadIcon } from "../../../shared/ui/UnreadIcon/UnreadIcon";
 import type { FeedItem } from "../../../types";
 import { ensureTelegramConnected } from "../../auth/infra/telegramAuth";
 import { getMediaPreview, getMessageCommentsCount, toRelativeTime } from "../infra/telegramFeed";
@@ -262,6 +263,11 @@ export function ChatThread({ item, onMarkReadThrough }: ChatThreadProps) {
             <Header isThread message={message} className={styles.header}>
               {message.senderName}
             </Header>
+            {message.isRead !== true && (
+              <span className={styles.unreadIndicator} aria-label="Unread message">
+                <UnreadIcon />
+              </span>
+            )}
             <Text className={styles.text}>{message.text}</Text>
             {message.media && (
               <Media
@@ -278,6 +284,7 @@ export function ChatThread({ item, onMarkReadThrough }: ChatThreadProps) {
                   isFocused: message.isFocused,
                   isRead: message.isRead,
                 }}
+                grayscale={false}
                 onVideoPlay={() => {
                   const targetIndex = messages.findIndex((item) => item.id === message.id);
                   if (targetIndex >= 0) {

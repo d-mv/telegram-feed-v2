@@ -12,6 +12,7 @@ const baseMockFeed: FeedItem[] = [
       { emoji: "👍", count: 2 },
       { emoji: "🔥", count: 1 },
     ],
+    isFocused: false,
     media: {
       meta: {
         type: "image",
@@ -29,6 +30,7 @@ const baseMockFeed: FeedItem[] = [
     chatName: "Design Sync",
     timestamp: "12 min ago",
     text: "New build is up. Please verify the dark theme contrast.",
+    isFocused: false,
   },
   {
     id: "dm-2",
@@ -38,6 +40,7 @@ const baseMockFeed: FeedItem[] = [
     timestamp: "25 min ago",
     text: "Let’s keep the feed minimal. I love the new typography.",
     reactions: [{ emoji: "✅", count: 3 }],
+    isFocused: false,
   },
   {
     id: "group-2",
@@ -45,6 +48,7 @@ const baseMockFeed: FeedItem[] = [
     chatName: "Product Updates",
     timestamp: "1 hr ago",
     text: "Shipping status: onboarding, login, and session persistence are done.",
+    isFocused: false,
     media: {
       meta: {
         type: "video",

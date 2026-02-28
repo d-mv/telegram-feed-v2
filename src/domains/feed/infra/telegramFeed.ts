@@ -1,7 +1,7 @@
 import { Api } from "telegram";
 import { ensureTelegramConnected } from "../../auth/infra/telegramAuth";
 import { createIndexedDbDal } from "../../dal/indexedDbDal";
-import type { FeedItem } from "../model/mockFeed";
+import type { FeedItem } from "../../../types";
 
 type FetchFeedOptions = {
   perChat: number;
@@ -18,6 +18,12 @@ const avatarPhotoPending = new Map<string, Promise<string | undefined>>();
 const avatarGalleryCache = new Map<string, string[]>();
 const avatarGalleryPending = new Map<string, Promise<string[]>>();
 
+function toBlobBytes(input: Uint8Array): ArrayBuffer {
+  const bytes = new Uint8Array(input.byteLength);
+  bytes.set(input);
+  return bytes.buffer;
+}
+
 function toBinaryObjectUrl(input: unknown): string | undefined {
   if (!input) {
     return undefined;
@@ -33,7 +39,7 @@ function toBinaryObjectUrl(input: unknown): string | undefined {
   }
   if (input instanceof Uint8Array) {
     if (input.byteLength === 0) return undefined;
-    return URL.createObjectURL(new Blob([input], { type: "image/jpeg" }));
+    return URL.createObjectURL(new Blob([toBlobBytes(input)], { type: "image/jpeg" }));
   }
   return undefined;
 }
@@ -95,7 +101,7 @@ export async function getAvatarPhotoGallery(entity: unknown, cacheKey: string): 
         new Api.photos.GetUserPhotos({
           userId: entity as never,
           offset: 0,
-          maxId: BigInt(0),
+          maxId: 0 as never,
           limit: 20,
         }),
       );
@@ -105,7 +111,7 @@ export async function getAvatarPhotoGallery(entity: unknown, cacheKey: string): 
         if (!(photo instanceof Api.Photo)) {
           continue;
         }
-        const binary = await client.downloadMedia(photo, {});
+        const binary = await client.downloadMedia(photo as never, {});
         const url = toBinaryObjectUrl(binary);
         if (url) {
           urls.push(url);
@@ -309,6 +315,7 @@ export async function fetchRecentFeed(
             media,
             reactions: [],
             sourceMessage: message,
+            isFocused: false,
           },
           sortDate: message.date,
         });
@@ -324,6 +331,7 @@ export async function fetchRecentFeed(
             commentsCount: getMessageCommentsCount(message),
             media,
             sourceMessage: message,
+            isFocused: false,
           },
           sortDate: message.date,
         });
@@ -347,7 +355,7 @@ export async function sendMessageToFeedItem(item: FeedItem, text: string): Promi
   const inputChat = sourceMessage.getInputChat
     ? await sourceMessage.getInputChat()
     : (sourceMessage as Api.Message & { inputChat?: unknown }).inputChat;
-  await client.sendMessage(inputChat ?? undefined, {
+  await client.sendMessage((inputChat ?? undefined) as never, {
     message: trimmed,
   });
 }
@@ -365,7 +373,7 @@ export async function markFeedItemReadThrough(item: FeedItem): Promise<void> {
   const inputChat = sourceMessage.getInputChat
     ? await sourceMessage.getInputChat()
     : (sourceMessage as Api.Message & { inputChat?: unknown }).inputChat;
-  await client.markAsRead(inputChat ?? undefined, maxId);
+  await client.markAsRead((inputChat ?? undefined) as never, maxId);
 }
 
 function toObjectUrl(input: unknown, mimeType: string): string | undefined {
@@ -391,7 +399,7 @@ function toObjectUrl(input: unknown, mimeType: string): string | undefined {
     return URL.createObjectURL(blob);
   }
   if (input instanceof Uint8Array) {
-    const blob = new Blob([input], { type: mimeType });
+    const blob = new Blob([toBlobBytes(input)], { type: mimeType });
     return URL.createObjectURL(blob);
   }
   return undefined;

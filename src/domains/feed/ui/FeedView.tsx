@@ -4,7 +4,7 @@ import { channelsAtom } from "../../../atoms/channels.atom";
 import { feedFilterSettingsAtom } from "../../../atoms/feedFilters.atom";
 import { feedItemsAtom } from "../../../atoms/feedItems.atom";
 import { markFeedItemReadThrough } from "../infra/telegramFeed";
-import type { FeedItem } from "../model/mockFeed";
+import type { FeedItem } from "../../../types";
 import { getMockFeedBatch, getMockLiveItem } from "../model/mockFeed";
 import { Chat } from "./Chat";
 import { FeedCard } from "./FeedCard";

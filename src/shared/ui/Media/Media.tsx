@@ -11,9 +11,30 @@ import styles from "./Media.module.css";
 type Props = {
   item: FeedItem;
   onVideoPlay?: () => void;
+  grayscale?: boolean;
 };
 
-export function Media({ item, onVideoPlay }: Props) {
+function DocumentTextIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth="1.5"
+      stroke="currentColor"
+      className={styles.attachmentIconSvg}
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12h6m-6 3h6m2.25 2.25H6.375a1.125 1.125 0 0 1-1.125-1.125V5.25A2.25 2.25 0 0 1 7.5 3h5.379a2.25 2.25 0 0 1 1.591.659l4.371 4.371a2.25 2.25 0 0 1 .659 1.591v8.754a1.125 1.125 0 0 1-1.125 1.125Z"
+      />
+    </svg>
+  );
+}
+
+export function Media({ item, onVideoPlay, grayscale = true }: Props) {
   const media = item.media;
 
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(item.media?.url);
@@ -42,6 +63,13 @@ export function Media({ item, onVideoPlay }: Props) {
     if (!media) return false;
 
     return media.meta.type === "video" || media.meta.sizeBytes >= 524288;
+  }, [media]);
+
+  const shouldRenderAsDocument = useMemo(() => {
+    if (!media) {
+      return false;
+    }
+    return media.meta.type !== "image" && media.meta.type !== "video";
   }, [media]);
 
   function formatBytes(bytes: number) {
@@ -239,7 +267,7 @@ export function Media({ item, onVideoPlay }: Props) {
         />
       );
 
-    if (media.meta.type === "video") {
+    if (media.meta.type === "video" && !shouldRenderAsDocument) {
       return (
         <div className={styles["container-video"]}>
           <video
@@ -289,15 +317,15 @@ export function Media({ item, onVideoPlay }: Props) {
   }
 
   function renderAttachment() {
-    if (!media || media.meta.type === "image" || media.meta.type === "video") {
+    if (!media || !shouldRenderAsDocument) {
       return null;
     }
-    const iconClass =
-      media.meta.type === "audio" ? styles.attachmentAudioIcon : styles.attachmentFileIcon;
     const fileLabel = media.meta.fileName || media.meta.mimeType || "Attachment";
     return (
       <div className={styles.attachment}>
-        <span className={`${styles.attachmentIcon} ${iconClass}`} aria-hidden="true" />
+        <span className={styles.attachmentIcon}>
+          <DocumentTextIcon />
+        </span>
         <div className={styles.attachmentMeta}>
           <p className={styles.attachmentName}>{fileLabel}</p>
           <p className={styles.attachmentType}>{formatBytes(media.meta.sizeBytes)}</p>
@@ -308,7 +336,7 @@ export function Media({ item, onVideoPlay }: Props) {
 
   return (
     <div
-      className={styles.container}
+      className={`${styles.container} ${grayscale ? styles.grayscale : ""}`.trim()}
       data-media-type={media.meta.type}
       style={{ aspectRatio: ratio }}
     >

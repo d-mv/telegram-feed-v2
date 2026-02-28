@@ -76,6 +76,7 @@
   box-sizing: border-box;
   overflow: hidden;
   cursor: pointer;
+  position: relative;
 }
 
 .messageFocused {
@@ -98,11 +99,9 @@
   color: var(--accent-strong);
   display: inline-flex;
   align-items: center;
-}
-
-.unreadIcon {
-  width: 18px;
-  height: 18px;
+  position: absolute;
+  bottom: 1rem;
+  right: 0rem;
 }
 
 .commentsAccordion {
