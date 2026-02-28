@@ -94,6 +94,40 @@
   padding-block-end: 16px;
 }
 
+.messageMediaStack {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.messageMediaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.messageMediaGrid {
+  display: grid;
+  grid-template-columns: repeat(var(--media-group-columns, 4), minmax(0, 1fr));
+  gap: 1px;
+  background: var(--border);
+}
+
+.messageMediaGridTile {
+  min-width: 0;
+  background: var(--surface-2);
+}
+
+.messageMediaGridTile > * {
+  height: 100%;
+}
+
+@media (max-width: 720px) {
+  .messageMediaGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .unreadIndicator {
   padding-inline: 16px;
   color: var(--accent-strong);

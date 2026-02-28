@@ -163,6 +163,70 @@ export function getMessageCommentsCount(message: Api.Message): number {
   return 0;
 }
 
+function getEntityLabel(entity: unknown, fallback: string): string {
+  if (!entity || typeof entity !== "object") {
+    return fallback;
+  }
+  if ("title" in entity && typeof entity.title === "string" && entity.title.trim() !== "") {
+    return entity.title;
+  }
+  if ("firstName" in entity && typeof entity.firstName === "string") {
+    const lastName =
+      "lastName" in entity && typeof entity.lastName === "string" ? entity.lastName : "";
+    return `${entity.firstName} ${lastName}`.trim();
+  }
+  if ("username" in entity && typeof entity.username === "string" && entity.username.trim() !== "") {
+    return entity.username;
+  }
+  return fallback;
+}
+
+function getMediaGroupKey(message: Api.Message): string | undefined {
+  const groupedId = (message as Api.Message & { groupedId?: unknown }).groupedId;
+  if (typeof groupedId === "bigint" || typeof groupedId === "number" || typeof groupedId === "string") {
+    return String(groupedId);
+  }
+  return undefined;
+}
+
+function canMergeAlbumItem(item: FeedItem): boolean {
+  return (
+    Boolean(item.mediaGroupKey) &&
+    Boolean(item.media) &&
+    item.media?.meta.type === "image"
+  );
+}
+
+export function mergeAlbumFeedItems(items: FeedItem[]): FeedItem[] {
+  const merged: FeedItem[] = [];
+
+  for (const item of items) {
+    const previous = merged[merged.length - 1];
+    if (
+      previous &&
+      canMergeAlbumItem(previous) &&
+      canMergeAlbumItem(item) &&
+      previous.mediaGroupKey === item.mediaGroupKey &&
+      previous.channelKey === item.channelKey &&
+      previous.senderName === item.senderName
+    ) {
+      previous.mediaItems = [...(previous.mediaItems ?? [previous.media!]), item.media!];
+      if (previous.text === "" && item.text !== "") {
+        previous.text = item.text;
+        previous.sourceMessage = item.sourceMessage;
+      }
+      continue;
+    }
+
+    merged.push({
+      ...item,
+      mediaItems: item.media ? [item.media] : item.mediaItems,
+    });
+  }
+
+  return merged;
+}
+
 export function getMediaPreview(message: Api.Message): FeedItem["media"] | undefined {
   const media = message.media;
   if (!media || !("className" in media)) {
@@ -299,6 +363,9 @@ export async function fetchRecentFeed(
       const timestamp = toRelativeTime(message.date);
       const text = message.message ?? "";
       const media = getMediaPreview(message);
+      const senderEntity = message.getSender ? await message.getSender() : undefined;
+      const senderName = getEntityLabel(senderEntity, chatName);
+      const mediaGroupKey = getMediaGroupKey(message);
       const idSuffix = message.id ?? message.date;
 
       if (dialog.isUser) {
@@ -313,6 +380,7 @@ export async function fetchRecentFeed(
             text,
             commentsCount: getMessageCommentsCount(message),
             media,
+            mediaGroupKey,
             reactions: [],
             sourceMessage: message,
             isFocused: false,
@@ -326,10 +394,12 @@ export async function fetchRecentFeed(
             channelKey,
             type: "group",
             chatName,
+            senderName,
             timestamp,
             text,
             commentsCount: getMessageCommentsCount(message),
             media,
+            mediaGroupKey,
             sourceMessage: message,
             isFocused: false,
           },
@@ -339,7 +409,8 @@ export async function fetchRecentFeed(
     }
   }
 
-  return items.sort((a, b) => b.sortDate - a.sortDate).map(({ item }) => item);
+  const sortedItems = items.sort((a, b) => b.sortDate - a.sortDate).map(({ item }) => item);
+  return mergeAlbumFeedItems(sortedItems);
 }
 
 export async function sendMessageToFeedItem(item: FeedItem, text: string): Promise<void> {

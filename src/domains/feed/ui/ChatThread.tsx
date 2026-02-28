@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import { path } from "ramda";
+import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Api } from "telegram";
 import { CommentsIcon } from "../../../shared/ui/CommentsIcon/CommentsIcon";
@@ -9,7 +10,13 @@ import { Text } from "../../../shared/ui/Text/Text";
 import { UnreadIcon } from "../../../shared/ui/UnreadIcon/UnreadIcon";
 import type { FeedItem } from "../../../types";
 import { ensureTelegramConnected } from "../../auth/infra/telegramAuth";
-import { getMediaPreview, getMessageCommentsCount, toRelativeTime } from "../infra/telegramFeed";
+import {
+  getMediaPreview,
+  getMessageCommentsCount,
+  mergeAlbumFeedItems,
+  toRelativeTime,
+} from "../infra/telegramFeed";
+import { groupConsecutiveMediaOnlyItems } from "./groupConsecutiveMediaOnlyItems";
 import styles from "./ChatThread.module.css";
 
 type ChatThreadProps = {
@@ -23,6 +30,41 @@ type ThreadComment = {
   text: string;
   timestamp: string;
 };
+
+function getImageGridColumns(count: number): number {
+  if (count <= 2) {
+    return count;
+  }
+  if (count <= 4) {
+    return count;
+  }
+  if (count <= 6) {
+    return 3;
+  }
+  return 4;
+}
+
+function getGalleryItems(item: FeedItem): FeedItem[] {
+  if (!item.mediaItems || item.mediaItems.length <= 1) {
+    return [];
+  }
+  return item.mediaItems.map((media, index) => ({
+    ...item,
+    id: `${item.id}:media:${index}`,
+    media,
+    mediaItems: undefined,
+  }));
+}
+
+function getGroupedGalleryItems(items: FeedItem[]): FeedItem[] {
+  return items.flatMap((item) => {
+    const galleryItems = getGalleryItems(item);
+    if (galleryItems.length > 1) {
+      return galleryItems;
+    }
+    return [item];
+  });
+}
 
 function getSenderLabel(message: Api.Message, fallback: string) {
   const sender = (message as Api.Message & { sender?: unknown }).sender;
@@ -73,6 +115,7 @@ export function ChatThread({ item, onMarkReadThrough }: ChatThreadProps) {
       timestamp: item.timestamp,
       commentsCount: item.commentsCount,
       media: item.media,
+      mediaItems: item.mediaItems,
       isFocused: true,
       isRead: item.isRead,
     };
@@ -118,6 +161,12 @@ export function ChatThread({ item, onMarkReadThrough }: ChatThreadProps) {
               media: getMediaPreview(message),
               commentsCount: getMessageCommentsCount(message),
               sourceMessage: message,
+              mediaGroupKey:
+                typeof (message as Api.Message & { groupedId?: unknown }).groupedId === "bigint" ||
+                typeof (message as Api.Message & { groupedId?: unknown }).groupedId === "number" ||
+                typeof (message as Api.Message & { groupedId?: unknown }).groupedId === "string"
+                  ? String((message as Api.Message & { groupedId?: unknown }).groupedId)
+                  : undefined,
               isFocused: focusId ? message.id === focusId : false,
               isRead: false,
               reactions: path(["reactions"], message),
@@ -126,7 +175,7 @@ export function ChatThread({ item, onMarkReadThrough }: ChatThreadProps) {
             } as FeedItem;
           });
         if (active) {
-          setMessages(normalized);
+          setMessages(mergeAlbumFeedItems(normalized));
         }
       })
       .catch((err) => {
@@ -238,96 +287,179 @@ export function ChatThread({ item, onMarkReadThrough }: ChatThreadProps) {
     }
   }
 
+  function renderComments(message: FeedItem) {
+    if ((message.commentsCount ?? 0) <= 0) {
+      return null;
+    }
+
+    return (
+      <details
+        className={styles.commentsAccordion}
+        onToggle={(event) => {
+          if (event.currentTarget.open) {
+            void loadComments(message);
+          }
+        }}
+      >
+        <summary className={styles.commentsSummary} aria-label="Comments">
+          <CommentsIcon />
+        </summary>
+        <div className={styles.commentsPanel}>
+          {commentsLoading[message.id] && <p className={styles.commentsLoading}>Loading comments...</p>}
+          {!commentsLoading[message.id] && (commentsByMessage[message.id]?.length ?? 0) === 0 && (
+            <p className={styles.commentsEmpty}>No comments.</p>
+          )}
+          {!commentsLoading[message.id] &&
+            (commentsByMessage[message.id] ?? []).map((comment) => (
+              <div key={comment.id} className={styles.comment}>
+                <p className={styles.commentHeader}>
+                  <span>{comment.senderName}</span>
+                  <span>{comment.timestamp}</span>
+                </p>
+                <p className={styles.commentText}>{comment.text || "…"}</p>
+              </div>
+            ))}
+        </div>
+      </details>
+    );
+  }
+
+  const messageGroups = useMemo(() => groupConsecutiveMediaOnlyItems(messages), [messages]);
+
   return (
     <div className={clsx(styles.thread, (messages.length === 0 || isLoading) && styles.empty)}>
       {isLoading && <p className={styles.loading}>Loading thread...</p>}
       {error !== "" && <p className={styles.error}>{error}</p>}
       <div className={styles.threadList} ref={threadRef}>
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`${styles.message} ${message.isFocused ? styles.messageFocused : ""}`}
-            ref={message.isFocused ? focusedRef : null}
-            role="button"
-            tabIndex={0}
-            onClick={() =>
-              markReadThroughIndex(messages.findIndex((item) => item.id === message.id))
-            }
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                markReadThroughIndex(messages.findIndex((item) => item.id === message.id));
-              }
-            }}
-          >
-            <Header isThread message={message} className={styles.header}>
-              {message.senderName}
-            </Header>
-            {message.isRead !== true && (
-              <span className={styles.unreadIndicator} aria-label="Unread message">
-                <UnreadIcon />
-              </span>
-            )}
-            <Text className={styles.text}>{message.text}</Text>
-            {message.media && (
-              <Media
-                item={{
-                  id: message.id,
-                  type: item.type,
-                  chatName: item.chatName,
-                  senderName: message.senderName || "",
-                  timestamp: message.timestamp,
-                  text: message.text,
-                  media: message.media,
-                  reactions: [],
-                  sourceMessage: message.sourceMessage,
-                  isFocused: message.isFocused,
-                  isRead: message.isRead,
-                }}
-                grayscale={false}
-                onVideoPlay={() => {
-                  const targetIndex = messages.findIndex((item) => item.id === message.id);
+        {messageGroups.map((group) => {
+          const representative = group[0];
+          const galleryItems = group.length > 1 ? getGroupedGalleryItems(group) : getGalleryItems(representative);
+          const targetMessage = group[group.length - 1];
+          const targetIndex = messages.findIndex((entry) => entry.id === targetMessage.id);
+          const isGroupedRun = group.length > 1;
+          const isGrouped = galleryItems.length > 1;
+          const hasGroupedImages =
+            isGrouped && galleryItems.every((message) => message.media?.meta.type === "image");
+          const imageGridColumns = hasGroupedImages ? getImageGridColumns(galleryItems.length) : undefined;
+          const isUnread = isGrouped
+            ? galleryItems.some((message) => message.isRead !== true)
+            : representative.isRead !== true;
+          const isFocusedGroup = group.some((message) => message.isFocused);
+
+          return (
+            <div
+              key={representative.id}
+              className={`${styles.message} ${isFocusedGroup ? styles.messageFocused : ""}`}
+              ref={isFocusedGroup ? focusedRef : null}
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                if (targetIndex >= 0) {
+                  markReadThroughIndex(targetIndex);
+                }
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
                   if (targetIndex >= 0) {
                     markReadThroughIndex(targetIndex);
                   }
-                }}
-              />
-            )}
-            {(message.commentsCount ?? 0) > 0 && (
-              <details
-                className={styles.commentsAccordion}
-                onToggle={(event) => {
-                  if (event.currentTarget.open) {
-                    void loadComments(message);
+                }
+              }}
+            >
+              <Header isThread message={representative} className={styles.header}>
+                {representative.senderName}
+              </Header>
+              {isUnread && (
+                <span className={styles.unreadIndicator} aria-label="Unread message">
+                  <UnreadIcon />
+                </span>
+              )}
+              {(!isGroupedRun || representative.text !== "") && (
+                <Text className={styles.text}>{representative.text}</Text>
+              )}
+              {isGrouped ? (
+                <div
+                  className={hasGroupedImages ? styles.messageMediaGrid : styles.messageMediaStack}
+                  data-media-group-layout={hasGroupedImages ? "image-grid" : "stack"}
+                  style={
+                    hasGroupedImages
+                      ? ({ "--media-group-columns": String(imageGridColumns) } as CSSProperties)
+                      : undefined
                   }
-                }}
-              >
-                <summary className={styles.commentsSummary} aria-label="Comments">
-                  <CommentsIcon />
-                </summary>
-                <div className={styles.commentsPanel}>
-                  {commentsLoading[message.id] && (
-                    <p className={styles.commentsLoading}>Loading comments...</p>
-                  )}
-                  {!commentsLoading[message.id] &&
-                    (commentsByMessage[message.id]?.length ?? 0) === 0 && (
-                      <p className={styles.commentsEmpty}>No comments.</p>
-                    )}
-                  {!commentsLoading[message.id] &&
-                    (commentsByMessage[message.id] ?? []).map((comment) => (
-                      <div key={comment.id} className={styles.comment}>
-                        <p className={styles.commentHeader}>
-                          <span>{comment.senderName}</span>
-                          <span>{comment.timestamp}</span>
-                        </p>
-                        <p className={styles.commentText}>{comment.text || "…"}</p>
+                >
+                  {galleryItems.map((message) => {
+                    const mediaIndex = messages.findIndex((entry) => entry.id === message.id);
+                    return (
+                      <div
+                        key={message.id}
+                        className={hasGroupedImages ? styles.messageMediaGridTile : styles.messageMediaItem}
+                        data-media-group-tile="true"
+                      >
+                        {message.media && (
+                          <Media
+                            item={{
+                              id: message.id,
+                              type: item.type,
+                              chatName: item.chatName,
+                              senderName: message.senderName || "",
+                              timestamp: message.timestamp,
+                              text: message.text,
+                              media: message.media,
+                              reactions: [],
+                              sourceMessage: message.sourceMessage,
+                              isFocused: message.isFocused,
+                              isRead: message.isRead,
+                            }}
+                            grayscale={false}
+                            aspectRatioOverride={hasGroupedImages ? "1 / 1" : undefined}
+                            onVideoPlay={() => {
+                              if (mediaIndex >= 0) {
+                                markReadThroughIndex(mediaIndex);
+                                return;
+                              }
+                              if (targetIndex >= 0) {
+                                markReadThroughIndex(targetIndex);
+                              }
+                            }}
+                          />
+                        )}
+                        {renderComments(message)}
                       </div>
-                    ))}
+                    );
+                  })}
                 </div>
-              </details>
-            )}
-          </div>
-        ))}
+              ) : (
+                <>
+                  {representative.media && (
+                    <Media
+                      item={{
+                        id: representative.id,
+                        type: item.type,
+                        chatName: item.chatName,
+                        senderName: representative.senderName || "",
+                        timestamp: representative.timestamp,
+                        text: representative.text,
+                        media: representative.media,
+                        reactions: [],
+                        sourceMessage: representative.sourceMessage,
+                        isFocused: representative.isFocused,
+                        isRead: representative.isRead,
+                      }}
+                      grayscale={false}
+                      onVideoPlay={() => {
+                        if (targetIndex >= 0) {
+                          markReadThroughIndex(targetIndex);
+                        }
+                      }}
+                    />
+                  )}
+                  {renderComments(representative)}
+                </>
+              )}
+            </div>
+          );
+        })}
         {showJump && (
           <button
             type="button"

@@ -35,6 +35,34 @@
   padding-block-end: 16px;
 }
 
+.mediaStack {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.mediaGrid {
+  display: grid;
+  grid-template-columns: repeat(var(--media-group-columns, 4), minmax(0, 1fr));
+  gap: 1px;
+  background: var(--border);
+}
+
+.mediaGridTile {
+  min-width: 0;
+  background: var(--surface-2);
+}
+
+.mediaGridTile > * {
+  height: 100%;
+}
+
+@media (max-width: 720px) {
+  .mediaGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .metaRow {
   padding-inline: 16px;
   padding-block-end: 12px;

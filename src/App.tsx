@@ -22,6 +22,7 @@ import {
   getAvatarPhotoUrl,
   getMessageCommentsCount,
   getMediaPreview,
+  mergeAlbumFeedItems,
   sendMessageToFeedItem,
   toRelativeTime,
 } from "./domains/feed/infra/telegramFeed";
@@ -285,6 +286,13 @@ function App({ auth }: AppProps) {
           const senderName = formatSender(senderEntity, chatName);
           const timestamp = message.date ? toRelativeTime(message.date) : "";
           const media = getMediaPreview(message);
+          const groupedId = (message as Api.Message & { groupedId?: unknown }).groupedId;
+          const mediaGroupKey =
+            typeof groupedId === "bigint" ||
+            typeof groupedId === "number" ||
+            typeof groupedId === "string"
+              ? String(groupedId)
+              : undefined;
           const idPrefix = isPrivate ? "dm" : "group";
           const channelKey = `${isPrivate ? "dm" : "group"}:${chatId}`;
           const legacyChannelKey = `${isPrivate ? "dm" : "group"}:${chatName}`;
@@ -305,6 +313,7 @@ function App({ auth }: AppProps) {
               text: message.message ?? "",
               commentsCount: getMessageCommentsCount(message),
               media,
+              mediaGroupKey,
               reactions: [],
               sourceMessage: message,
               isFocused: false,
@@ -315,15 +324,17 @@ function App({ auth }: AppProps) {
               channelKey,
               type: "group",
               chatName,
+              senderName,
               timestamp,
               text: message.message ?? "",
               commentsCount: getMessageCommentsCount(message),
               media,
+              mediaGroupKey,
               sourceMessage: message,
               isFocused: false,
             };
           }
-          const nextFeedItems = [nextItem, ...currentFeedItems];
+          const nextFeedItems = mergeAlbumFeedItems([nextItem, ...currentFeedItems]);
           feedItemsRef.current = nextFeedItems;
           setFeedItems(nextFeedItems);
 

@@ -9,7 +9,7 @@ type MediaMeta = {
   fileName?: string;
 };
 
-type MediaPreview = {
+export type MediaPreview = {
   meta: MediaMeta;
   url?: string;
   alt: string;
@@ -29,7 +29,9 @@ interface Message {
   text: string;
   commentsCount?: number;
   media?: MediaPreview;
+  mediaItems?: MediaPreview[];
   senderName?: string;
+  mediaGroupKey?: string;
   // fix this
   sourceMessage?: AnyValue;
   isFocused: boolean;

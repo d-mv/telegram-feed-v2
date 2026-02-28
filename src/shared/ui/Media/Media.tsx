@@ -12,6 +12,7 @@ type Props = {
   item: FeedItem;
   onVideoPlay?: () => void;
   grayscale?: boolean;
+  aspectRatioOverride?: string;
 };
 
 function DocumentTextIcon() {
@@ -34,7 +35,7 @@ function DocumentTextIcon() {
   );
 }
 
-export function Media({ item, onVideoPlay, grayscale = true }: Props) {
+export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride }: Props) {
   const media = item.media;
 
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(item.media?.url);
@@ -50,6 +51,9 @@ export function Media({ item, onVideoPlay, grayscale = true }: Props) {
   const [isMuted, setIsMuted] = useState(true);
 
   const ratio = useMemo(() => {
+    if (aspectRatioOverride) {
+      return aspectRatioOverride;
+    }
     if (!media) return "16 / 9";
 
     const { width, height } = media.meta;
@@ -57,7 +61,7 @@ export function Media({ item, onVideoPlay, grayscale = true }: Props) {
       return "16 / 9";
     }
     return `${width} / ${height}`;
-  }, [media]);
+  }, [aspectRatioOverride, media]);
 
   const shouldOfferFullDownload = useMemo(() => {
     if (!media) return false;

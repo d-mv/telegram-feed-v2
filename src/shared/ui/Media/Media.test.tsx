@@ -138,6 +138,29 @@ describe('Media video controls', () => {
     expect((container.firstChild as HTMLElement).className).not.toMatch(/grayscale/)
   })
 
+  it('allows overriding the media aspect ratio for grouped galleries', () => {
+    const item: FeedItem = {
+      id: 'image-override',
+      type: 'group',
+      chatName: 'Test',
+      timestamp: 'now',
+      text: 'image',
+      media: {
+        meta: {
+          type: 'image',
+          width: 640,
+          height: 360,
+          sizeBytes: 1000,
+        },
+        url: 'https://example.com/poster.jpg',
+        alt: 'preview',
+      },
+    }
+
+    const { container } = render(<Media item={item} aspectRatioOverride="1 / 1" />)
+    expect(container.firstChild).toHaveStyle({ aspectRatio: '1 / 1' })
+  })
+
   it('renders attachment card for non-image/video media', () => {
     const item: FeedItem = {
       id: 'file-1',

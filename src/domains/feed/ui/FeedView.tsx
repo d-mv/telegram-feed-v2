@@ -9,6 +9,7 @@ import { getMockFeedBatch, getMockLiveItem } from "../model/mockFeed";
 import { Chat } from "./Chat";
 import { FeedCard } from "./FeedCard";
 import { FeedHeader } from "./FeedHeader";
+import { groupConsecutiveMediaOnlyItems } from "./groupConsecutiveMediaOnlyItems";
 import styles from "./FeedView.module.css";
 import { ScrollTopButton } from "./ScrollTopButton";
 
@@ -216,10 +217,11 @@ export function FeedView() {
     }
   }, [focusedItem, items]);
 
-  const renderItem = (item: FeedItem) => (
+  const renderItem = (item: FeedItem, groupedItems?: FeedItem[]) => (
     <FeedCard
       key={item.id}
       item={item}
+      groupedItems={groupedItems}
       onFocus={setFocusedItem}
       onMarkRead={(targetItem) =>
         markReadByKeys([toReadableKey(targetItem), targetItem.id], targetItem)
@@ -230,6 +232,10 @@ export function FeedView() {
   const visibleItems = useMemo(
     () => items.filter((item) => feedFilterSettings[getItemChannelKey(item)] !== false),
     [feedFilterSettings, items],
+  );
+  const visibleItemGroups = useMemo(
+    () => groupConsecutiveMediaOnlyItems(visibleItems),
+    [visibleItems],
   );
 
   return (
@@ -242,7 +248,7 @@ export function FeedView() {
             Loading older...
           </p>
         )}
-        {visibleItems.map(renderItem)}
+        {visibleItemGroups.map((group) => renderItem(group[0], group.length > 1 ? group : undefined))}
       </div>
       {focusedItem && (
         <Chat

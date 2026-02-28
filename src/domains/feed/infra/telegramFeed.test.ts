@@ -306,6 +306,60 @@ describe('fetchRecentFeed', () => {
     expect(items[1]?.id).toBe('group-202-4')
     expect(items[1]?.type).toBe('group')
   })
+
+  test('merges grouped image albums into a single feed item', async () => {
+    const nowSeconds = Math.floor(Date.now() / 1000)
+    const dialogGroup = {
+      id: 202,
+      isUser: false,
+      title: 'Team',
+      entity: {},
+    }
+
+    const firstPhoto = new Api.Photo({
+      id: 41,
+      sizes: [{ w: 300, h: 200, size: 800 }],
+    })
+    const secondPhoto = new Api.Photo({
+      id: 42,
+      sizes: [{ w: 320, h: 240, size: 900 }],
+    })
+
+    const client = {
+      getMe: vi.fn().mockResolvedValue({ id: 1 }),
+      getDialogs: vi.fn().mockResolvedValue([dialogGroup]),
+      getMessages: vi.fn().mockResolvedValue([
+        new Api.Message({
+          id: 11,
+          date: nowSeconds - 60,
+          message: '',
+          out: false,
+          groupedId: 999n,
+          getSender: vi.fn().mockResolvedValue({ firstName: 'Alice' }),
+          media: new Api.MessageMediaPhoto({ photo: secondPhoto }),
+        }),
+        new Api.Message({
+          id: 10,
+          date: nowSeconds - 61,
+          message: 'Album caption',
+          out: false,
+          groupedId: 999n,
+          getSender: vi.fn().mockResolvedValue({ firstName: 'Alice' }),
+          media: new Api.MessageMediaPhoto({ photo: firstPhoto }),
+        }),
+      ]),
+    }
+
+    ensureTelegramConnectedMock.mockResolvedValue(client)
+
+    const items = await fetchRecentFeed({ perChat: 10, maxAgeDays: 7 })
+
+    expect(items).toHaveLength(1)
+    expect(items[0]?.text).toBe('Album caption')
+    expect(items[0]?.senderName).toBe('Alice')
+    expect(items[0]?.mediaItems).toHaveLength(2)
+    expect(items[0]?.mediaItems?.map((media) => media.key)).toEqual(['photo-42', 'photo-41'])
+  })
 })
 
 describe('avatar helpers', () => {

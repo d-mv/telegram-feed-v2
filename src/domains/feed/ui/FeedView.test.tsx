@@ -200,3 +200,137 @@ test('keeps other feeds unread when marking read in one feed', async () => {
     expect(screen.getAllByLabelText('Unread message')).toHaveLength(1)
   })
 })
+
+test('groups consecutive media-only messages from the same sender in the feed', () => {
+  const store = createStore()
+  act(() => {
+    store.set(feedItemsAtom, [
+      {
+        id: 'dm-1-1',
+        channelKey: 'dm:1',
+        type: 'dm',
+        chatName: 'Alice',
+        senderName: 'Alice',
+        timestamp: 'now',
+        text: '',
+        reactions: [],
+        media: {
+          meta: {
+            type: 'image',
+            width: 640,
+            height: 360,
+            sizeBytes: 1024,
+            mimeType: 'image/jpeg',
+          },
+          url: 'https://example.com/a.jpg',
+          alt: 'first',
+        },
+      },
+      {
+        id: 'dm-1-2',
+        channelKey: 'dm:1',
+        type: 'dm',
+        chatName: 'Alice',
+        senderName: 'Alice',
+        timestamp: 'now',
+        text: '',
+        reactions: [],
+        media: {
+          meta: {
+            type: 'image',
+            width: 640,
+            height: 360,
+            sizeBytes: 1024,
+            mimeType: 'image/jpeg',
+          },
+          url: 'https://example.com/b.jpg',
+          alt: 'second',
+        },
+      },
+    ])
+  })
+
+  renderWithStore(store)
+
+  expect(screen.getAllByRole('img')).toHaveLength(2)
+  expect(screen.getAllByText('Alice')).toHaveLength(1)
+})
+
+test('groups a media-only multi-image message with adjacent media-only messages in the feed', () => {
+  const store = createStore()
+  act(() => {
+    store.set(feedItemsAtom, [
+      {
+        id: 'dm-1-1',
+        channelKey: 'dm:1',
+        type: 'dm',
+        chatName: 'Alice',
+        senderName: 'Alice',
+        timestamp: 'now',
+        text: '',
+        reactions: [],
+        media: {
+          meta: {
+            type: 'image',
+            width: 640,
+            height: 360,
+            sizeBytes: 1024,
+            mimeType: 'image/jpeg',
+          },
+          url: 'https://example.com/a.jpg',
+          alt: 'first',
+        },
+        mediaItems: [
+          {
+            meta: {
+              type: 'image',
+              width: 640,
+              height: 360,
+              sizeBytes: 1024,
+              mimeType: 'image/jpeg',
+            },
+            url: 'https://example.com/a.jpg',
+            alt: 'first',
+          },
+          {
+            meta: {
+              type: 'image',
+              width: 640,
+              height: 360,
+              sizeBytes: 1024,
+              mimeType: 'image/jpeg',
+            },
+            url: 'https://example.com/b.jpg',
+            alt: 'second',
+          },
+        ],
+      },
+      {
+        id: 'dm-1-2',
+        channelKey: 'dm:1',
+        type: 'dm',
+        chatName: 'Alice',
+        senderName: 'Alice',
+        timestamp: 'now',
+        text: '',
+        reactions: [],
+        media: {
+          meta: {
+            type: 'image',
+            width: 640,
+            height: 360,
+            sizeBytes: 1024,
+            mimeType: 'image/jpeg',
+          },
+          url: 'https://example.com/c.jpg',
+          alt: 'third',
+        },
+      },
+    ])
+  })
+
+  const { container } = renderWithStore(store)
+
+  expect(screen.getAllByText('Alice')).toHaveLength(1)
+  expect(container.querySelectorAll('[data-media-group-tile="true"]')).toHaveLength(3)
+})

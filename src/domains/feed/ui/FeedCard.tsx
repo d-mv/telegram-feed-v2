@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { CommentsIcon } from "../../../shared/ui/CommentsIcon/CommentsIcon";
 import { Header } from "../../../shared/ui/Header/Header";
 import { Media } from "../../../shared/ui/Media/Media";
@@ -10,11 +11,59 @@ type FeedCardProps = {
   item: FeedItem;
   onFocus: (item: FeedItem) => void;
   onMarkRead?: (item: FeedItem) => void;
+  groupedItems?: FeedItem[];
 };
 
-export function FeedCard({ item, onFocus, onMarkRead }: FeedCardProps) {
-  const hasComments = (item.commentsCount ?? 0) > 0;
-  const isUnread = item.isRead !== true;
+function getImageGridColumns(count: number): number {
+  if (count <= 2) {
+    return count;
+  }
+  if (count <= 4) {
+    return count;
+  }
+  if (count <= 6) {
+    return 3;
+  }
+  return 4;
+}
+
+function getGalleryItems(item: FeedItem, groupedItems?: FeedItem[]): FeedItem[] {
+  if (groupedItems && groupedItems.length > 1) {
+    return groupedItems.flatMap((groupedItem) => {
+      if (!groupedItem.mediaItems || groupedItem.mediaItems.length <= 1) {
+        return [groupedItem];
+      }
+      return groupedItem.mediaItems.map((media, index) => ({
+        ...groupedItem,
+        id: `${groupedItem.id}:media:${index}`,
+        media,
+        mediaItems: undefined,
+      }));
+    });
+  }
+  if (!item.mediaItems || item.mediaItems.length <= 1) {
+    return [];
+  }
+  return item.mediaItems.map((media, index) => ({
+    ...item,
+    id: `${item.id}:media:${index}`,
+    media,
+    mediaItems: undefined,
+  }));
+}
+
+export function FeedCard({ item, onFocus, onMarkRead, groupedItems }: FeedCardProps) {
+  const galleryItems = getGalleryItems(item, groupedItems);
+  const hasGroupedMedia = galleryItems.length > 1;
+  const hasGroupedImages =
+    hasGroupedMedia && galleryItems.every((mediaItem) => mediaItem.media?.meta.type === "image");
+  const imageGridColumns = hasGroupedImages ? getImageGridColumns(galleryItems.length) : undefined;
+  const hasComments = hasGroupedMedia
+    ? galleryItems.some((mediaItem) => (mediaItem.commentsCount ?? 0) > 0)
+    : (item.commentsCount ?? 0) > 0;
+  const isUnread = hasGroupedMedia
+    ? galleryItems.some((mediaItem) => mediaItem.isRead !== true)
+    : item.isRead !== true;
 
   return (
     <article
@@ -33,7 +82,33 @@ export function FeedCard({ item, onFocus, onMarkRead }: FeedCardProps) {
           {item.type === "dm" ? item.senderName : item.chatName}
         </Header>
         <Text className={styles.text}>{item.text}</Text>
-        <Media item={item} onVideoPlay={() => onMarkRead?.(item)} />
+        {hasGroupedMedia ? (
+          <div
+            className={hasGroupedImages ? styles.mediaGrid : styles.mediaStack}
+            data-media-group-layout={hasGroupedImages ? "image-grid" : "stack"}
+            style={
+              hasGroupedImages
+                ? ({ "--media-group-columns": String(imageGridColumns) } as CSSProperties)
+                : undefined
+            }
+          >
+            {galleryItems.map((mediaItem) => (
+              <div
+                key={mediaItem.id}
+                className={hasGroupedImages ? styles.mediaGridTile : undefined}
+                data-media-group-tile="true"
+              >
+                <Media
+                  item={mediaItem}
+                  onVideoPlay={() => onMarkRead?.(mediaItem)}
+                  aspectRatioOverride={hasGroupedImages ? "1 / 1" : undefined}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Media item={item} onVideoPlay={() => onMarkRead?.(item)} />
+        )}
         {(hasComments || isUnread) && (
           <div className={styles["meta-column"]}>
             {isUnread && (
