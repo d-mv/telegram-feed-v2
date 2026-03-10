@@ -1,7 +1,6 @@
 import { useSetAtom } from "jotai";
 import { useCallback, useEffect } from "react";
 import { authClientAtom, isAuthLoadingAtom } from "../../atoms/auth.atom";
-import { createAuthFromEnv } from "../auth/infra/authFactory";
 import type { Dal } from "../dal/types";
 
 export function useAuthentication({ dal }: { dal: Dal }) {
@@ -10,6 +9,7 @@ export function useAuthentication({ dal }: { dal: Dal }) {
 
   const authenticate = useCallback(async () => {
     try {
+      const { createAuthFromEnv } = await import("../auth/infra/authFactory");
       const session = await dal.getSession();
       const sessionValue = typeof session === "string" ? session : undefined;
       const client = createAuthFromEnv(import.meta.env, {
@@ -20,6 +20,7 @@ export function useAuthentication({ dal }: { dal: Dal }) {
       });
       setAuthClient(client);
     } catch {
+      const { createAuthFromEnv } = await import("../auth/infra/authFactory");
       const client = createAuthFromEnv(import.meta.env, {
         onSession: (nextSession) => {
           dal.setSession(nextSession).catch(() => {});

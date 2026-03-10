@@ -5,7 +5,7 @@ import { getAvatarPhotoGallery, getAvatarPhotoUrl } from "../../../domains/feed/
 import type { FeedItem } from "../../../types";
 
 export function useAvatar(message: FeedItem, isThread?: boolean) {
-  const { avatarVisibility } = useContext(AppContext);
+  const { avatarVisibility, ensureTelegramConnected } = useContext(AppContext);
   const isAvatarVisible = isThread ? avatarVisibility?.thread : avatarVisibility?.feed;
 
   const [avatarPhotoMap, setAvatarPhotoMap] = useState<Record<string, string>>({});
@@ -29,7 +29,7 @@ export function useAvatar(message: FeedItem, isThread?: boolean) {
     }
     try {
       const sender = await source.getSender();
-      const url = await getAvatarPhotoUrl(sender, cacheKey);
+      const url = await getAvatarPhotoUrl(sender, cacheKey, ensureTelegramConnected);
       if (url) {
         setAvatarPhotoMap((current) => ({ ...current, [cacheKey]: url }));
       }
@@ -47,8 +47,8 @@ export function useAvatar(message: FeedItem, isThread?: boolean) {
       const sender = await source.getSender();
       const cacheKey = `thread:${message.id}`;
       const [latest, gallery] = await Promise.all([
-        getAvatarPhotoUrl(sender, cacheKey),
-        getAvatarPhotoGallery(sender, cacheKey),
+        getAvatarPhotoUrl(sender, cacheKey, ensureTelegramConnected),
+        getAvatarPhotoGallery(sender, cacheKey, ensureTelegramConnected),
       ]);
 
       if (latest) {

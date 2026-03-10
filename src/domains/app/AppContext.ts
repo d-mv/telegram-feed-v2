@@ -1,11 +1,12 @@
-import { as } from "@mv-d/toolbelt";
 import { createContext } from "react";
 import type { AvatarVisibilitySettings, FeedItem } from "../../types";
+import type { EnsureTelegramConnected } from "../auth/model/authTypes";
 import type { Dal } from "../dal/types";
 
 type AppContextType = {
   onManualRefresh: () => void;
-  onSendMessage: (item: FeedItem, text: string) => Promise<void>;
+  onSendMessage: (item: FeedItem, text: string) => Promise<FeedItem | undefined>;
+  ensureTelegramConnected: EnsureTelegramConnected;
   avatarVisibility: AvatarVisibilitySettings;
   onSetAvatarVisibility: (next: AvatarVisibilitySettings) => void;
   onToggleChannelNotification: (channelKey: string, enabled: boolean) => void;
@@ -16,6 +17,6 @@ type AppContextType = {
   dal: Dal;
 };
 
-export const AppContext = createContext<AppContextType>(as<AppContextType>({}));
+export const AppContext = createContext<AppContextType>({} as AppContextType);
 
 AppContext.displayName = "AppContext";

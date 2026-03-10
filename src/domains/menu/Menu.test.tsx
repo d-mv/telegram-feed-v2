@@ -38,6 +38,7 @@ test("refresh menu item triggers manual refresh callback", async () => {
           dal: createDalStub(),
           onManualRefresh,
           onSendMessage: vi.fn().mockResolvedValue(undefined),
+          ensureTelegramConnected: vi.fn().mockResolvedValue({}),
           avatarVisibility: { feed: true, thread: true, notifications: true },
           onSetAvatarVisibility: vi.fn(),
           onToggleChannelNotification: vi.fn(),
@@ -56,4 +57,37 @@ test("refresh menu item triggers manual refresh callback", async () => {
   await user.click(screen.getByRole("menuitem", { name: "Refresh" }));
 
   expect(onManualRefresh).toHaveBeenCalledTimes(1);
+});
+
+test("filters menu item opens filters settings without manual refresh", async () => {
+  const user = userEvent.setup();
+  const onManualRefresh = vi.fn();
+
+  render(
+    <Provider>
+      <AppContext.Provider
+        value={{
+          dal: createDalStub(),
+          onManualRefresh,
+          onSendMessage: vi.fn().mockResolvedValue(undefined),
+          ensureTelegramConnected: vi.fn().mockResolvedValue({}),
+          avatarVisibility: { feed: true, thread: true, notifications: true },
+          onSetAvatarVisibility: vi.fn(),
+          onToggleChannelNotification: vi.fn(),
+          onToggleChannelFilter: vi.fn(),
+          onRequestNotificationPermission: vi.fn(),
+          onDisableNotifications: vi.fn(),
+          onEnableAllFeedFilters: vi.fn(),
+        }}
+      >
+        <Menu />
+      </AppContext.Provider>
+    </Provider>,
+  );
+
+  await user.click(screen.getByRole("button", { name: "Menu" }));
+  await user.click(screen.getByRole("menuitem", { name: "Filters" }));
+
+  expect(onManualRefresh).not.toHaveBeenCalled();
+  expect(screen.getByRole("dialog", { name: "Filters" })).toBeInTheDocument();
 });

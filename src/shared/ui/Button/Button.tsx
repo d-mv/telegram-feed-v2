@@ -10,6 +10,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 export function Button({ variant = "default", className, imgSrc, imgAlt, ...props }: ButtonProps) {
+  const type = props.type ?? "button";
   const classNames = [styles.button];
 
   if (variant === "primary") {
@@ -30,11 +31,11 @@ export function Button({ variant = "default", className, imgSrc, imgAlt, ...prop
 
   if (variant === "image") {
     return (
-      <button type="button" {...props} className={classNames.join(" ")}>
+      <button {...props} type={type} className={classNames.join(" ")}>
         <img src={imgSrc} alt={imgAlt} />
       </button>
     );
   }
 
-  return <button {...props} className={classNames.join(" ")} />;
+  return <button {...props} type={type} className={classNames.join(" ")} />;
 }

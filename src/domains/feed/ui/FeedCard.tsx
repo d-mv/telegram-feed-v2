@@ -3,14 +3,12 @@ import { CommentsIcon } from "../../../shared/ui/CommentsIcon/CommentsIcon";
 import { Header } from "../../../shared/ui/Header/Header";
 import { Media } from "../../../shared/ui/Media/Media";
 import { Text } from "../../../shared/ui/Text/Text";
-import { UnreadIcon } from "../../../shared/ui/UnreadIcon/UnreadIcon";
 import type { FeedItem } from "../../../types";
 import styles from "./FeedCard.module.css";
 
 type FeedCardProps = {
   item: FeedItem;
   onFocus: (item: FeedItem) => void;
-  onMarkRead?: (item: FeedItem) => void;
   groupedItems?: FeedItem[];
 };
 
@@ -52,7 +50,7 @@ function getGalleryItems(item: FeedItem, groupedItems?: FeedItem[]): FeedItem[] 
   }));
 }
 
-export function FeedCard({ item, onFocus, onMarkRead, groupedItems }: FeedCardProps) {
+export function FeedCard({ item, onFocus, groupedItems }: FeedCardProps) {
   const galleryItems = getGalleryItems(item, groupedItems);
   const hasGroupedMedia = galleryItems.length > 1;
   const hasGroupedImages =
@@ -61,14 +59,13 @@ export function FeedCard({ item, onFocus, onMarkRead, groupedItems }: FeedCardPr
   const hasComments = hasGroupedMedia
     ? galleryItems.some((mediaItem) => (mediaItem.commentsCount ?? 0) > 0)
     : (item.commentsCount ?? 0) > 0;
-  const isUnread = hasGroupedMedia
-    ? galleryItems.some((mediaItem) => mediaItem.isRead !== true)
-    : item.isRead !== true;
 
   return (
     <article
       className={styles.feedCard}
       role="button"
+      tabIndex={0}
+      data-feed-item-id={item.id}
       onClick={() => onFocus(item)}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -100,22 +97,16 @@ export function FeedCard({ item, onFocus, onMarkRead, groupedItems }: FeedCardPr
               >
                 <Media
                   item={mediaItem}
-                  onVideoPlay={() => onMarkRead?.(mediaItem)}
                   aspectRatioOverride={hasGroupedImages ? "1 / 1" : undefined}
                 />
               </div>
             ))}
           </div>
         ) : (
-          <Media item={item} onVideoPlay={() => onMarkRead?.(item)} />
+          <Media item={item} />
         )}
-        {(hasComments || isUnread) && (
+        {hasComments && (
           <div className={styles["meta-column"]}>
-            {isUnread && (
-              <span aria-label="Unread message">
-                <UnreadIcon />
-              </span>
-            )}
             {hasComments && (
               <span aria-label="Has comments">
                 <CommentsIcon />

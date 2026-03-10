@@ -65,9 +65,8 @@ self.addEventListener('fetch', (event) => {
   if (!isStatic) return
 
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached
-      return fetch(request).then((response) => {
+    fetch(request)
+      .then((response) => {
         const responseClone = response.clone()
         caches
           .open(RUNTIME_CACHE)
@@ -75,6 +74,45 @@ self.addEventListener('fetch', (event) => {
           .catch(() => undefined)
         return response
       })
-    }),
+      .catch(() => caches.match(request)),
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  const data = event.notification?.data ?? {}
+  const itemId = typeof data.itemId === 'string' ? data.itemId : undefined
+  const channelKey = typeof data.channelKey === 'string' ? data.channelKey : undefined
+  event.notification.close()
+
+  event.waitUntil(
+    (async () => {
+      const clients = await self.clients.matchAll({
+        includeUncontrolled: true,
+        type: 'window',
+      })
+      const preferredClient =
+        clients.find((client) => client.visibilityState === 'visible') ?? clients[0]
+
+      if (preferredClient) {
+        await preferredClient.focus()
+        preferredClient.postMessage({
+          type: 'NOTIFICATION_FOCUS',
+          payload: {
+            itemId,
+            channelKey,
+          },
+        })
+        return
+      }
+
+      const nextUrl = new URL('/', self.location.origin)
+      if (itemId) {
+        nextUrl.searchParams.set('focusItemId', itemId)
+      }
+      if (channelKey) {
+        nextUrl.searchParams.set('focusChannelKey', channelKey)
+      }
+      await self.clients.openWindow(nextUrl.toString())
+    })(),
   )
 })

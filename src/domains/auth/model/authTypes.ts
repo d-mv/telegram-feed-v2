@@ -1,6 +1,10 @@
+import type { TelegramClient } from 'telegram'
+
 export type SendCodeResult = {
   ok: true
 }
+
+export type EnsureTelegramConnected = () => Promise<TelegramClient>
 
 export type SubmitCodeResult = {
   status: 'needs_2fa' | 'logged_in'
@@ -30,4 +34,5 @@ export type AuthClient = {
   submitPassword: (password: string) => Promise<SubmitPasswordResult>
   requestQrLogin: () => Promise<QrLoginResult>
   checkQrLogin: () => Promise<QrLoginResult>
+  ensureTelegramConnected: EnsureTelegramConnected
 }

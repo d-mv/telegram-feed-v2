@@ -5,7 +5,22 @@ import { AppContext } from "../../app/AppContext";
 import { Chat } from "./Chat";
 
 vi.mock("./ChatThread", () => ({
-  ChatThread: () => <div>Thread</div>,
+  ChatThread: ({
+    sentMessages = [],
+  }: {
+    sentMessages?: { id: string; text: string; timestamp?: string; senderName?: string }[];
+  }) => (
+    <div>
+      <div>Thread</div>
+      {sentMessages.map((message) => (
+        <div key={message.id}>
+          <span>{message.senderName}</span>
+          <span>{message.timestamp}</span>
+          <span>{message.text}</span>
+        </div>
+      ))}
+    </div>
+  ),
 }));
 
 function createDalStub() {
@@ -40,6 +55,7 @@ test("sends typed message and clears composer", async () => {
         dal: createDalStub(),
         onManualRefresh: vi.fn(),
         onSendMessage,
+        ensureTelegramConnected: vi.fn().mockResolvedValue({}),
         avatarVisibility: { feed: true, thread: true, notifications: true },
         onSetAvatarVisibility: vi.fn(),
         onToggleChannelNotification: vi.fn(),
@@ -76,4 +92,72 @@ test("sends typed message and clears composer", async () => {
   });
 
   expect(screen.getByLabelText("Write a reply")).toHaveValue("");
+});
+
+test("shows sent message immediately in the open thread", async () => {
+  const user = userEvent.setup();
+  let resolveSend: ((value: unknown) => void) | null = null;
+  const onSendMessage = vi.fn().mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        resolveSend = resolve;
+      }),
+  );
+
+  render(
+    <AppContext.Provider
+      value={{
+        dal: createDalStub(),
+        onManualRefresh: vi.fn(),
+        onSendMessage,
+        ensureTelegramConnected: vi.fn().mockResolvedValue({}),
+        avatarVisibility: { feed: true, thread: true, notifications: true },
+        onSetAvatarVisibility: vi.fn(),
+        onToggleChannelNotification: vi.fn(),
+        onToggleChannelFilter: vi.fn(),
+        onRequestNotificationPermission: vi.fn(),
+        onDisableNotifications: vi.fn(),
+        onEnableAllFeedFilters: vi.fn(),
+      }}
+    >
+      <Chat
+        item={{
+          id: "dm-1-1",
+          type: "dm",
+          chatName: "Alice",
+          senderName: "Alice",
+          timestamp: "now",
+          text: "Hello",
+          reactions: [],
+        }}
+        onClose={vi.fn()}
+      />
+    </AppContext.Provider>,
+  );
+
+  await user.type(screen.getByLabelText("Write a reply"), "Ships immediately");
+  await user.click(screen.getByRole("button", { name: "Send" }));
+
+  expect(screen.getByText("Ships immediately")).toBeInTheDocument();
+  expect(screen.getByText("You")).toBeInTheDocument();
+  expect(screen.getByText("Just now")).toBeInTheDocument();
+
+  resolveSend?.({
+    id: "dm-1-99",
+    type: "dm",
+    channelKey: "dm:1",
+    chatName: "Alice",
+    senderName: "Alice",
+    timestamp: "1 min ago",
+    text: "Ships immediately",
+    reactions: [],
+    isFocused: false,
+  });
+  await waitFor(() => {
+    expect(onSendMessage).toHaveBeenCalled();
+  });
+  await waitFor(() => {
+    expect(screen.getByText("1 min ago")).toBeInTheDocument();
+  });
+  expect(screen.queryByText("Just now")).not.toBeInTheDocument();
 });

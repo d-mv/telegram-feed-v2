@@ -1,6 +1,8 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactElement } from "react";
 import { vi } from "vitest";
+import { AppContext } from "../../app/AppContext";
 import { ChatThread } from "./ChatThread";
 
 vi.mock("telegram", () => {
@@ -47,6 +49,46 @@ Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
   value: vi.fn(),
 });
 
+function renderThread(node: ReactElement) {
+  return render(
+    <AppContext.Provider
+      value={{
+        dal: {
+          getSession: vi.fn(),
+          setSession: vi.fn(),
+          getNotificationSettings: vi.fn(),
+          setNotificationSettings: vi.fn(),
+          getFeedFilterSettings: vi.fn(),
+          setFeedFilterSettings: vi.fn(),
+          getAvatarVisibilitySettings: vi.fn(),
+          setAvatarVisibilitySettings: vi.fn(),
+          getFeedCache: vi.fn(),
+          setFeedCache: vi.fn(),
+          getSaved: vi.fn(),
+          setSaved: vi.fn(),
+          getDrafts: vi.fn(),
+          setDrafts: vi.fn(),
+          getMedia: vi.fn(),
+          setMedia: vi.fn(),
+          clearCache: vi.fn(),
+        },
+        onManualRefresh: vi.fn(),
+        onSendMessage: vi.fn().mockResolvedValue(undefined),
+        ensureTelegramConnected: ensureTelegramConnectedMock,
+        avatarVisibility: { feed: true, thread: true, notifications: true },
+        onSetAvatarVisibility: vi.fn(),
+        onToggleChannelNotification: vi.fn(),
+        onToggleChannelFilter: vi.fn(),
+        onRequestNotificationPermission: vi.fn(),
+        onDisableNotifications: vi.fn(),
+        onEnableAllFeedFilters: vi.fn(),
+      }}
+    >
+      {node}
+    </AppContext.Provider>,
+  );
+}
+
 test("loads message comments in accordion and shows comments icon", async () => {
   const user = userEvent.setup();
   const now = Math.floor(Date.now() / 1000);
@@ -79,7 +121,7 @@ test("loads message comments in accordion and shows comments icon", async () => 
     }),
   });
 
-  render(
+  renderThread(
     <ChatThread
       item={{
         id: "group-1-10",
@@ -100,104 +142,6 @@ test("loads message comments in accordion and shows comments icon", async () => 
   await waitFor(() => {
     expect(screen.getByText("First comment")).toBeInTheDocument();
   });
-});
-
-test("marks clicked message and previous ones as read", async () => {
-  const user = userEvent.setup();
-  const now = Math.floor(Date.now() / 1000);
-  const { Api } = await import("telegram");
-  const onMarkRead = vi.fn();
-
-  const firstMessage = new Api.Message({
-    id: 10,
-    date: now - 120,
-    message: "First",
-    toId: {},
-    sender: { firstName: "Alice" },
-  });
-
-  const secondMessage = new Api.Message({
-    id: 11,
-    date: now - 60,
-    message: "Second",
-    toId: {},
-    sender: { firstName: "Bob" },
-  });
-
-  const sourceMessage = new Api.Message({
-    id: 11,
-    date: now - 60,
-    message: "Second",
-    toId: {},
-    getInputChat: vi.fn().mockResolvedValue("chat"),
-    sender: { firstName: "Bob" },
-  });
-
-  ensureTelegramConnectedMock.mockResolvedValue({
-    getMessages: vi.fn().mockResolvedValue([secondMessage, firstMessage]),
-  });
-
-  render(
-    <ChatThread
-      item={{
-        id: "group-1-11",
-        type: "group",
-        chatName: "Team",
-        timestamp: "now",
-        text: "Second",
-        sourceMessage,
-        isFocused: true,
-      }}
-      onMarkReadThrough={onMarkRead}
-    />, 
-  );
-
-  expect(await screen.findByText("First")).toBeInTheDocument();
-  expect(screen.getAllByLabelText("Unread message")).toHaveLength(2);
-
-  await user.click(screen.getByText("Second"));
-
-  await waitFor(() => {
-    expect(screen.queryByLabelText("Unread message")).not.toBeInTheDocument();
-  });
-  expect(onMarkRead).toHaveBeenCalledWith(["10", "11"]);
-});
-
-test("marks a video message as read when play starts", async () => {
-  const onMarkRead = vi.fn();
-
-  render(
-    <ChatThread
-      item={{
-        id: "group-1-20",
-        type: "group",
-        chatName: "Team",
-        timestamp: "now",
-        text: "Video",
-        media: {
-          meta: {
-            type: "video",
-            width: 640,
-            height: 360,
-            sizeBytes: 2048,
-            mimeType: "video/mp4",
-          },
-          url: "https://example.com/preview.jpg",
-          alt: "video",
-        },
-        isFocused: true,
-      }}
-      onMarkReadThrough={onMarkRead}
-    />, 
-  );
-
-  const video = await screen.findByLabelText("Video media");
-  fireEvent.play(video);
-
-  await waitFor(() => {
-    expect(screen.queryByLabelText("Unread message")).not.toBeInTheDocument();
-  });
-  expect(onMarkRead).toHaveBeenCalledWith(["group-1-20"]);
 });
 
 test("groups consecutive media-only messages from the same sender in the thread", async () => {
@@ -247,7 +191,7 @@ test("groups consecutive media-only messages from the same sender in the thread"
     getMessages: vi.fn().mockResolvedValue([secondMessage, firstMessage]),
   });
 
-  render(
+  renderThread(
     <ChatThread
       item={{
         id: "group-1-31",
@@ -271,7 +215,7 @@ test("groups consecutive media-only messages from the same sender in the thread"
 });
 
 test("keeps media visible for mixed text and media messages in the thread", () => {
-  render(
+  renderThread(
     <ChatThread
       item={{
         id: "group-1-40",
@@ -300,7 +244,7 @@ test("keeps media visible for mixed text and media messages in the thread", () =
 });
 
 test("renders a single thread message with multiple images as a gallery", () => {
-  render(
+  renderThread(
     <ChatThread
       item={{
         id: "group-1-50",
@@ -417,7 +361,7 @@ test("groups a media-only multi-image thread message with adjacent media-only me
     getMessages: vi.fn().mockResolvedValue([thirdMessage, secondMessage, firstMessage]),
   });
 
-  render(
+  renderThread(
     <ChatThread
       item={{
         id: "group-1-62",

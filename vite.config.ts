@@ -6,6 +6,31 @@ import { defineConfig } from "vite";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) {
+            return undefined;
+          }
+          if (id.includes("/node_modules/telegram/")) {
+            return "telegram";
+          }
+          if (
+            id.includes("/node_modules/react/") ||
+            id.includes("/node_modules/react-dom/") ||
+            id.includes("/node_modules/jotai/") ||
+            id.includes("/node_modules/clsx/") ||
+            id.includes("/node_modules/ramda/") ||
+            id.includes("/node_modules/embla-carousel-react/")
+          ) {
+            return "vendor";
+          }
+          return undefined;
+        },
+      },
+    },
+  },
   css: {
     modules: {
       generateScopedName: (localName, filename) => {

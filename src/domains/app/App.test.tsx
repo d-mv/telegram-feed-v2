@@ -52,6 +52,7 @@ vi.mock("./domains/feed/infra/telegramFeed", () => ({
 
 test("renders login view", async () => {
   const auth: AuthClient = {
+    ensureTelegramConnected: vi.fn().mockResolvedValue({} as never),
     sendCode: vi.fn().mockResolvedValue({ ok: true }),
     submitCode: vi.fn().mockResolvedValue({ status: "logged_in" }),
     submitPassword: vi.fn().mockResolvedValue({ status: "logged_in" }),
@@ -65,6 +66,7 @@ test("renders login view", async () => {
 test("switches to feed after login", async () => {
   const user = userEvent.setup();
   const auth: AuthClient = {
+    ensureTelegramConnected: vi.fn().mockResolvedValue({} as never),
     sendCode: vi.fn().mockResolvedValue({ ok: true }),
     submitCode: vi.fn().mockResolvedValue({ status: "logged_in" }),
     submitPassword: vi.fn().mockResolvedValue({ status: "logged_in" }),

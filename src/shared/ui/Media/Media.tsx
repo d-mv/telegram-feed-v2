@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { AppContext } from "../../../domains/app/AppContext";
 import {
   downloadMediaForItem,
   downloadThumbnailForItem,
@@ -36,6 +37,7 @@ function DocumentTextIcon() {
 }
 
 export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride }: Props) {
+  const { ensureTelegramConnected } = useContext(AppContext);
   const media = item.media;
 
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(item.media?.url);
@@ -186,12 +188,12 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
     try {
       let nextUrl: string | undefined;
       if (item.media.meta.type === "video") {
-        nextUrl = await downloadMediaForItem(item, (downloaded, total) => {
+        nextUrl = await downloadMediaForItem(item, ensureTelegramConnected, (downloaded, total) => {
           console.log("downloaded", downloaded, "total", total);
           if (Number(total) > 0) setDownloadProgress(Number(downloaded) / Number(total));
         });
       } else {
-        nextUrl = await downloadMediaForItem(item);
+        nextUrl = await downloadMediaForItem(item, ensureTelegramConnected);
       }
       const url = nextUrl;
       if (!url) {
@@ -216,7 +218,7 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
     if (!media || media.url || previewUrl || previewFailed) return;
 
     let active = true;
-    downloadThumbnailForItem(item, 480)
+    downloadThumbnailForItem(item, 480, ensureTelegramConnected)
       .then((url) => {
         if (active && url) {
           setPreviewUrl(url);
@@ -229,7 +231,7 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
     return () => {
       active = false;
     };
-  }, [media, previewUrl, previewFailed, item]);
+  }, [ensureTelegramConnected, item, media, previewUrl, previewFailed]);
 
   useEffect(() => {
     if (!media || media.meta.type !== "video") {

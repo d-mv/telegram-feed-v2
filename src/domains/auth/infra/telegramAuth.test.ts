@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { createTelegramAuth, ensureTelegramConnected } from './telegramAuth'
+import { createTelegramAuth } from './telegramAuth'
 
 const invokeMock = vi.fn()
-const connectMock = vi.fn().mockResolvedValue(undefined)
+const connectMock = vi.fn()
 
 const telegramMock = vi.hoisted(() => {
   class SendCode {
@@ -36,13 +36,32 @@ const telegramMock = vi.hoisted(() => {
   }
 
   class TelegramClient {
+    private _connected = false
+
     constructor(
       public session: unknown,
       public apiId: number,
       public apiHash: string,
       public options: unknown,
     ) {}
-    connect = connectMock
+
+    get connected() {
+      return this._connected
+    }
+
+    get disconnected() {
+      return !this._connected
+    }
+
+    connect = vi.fn(async () => {
+      await connectMock()
+      this._connected = true
+    })
+
+    __setConnected(value: boolean) {
+      this._connected = value
+    }
+
     invoke = invokeMock
   }
 
@@ -85,7 +104,9 @@ vi.mock('telegram/Password', () => ({
 describe('telegramAuth', () => {
   beforeEach(() => {
     invokeMock.mockReset()
+    connectMock.mockReset()
     connectMock.mockClear()
+    connectMock.mockResolvedValue(undefined)
   })
 
   test('sendCode returns ok when Telegram responds', async () => {
@@ -141,13 +162,24 @@ describe('telegramAuth', () => {
     )
   })
 
-  test('ensureTelegramConnected reuses client connection', async () => {
-    createTelegramAuth({ apiId: 1, apiHash: 'hash' })
+  test('auth client exposes a reusable connected telegram client', async () => {
+    const auth = createTelegramAuth({ apiId: 1, apiHash: 'hash' })
 
-    const first = await ensureTelegramConnected()
-    const second = await ensureTelegramConnected()
+    const first = await auth.ensureTelegramConnected()
+    const second = await auth.ensureTelegramConnected()
 
     expect(first).toBe(second)
     expect(connectMock).toHaveBeenCalledTimes(1)
+  })
+
+  test('auth client reconnects after its telegram client disconnects', async () => {
+    const auth = createTelegramAuth({ apiId: 1, apiHash: 'hash' })
+
+    const client = await auth.ensureTelegramConnected()
+    ;(client as unknown as { __setConnected: (value: boolean) => void }).__setConnected(false)
+
+    await auth.ensureTelegramConnected()
+
+    expect(connectMock).toHaveBeenCalledTimes(2)
   })
 })

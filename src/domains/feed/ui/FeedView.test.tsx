@@ -1,15 +1,58 @@
 import { Provider } from 'jotai/react'
 import { createStore } from 'jotai/vanilla'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { vi } from 'vitest'
 import { feedItemsAtom } from '../../../atoms/feedItems.atom'
 import { feedFilterSettingsAtom } from '../../../atoms/feedFilters.atom'
+import { notificationFocusAtom } from '../../../atoms/notificationFocus.atom'
+import { AppContext } from '../../app/AppContext'
 import type { FeedItem } from '../model/mockFeed'
 import { FeedView } from './FeedView'
+
+Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+  configurable: true,
+  value: vi.fn(),
+})
 
 function renderWithStore(store = createStore()) {
   return render(
     <Provider store={store}>
-      <FeedView />
+      <AppContext.Provider
+        value={{
+          dal: {
+            getSession: vi.fn(),
+            setSession: vi.fn(),
+            getNotificationSettings: vi.fn(),
+            setNotificationSettings: vi.fn(),
+            getFeedFilterSettings: vi.fn(),
+            setFeedFilterSettings: vi.fn(),
+            getAvatarVisibilitySettings: vi.fn(),
+            setAvatarVisibilitySettings: vi.fn(),
+            getFeedCache: vi.fn(),
+            setFeedCache: vi.fn(),
+            getSaved: vi.fn(),
+            setSaved: vi.fn(),
+            getDrafts: vi.fn(),
+            setDrafts: vi.fn(),
+            getMedia: vi.fn(),
+            setMedia: vi.fn(),
+            clearCache: vi.fn(),
+          },
+          onManualRefresh: vi.fn(),
+          onSendMessage: vi.fn().mockResolvedValue(undefined),
+          ensureTelegramConnected: vi.fn().mockResolvedValue({}),
+          avatarVisibility: { feed: true, thread: true, notifications: true },
+          onSetAvatarVisibility: vi.fn(),
+          onToggleChannelNotification: vi.fn(),
+          onToggleChannelFilter: vi.fn(),
+          onRequestNotificationPermission: vi.fn(),
+          onDisableNotifications: vi.fn(),
+          onEnableAllFeedFilters: vi.fn(),
+        }}
+      >
+        <FeedView />
+      </AppContext.Provider>
     </Provider>,
   )
 }
@@ -59,7 +102,41 @@ test('updates visible messages when feed atom changes', () => {
   })
   rerender(
     <Provider store={store}>
-      <FeedView />
+      <AppContext.Provider
+        value={{
+          dal: {
+            getSession: vi.fn(),
+            setSession: vi.fn(),
+            getNotificationSettings: vi.fn(),
+            setNotificationSettings: vi.fn(),
+            getFeedFilterSettings: vi.fn(),
+            setFeedFilterSettings: vi.fn(),
+            getAvatarVisibilitySettings: vi.fn(),
+            setAvatarVisibilitySettings: vi.fn(),
+            getFeedCache: vi.fn(),
+            setFeedCache: vi.fn(),
+            getSaved: vi.fn(),
+            setSaved: vi.fn(),
+            getDrafts: vi.fn(),
+            setDrafts: vi.fn(),
+            getMedia: vi.fn(),
+            setMedia: vi.fn(),
+            clearCache: vi.fn(),
+          },
+          onManualRefresh: vi.fn(),
+          onSendMessage: vi.fn().mockResolvedValue(undefined),
+          ensureTelegramConnected: vi.fn().mockResolvedValue({}),
+          avatarVisibility: { feed: true, thread: true, notifications: true },
+          onSetAvatarVisibility: vi.fn(),
+          onToggleChannelNotification: vi.fn(),
+          onToggleChannelFilter: vi.fn(),
+          onRequestNotificationPermission: vi.fn(),
+          onDisableNotifications: vi.fn(),
+          onEnableAllFeedFilters: vi.fn(),
+        }}
+      >
+        <FeedView />
+      </AppContext.Provider>
     </Provider>,
   )
   expect(screen.getByText('Second message')).toBeInTheDocument()
@@ -95,110 +172,6 @@ test('hides messages from channels switched off in feed filters', () => {
 
   expect(screen.getByText('Visible')).toBeInTheDocument()
   expect(screen.queryByText('Hidden')).not.toBeInTheDocument()
-})
-
-test('marks target message and all previous ones as read when video starts', async () => {
-  const store = createStore()
-  act(() => {
-    store.set(feedItemsAtom, [
-      {
-        id: 'group-9-1',
-        channelKey: 'group:9',
-        type: 'group',
-        chatName: 'Team',
-        timestamp: 'now',
-        text: 'First',
-        isRead: false,
-      },
-      {
-        id: 'group-9-2',
-        channelKey: 'group:9',
-        type: 'group',
-        chatName: 'Team',
-        timestamp: 'now',
-        text: 'Second',
-        isRead: false,
-        media: {
-          meta: {
-            type: 'video',
-            width: 640,
-            height: 360,
-            sizeBytes: 1024,
-            mimeType: 'video/mp4',
-          },
-          url: 'https://example.com/preview.jpg',
-          alt: 'video',
-        },
-      },
-    ])
-  })
-
-  renderWithStore(store)
-
-  expect(screen.getAllByLabelText('Unread message')).toHaveLength(2)
-  const videos = screen.getAllByLabelText('Video media')
-  fireEvent.play(videos[0] as HTMLVideoElement)
-
-  await waitFor(() => {
-    expect(screen.queryByLabelText('Unread message')).not.toBeInTheDocument()
-  })
-})
-
-test('keeps other feeds unread when marking read in one feed', async () => {
-  const store = createStore()
-  act(() => {
-    store.set(feedItemsAtom, [
-      {
-        id: 'group-1-1',
-        channelKey: 'group:1',
-        type: 'group',
-        chatName: 'Feed A',
-        timestamp: 'now',
-        text: 'A1',
-        isRead: false,
-      },
-      {
-        id: 'group-2-1',
-        channelKey: 'group:2',
-        type: 'group',
-        chatName: 'Feed B',
-        timestamp: 'now',
-        text: 'B1',
-        isRead: false,
-      },
-      {
-        id: 'group-1-2',
-        channelKey: 'group:1',
-        type: 'group',
-        chatName: 'Feed A',
-        timestamp: 'now',
-        text: 'A2',
-        isRead: false,
-        media: {
-          meta: {
-            type: 'video',
-            width: 640,
-            height: 360,
-            sizeBytes: 1024,
-            mimeType: 'video/mp4',
-          },
-          url: 'https://example.com/preview.jpg',
-          alt: 'video',
-        },
-      },
-    ])
-  })
-
-  renderWithStore(store)
-
-  expect(screen.getAllByLabelText('Unread message')).toHaveLength(3)
-  const videos = screen.getAllByLabelText('Video media')
-  fireEvent.play(videos[0] as HTMLVideoElement)
-
-  await waitFor(() => {
-    expect(screen.getByText('B1')).toBeInTheDocument()
-    expect(screen.getAllByLabelText('Unread message')).toHaveLength(1)
-  })
 })
 
 test('groups consecutive media-only messages from the same sender in the feed', () => {
@@ -333,4 +306,116 @@ test('groups a media-only multi-image message with adjacent media-only messages 
 
   expect(screen.getAllByText('Alice')).toHaveLength(1)
   expect(container.querySelectorAll('[data-media-group-tile="true"]')).toHaveLength(3)
+})
+
+test('focuses notification target in feed when feed is open', async () => {
+  const store = createStore()
+  act(() => {
+    store.set(feedItemsAtom, [
+      {
+        id: 'dm-1-1',
+        channelKey: 'dm:1',
+        type: 'dm',
+        chatName: 'Alice',
+        senderName: 'Alice',
+        timestamp: 'now',
+        text: 'Target',
+        reactions: [],
+      },
+    ])
+    store.set(notificationFocusAtom, { itemId: 'dm-1-1', channelKey: 'dm:1' })
+  })
+
+  const { container } = renderWithStore(store)
+  const card = container.querySelector('[data-feed-item-id="dm-1-1"]') as HTMLElement
+
+  await waitFor(() => {
+    expect(document.activeElement).toBe(card)
+  })
+})
+
+test('closes wrong open thread and focuses target in feed for notification click', async () => {
+  const user = userEvent.setup()
+  const store = createStore()
+  act(() => {
+    store.set(feedItemsAtom, [
+      {
+        id: 'dm-1-1',
+        channelKey: 'dm:1',
+        type: 'dm',
+        chatName: 'Alice',
+        senderName: 'Alice',
+        timestamp: 'now',
+        text: 'Alice message',
+        reactions: [],
+      },
+      {
+        id: 'group-2-1',
+        channelKey: 'group:2',
+        type: 'group',
+        chatName: 'Team',
+        senderName: 'Team',
+        timestamp: 'now',
+        text: 'Team message',
+      },
+    ])
+  })
+
+  const { container } = renderWithStore(store)
+  await user.click(screen.getByText('Alice message'))
+  expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+  act(() => {
+    store.set(notificationFocusAtom, { itemId: 'group-2-1', channelKey: 'group:2' })
+  })
+
+  const targetCard = container.querySelector('[data-feed-item-id="group-2-1"]') as HTMLElement
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(document.activeElement).toBe(targetCard)
+  })
+})
+
+test('keeps thread open and focuses target there when notification is for the open channel', async () => {
+  const user = userEvent.setup()
+  const store = createStore()
+  act(() => {
+    store.set(feedItemsAtom, [
+      {
+        id: 'dm-1-1',
+        channelKey: 'dm:1',
+        type: 'dm',
+        chatName: 'Alice',
+        senderName: 'Alice',
+        timestamp: 'now',
+        text: 'First thread message',
+        reactions: [],
+      },
+      {
+        id: 'dm-1-2',
+        channelKey: 'dm:1',
+        type: 'dm',
+        chatName: 'Alice',
+        senderName: 'Alice',
+        timestamp: 'now',
+        text: 'Second thread message',
+        reactions: [],
+      },
+    ])
+  })
+
+  renderWithStore(store)
+  await user.click(screen.getByText('First thread message'))
+
+  const dialog = screen.getByRole('dialog')
+  expect(within(dialog).getByText('First thread message')).toBeInTheDocument()
+
+  act(() => {
+    store.set(notificationFocusAtom, { itemId: 'dm-1-2', channelKey: 'dm:1' })
+  })
+
+  await waitFor(() => {
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(within(screen.getByRole('dialog')).getByText('Second thread message')).toBeInTheDocument()
+  })
 })

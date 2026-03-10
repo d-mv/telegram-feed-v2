@@ -2,7 +2,6 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useEffect, useState } from "react";
 import { isAppLoadingAtom } from "../../atoms/app.atom";
 import { authClientAtom, isAuthenticatedAtom } from "../../atoms/auth.atom";
-import { ensureTelegramConnected } from "../auth/infra/telegramAuth";
 
 export function useTelegram() {
   const authClient = useAtomValue(authClientAtom);
@@ -11,8 +10,12 @@ export function useTelegram() {
   const [cancelled, setCancelled] = useState(false);
 
   const checkAuthorization = useCallback(async () => {
+    if (!authClient) {
+      setIsAppLoading(false);
+      return;
+    }
     try {
-      const client = await ensureTelegramConnected();
+      const client = await authClient.ensureTelegramConnected();
 
       const authorized = await client.checkAuthorization();
 
@@ -22,7 +25,7 @@ export function useTelegram() {
     } finally {
       setIsAppLoading(false);
     }
-  }, [authClient, isAuthenticated]);
+  }, [authClient, isAuthenticated, setIsAppLoading, setIsAuthenticated, cancelled]);
 
   useEffect(() => {
     if (!authClient || isAuthenticated) return;
@@ -32,5 +35,5 @@ export function useTelegram() {
     return () => {
       setCancelled(true);
     };
-  }, [authClient, isAuthenticated]);
+  }, [authClient, isAuthenticated, checkAuthorization]);
 }

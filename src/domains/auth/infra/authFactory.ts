@@ -1,10 +1,6 @@
 import type { AuthClient } from '../model/authTypes'
+import { getTelegramAuthEnv } from './authEnv'
 import { createTelegramAuth } from './telegramAuth'
-
-type AuthEnv = Pick<
-  ImportMetaEnv,
-  'VITE_TELEGRAM_API_ID' | 'VITE_TELEGRAM_API_HASH'
->
 
 type AuthOptions = {
   session?: string
@@ -12,15 +8,10 @@ type AuthOptions = {
 }
 
 export function createAuthFromEnv(
-  env: AuthEnv = import.meta.env,
+  env: ImportMetaEnv = import.meta.env,
   options: AuthOptions = {},
 ): AuthClient {
-  const apiId = Number(env.VITE_TELEGRAM_API_ID)
-  const apiHash = env.VITE_TELEGRAM_API_HASH
-
-  if (!apiId || !apiHash) {
-    throw new Error('Missing Telegram env vars')
-  }
+  const { apiId, apiHash } = getTelegramAuthEnv(env)
 
   return createTelegramAuth({
     apiId,

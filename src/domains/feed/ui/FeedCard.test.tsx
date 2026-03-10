@@ -28,31 +28,6 @@ test("shows comments icon only when message has comments", () => {
   expect(screen.queryByLabelText("Has comments")).not.toBeInTheDocument();
 });
 
-test("shows unread icon only for unread messages", () => {
-  const onFocus = () => {};
-  const unreadItem = {
-    id: "group-3",
-    type: "group" as const,
-    chatName: "Team",
-    timestamp: "now",
-    text: "Unread",
-    isRead: false,
-    isFocused: false,
-  };
-  const readItem = {
-    ...unreadItem,
-    id: "group-4",
-    text: "Read",
-    isRead: true,
-  };
-
-  const { rerender } = render(<FeedCard item={unreadItem} onFocus={onFocus} />);
-  expect(screen.getByLabelText("Unread message")).toBeInTheDocument();
-
-  rerender(<FeedCard item={readItem} onFocus={onFocus} />);
-  expect(screen.queryByLabelText("Unread message")).not.toBeInTheDocument();
-});
-
 test("keeps media visible for mixed text and media messages in the feed", () => {
   render(
     <FeedCard

@@ -29,6 +29,15 @@ function attachServiceWorkerAutoUpdate(registration: ServiceWorkerRegistration) 
 
   requestSkipWaiting();
 
+  const checkForUpdates = () => {
+    registration
+      .update()
+      .then(() => {
+        requestSkipWaiting();
+      })
+      .catch(() => {});
+  };
+
   registration.addEventListener("updatefound", () => {
     const nextWorker = registration.installing;
     if (!nextWorker) {
@@ -49,14 +58,20 @@ function attachServiceWorkerAutoUpdate(registration: ServiceWorkerRegistration) 
 
   const UPDATE_INTERVAL_MS = 5 * 60 * 1000;
   window.setInterval(() => {
-    registration.update().catch(() => {});
+    checkForUpdates();
   }, UPDATE_INTERVAL_MS);
 
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
-      registration.update().catch(() => {});
+      checkForUpdates();
     }
   });
+
+  window.addEventListener("pageshow", () => {
+    checkForUpdates();
+  });
+
+  checkForUpdates();
 }
 
 if ("serviceWorker" in navigator) {

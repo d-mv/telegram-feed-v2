@@ -1,15 +1,14 @@
 import clsx from "clsx";
 import { path } from "ramda";
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Api } from "telegram";
 import { CommentsIcon } from "../../../shared/ui/CommentsIcon/CommentsIcon";
 import { Header } from "../../../shared/ui/Header/Header";
 import { Media } from "../../../shared/ui/Media/Media";
 import { Text } from "../../../shared/ui/Text/Text";
-import { UnreadIcon } from "../../../shared/ui/UnreadIcon/UnreadIcon";
 import type { FeedItem } from "../../../types";
-import { ensureTelegramConnected } from "../../auth/infra/telegramAuth";
+import { AppContext } from "../../app/AppContext";
 import {
   getMediaPreview,
   getMessageCommentsCount,
@@ -21,7 +20,7 @@ import styles from "./ChatThread.module.css";
 
 type ChatThreadProps = {
   item: FeedItem;
-  onMarkReadThrough?: (readMessageIds: string[]) => void;
+  sentMessages?: FeedItem[];
 };
 
 type ThreadComment = {
@@ -84,15 +83,8 @@ function getSenderLabel(message: Api.Message, fallback: string) {
   return fallback;
 }
 
-function getMessageReadKey(message: FeedItem): string {
-  const sourceId = (message.sourceMessage as { id?: unknown } | undefined)?.id;
-  if (typeof sourceId === "number" || typeof sourceId === "string") {
-    return String(sourceId);
-  }
-  return message.id;
-}
-
-export function ChatThread({ item, onMarkReadThrough }: ChatThreadProps) {
+export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
+  const { ensureTelegramConnected } = useContext(AppContext);
   const [messages, setMessages] = useState<FeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -117,7 +109,6 @@ export function ChatThread({ item, onMarkReadThrough }: ChatThreadProps) {
       media: item.media,
       mediaItems: item.mediaItems,
       isFocused: true,
-      isRead: item.isRead,
     };
 
     if (item.type !== "dm")
@@ -168,7 +159,6 @@ export function ChatThread({ item, onMarkReadThrough }: ChatThreadProps) {
                   ? String((message as Api.Message & { groupedId?: unknown }).groupedId)
                   : undefined,
               isFocused: focusId ? message.id === focusId : false,
-              isRead: false,
               reactions: path(["reactions"], message),
               type: message.toId instanceof Api.PeerUser ? "dm" : "group",
               chatName: message.toId instanceof Api.PeerUser ? senderName : item.chatName,
@@ -268,25 +258,6 @@ export function ChatThread({ item, onMarkReadThrough }: ChatThreadProps) {
     }
   }
 
-  function markReadThroughIndex(targetIndex: number) {
-    setMessages((current) =>
-      current.map((message, index) => {
-        if (index > targetIndex || message.isRead === true) {
-          return message;
-        }
-        return { ...message, isRead: true };
-      }),
-    );
-
-    const readKeys = messages
-      .slice(0, targetIndex + 1)
-      .map(getMessageReadKey)
-      .filter((key, index, all) => all.indexOf(key) === index);
-    if (readKeys.length > 0) {
-      onMarkReadThrough?.(readKeys);
-    }
-  }
-
   function renderComments(message: FeedItem) {
     if ((message.commentsCount ?? 0) <= 0) {
       return null;
@@ -324,7 +295,11 @@ export function ChatThread({ item, onMarkReadThrough }: ChatThreadProps) {
     );
   }
 
-  const messageGroups = useMemo(() => groupConsecutiveMediaOnlyItems(messages), [messages]);
+  const displayMessages = useMemo(() => [...messages, ...sentMessages], [messages, sentMessages]);
+  const messageGroups = useMemo(
+    () => groupConsecutiveMediaOnlyItems(displayMessages),
+    [displayMessages],
+  );
 
   return (
     <div className={clsx(styles.thread, (messages.length === 0 || isLoading) && styles.empty)}>
@@ -334,16 +309,11 @@ export function ChatThread({ item, onMarkReadThrough }: ChatThreadProps) {
         {messageGroups.map((group) => {
           const representative = group[0];
           const galleryItems = group.length > 1 ? getGroupedGalleryItems(group) : getGalleryItems(representative);
-          const targetMessage = group[group.length - 1];
-          const targetIndex = messages.findIndex((entry) => entry.id === targetMessage.id);
           const isGroupedRun = group.length > 1;
           const isGrouped = galleryItems.length > 1;
           const hasGroupedImages =
             isGrouped && galleryItems.every((message) => message.media?.meta.type === "image");
           const imageGridColumns = hasGroupedImages ? getImageGridColumns(galleryItems.length) : undefined;
-          const isUnread = isGrouped
-            ? galleryItems.some((message) => message.isRead !== true)
-            : representative.isRead !== true;
           const isFocusedGroup = group.some((message) => message.isFocused);
 
           return (
@@ -351,30 +321,10 @@ export function ChatThread({ item, onMarkReadThrough }: ChatThreadProps) {
               key={representative.id}
               className={`${styles.message} ${isFocusedGroup ? styles.messageFocused : ""}`}
               ref={isFocusedGroup ? focusedRef : null}
-              role="button"
-              tabIndex={0}
-              onClick={() => {
-                if (targetIndex >= 0) {
-                  markReadThroughIndex(targetIndex);
-                }
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  if (targetIndex >= 0) {
-                    markReadThroughIndex(targetIndex);
-                  }
-                }
-              }}
             >
               <Header isThread message={representative} className={styles.header}>
                 {representative.senderName}
               </Header>
-              {isUnread && (
-                <span className={styles.unreadIndicator} aria-label="Unread message">
-                  <UnreadIcon />
-                </span>
-              )}
               {(!isGroupedRun || representative.text !== "") && (
                 <Text className={styles.text}>{representative.text}</Text>
               )}
@@ -389,7 +339,6 @@ export function ChatThread({ item, onMarkReadThrough }: ChatThreadProps) {
                   }
                 >
                   {galleryItems.map((message) => {
-                    const mediaIndex = messages.findIndex((entry) => entry.id === message.id);
                     return (
                       <div
                         key={message.id}
@@ -409,19 +358,9 @@ export function ChatThread({ item, onMarkReadThrough }: ChatThreadProps) {
                               reactions: [],
                               sourceMessage: message.sourceMessage,
                               isFocused: message.isFocused,
-                              isRead: message.isRead,
                             }}
                             grayscale={false}
                             aspectRatioOverride={hasGroupedImages ? "1 / 1" : undefined}
-                            onVideoPlay={() => {
-                              if (mediaIndex >= 0) {
-                                markReadThroughIndex(mediaIndex);
-                                return;
-                              }
-                              if (targetIndex >= 0) {
-                                markReadThroughIndex(targetIndex);
-                              }
-                            }}
                           />
                         )}
                         {renderComments(message)}
@@ -444,14 +383,8 @@ export function ChatThread({ item, onMarkReadThrough }: ChatThreadProps) {
                         reactions: [],
                         sourceMessage: representative.sourceMessage,
                         isFocused: representative.isFocused,
-                        isRead: representative.isRead,
                       }}
                       grayscale={false}
-                      onVideoPlay={() => {
-                        if (targetIndex >= 0) {
-                          markReadThroughIndex(targetIndex);
-                        }
-                      }}
                     />
                   )}
                   {renderComments(representative)}

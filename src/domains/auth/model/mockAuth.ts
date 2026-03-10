@@ -6,6 +6,9 @@ export type MockAuthOptions = {
 
 export function createMockAuth(options: MockAuthOptions = {}): AuthClient {
   return {
+    async ensureTelegramConnected() {
+      throw new Error('Telegram client not available in mock auth')
+    },
     async sendCode(_phone: string) {
       return { ok: true }
     },

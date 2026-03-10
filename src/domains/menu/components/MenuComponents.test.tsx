@@ -24,6 +24,7 @@ type AppCtxValue = {
   };
   onManualRefresh: () => void;
   onSendMessage: () => Promise<void>;
+  ensureTelegramConnected: () => Promise<unknown>;
   avatarVisibility: { feed: boolean; thread: boolean; notifications: boolean };
   onSetAvatarVisibility: (value: { feed: boolean; thread: boolean; notifications: boolean }) => void;
   onToggleChannelNotification: (key: string, enabled: boolean) => void;
@@ -56,6 +57,7 @@ function contextValue(overrides: Partial<AppCtxValue> = {}) {
   },
     onManualRefresh: vi.fn(),
     onSendMessage: vi.fn().mockResolvedValue(undefined),
+    ensureTelegramConnected: vi.fn().mockResolvedValue({}),
     avatarVisibility: { feed: true, thread: true, notifications: true },
     onSetAvatarVisibility: vi.fn(),
     onToggleChannelNotification: vi.fn(),

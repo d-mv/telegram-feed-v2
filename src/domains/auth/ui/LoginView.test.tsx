@@ -19,6 +19,7 @@ function createDeferred<T>() {
 
 function createAuthMock(overrides: Partial<AuthClient> = {}): AuthClient {
   return {
+    ensureTelegramConnected: vi.fn().mockResolvedValue({} as never),
     sendCode: vi.fn().mockResolvedValue({ ok: true }),
     submitCode: vi.fn().mockResolvedValue({ status: 'logged_in' }),
     submitPassword: vi.fn().mockResolvedValue({ status: 'logged_in' }),

@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { channelsAtom } from "../../../atoms/channels.atom";
 import { feedFilterSettingsAtom } from "../../../atoms/feedFilters.atom";
 import { feedItemsAtom } from "../../../atoms/feedItems.atom";
-import { markFeedItemReadThrough } from "../infra/telegramFeed";
+import { notificationFocusAtom } from "../../../atoms/notificationFocus.atom";
 import type { FeedItem } from "../../../types";
 import { getMockFeedBatch, getMockLiveItem } from "../model/mockFeed";
 import { Chat } from "./Chat";
@@ -15,21 +15,6 @@ import { ScrollTopButton } from "./ScrollTopButton";
 
 const PAGE_SIZE = 10;
 const TOTAL_ITEMS = 60;
-
-function toReadableKey(item: FeedItem): string {
-  const sourceId = (item.sourceMessage as { id?: unknown } | undefined)?.id;
-  if (typeof sourceId === "number" || typeof sourceId === "string") {
-    return String(sourceId);
-  }
-  return item.id;
-}
-
-function normalizeReadState(items: FeedItem[]): FeedItem[] {
-  return items.map((item) => ({
-    ...item,
-    isRead: item.isRead === true,
-  }));
-}
 
 function getItemChannelKey(item: FeedItem): string {
   if (item.channelKey) {
@@ -55,11 +40,13 @@ function getItemChannelKey(item: FeedItem): string {
 export function FeedView() {
   const providedItems = useAtomValue(feedItemsAtom);
   const feedFilterSettings = useAtomValue(feedFilterSettingsAtom);
+  const notificationFocus = useAtomValue(notificationFocusAtom);
+  const setNotificationFocus = useSetAtom(notificationFocusAtom);
   const setChannels = useSetAtom(channelsAtom);
   const allItems = useMemo(() => getMockFeedBatch(TOTAL_ITEMS), []);
   const initialStart = Math.max(0, allItems.length - PAGE_SIZE);
   const [items, setItems] = useState<FeedItem[]>(
-    () => normalizeReadState(providedItems ?? allItems.slice(initialStart)),
+    () => (providedItems ?? allItems.slice(initialStart)),
   );
   const [cursor, setCursor] = useState(providedItems ? 0 : initialStart);
   const [focusedItem, setFocusedItem] = useState<FeedItem | null>(null);
@@ -72,7 +59,7 @@ export function FeedView() {
   useEffect(() => {
     if (!providedItems) return;
 
-    setItems(normalizeReadState(providedItems));
+    setItems(providedItems);
   }, [providedItems]);
 
   function prependItems(nextItems: FeedItem[], adjustScroll: boolean) {
@@ -80,44 +67,7 @@ export function FeedView() {
 
     const prevHeight = document.documentElement.scrollHeight;
     pendingPrependRef.current = { height: prevHeight, adjust: adjustScroll };
-    setItems((current) => [...normalizeReadState(nextItems), ...current]);
-  }
-
-  function markReadByKeys(targetKeys: string[], scopeItem?: FeedItem) {
-    if (targetKeys.length === 0) {
-      return;
-    }
-    const scopeChannelKey = scopeItem ? getItemChannelKey(scopeItem) : null;
-    setItems((current) => {
-      let furthestIndex = -1;
-      for (const key of targetKeys) {
-        const index = current.findIndex(
-          (item) =>
-            (scopeChannelKey === null || getItemChannelKey(item) === scopeChannelKey) &&
-            (toReadableKey(item) === key || item.id === key),
-        );
-        if (index > furthestIndex) {
-          furthestIndex = index;
-        }
-      }
-      if (furthestIndex < 0) {
-        return current;
-      }
-      return current.map((item, index) => {
-        if (
-          index > furthestIndex ||
-          item.isRead === true ||
-          (scopeChannelKey !== null && getItemChannelKey(item) !== scopeChannelKey)
-        ) {
-          return item;
-        }
-        return { ...item, isRead: true };
-      });
-    });
-
-    if (scopeItem) {
-      void markFeedItemReadThrough(scopeItem).catch(() => {});
-    }
+    setItems((current) => [...nextItems, ...current]);
   }
 
   function prependMore() {
@@ -217,15 +167,50 @@ export function FeedView() {
     }
   }, [focusedItem, items]);
 
+  useEffect(() => {
+    if (!notificationFocus) {
+      return;
+    }
+    const targetItem =
+      (notificationFocus.itemId
+        ? items.find((item) => item.id === notificationFocus.itemId)
+        : undefined) ??
+      (notificationFocus.channelKey
+        ? items.find((item) => getItemChannelKey(item) === notificationFocus.channelKey)
+        : undefined);
+    if (!targetItem) {
+      return;
+    }
+
+    const targetChannelKey = getItemChannelKey(targetItem);
+    if (focusedItem && getItemChannelKey(focusedItem) === targetChannelKey) {
+      setFocusedItem(targetItem);
+      setNotificationFocus(null);
+      return;
+    }
+
+    if (focusedItem) {
+      setFocusedItem(null);
+    }
+
+    window.setTimeout(() => {
+      const selector = `[data-feed-item-id="${targetItem.id.replaceAll('"', '\\"')}"]`;
+      const node = document.querySelector(selector) as HTMLElement | null;
+      if (!node) {
+        return;
+      }
+      node.scrollIntoView({ block: "center" });
+      node.focus({ preventScroll: true });
+    }, 0);
+    setNotificationFocus(null);
+  }, [focusedItem, items, notificationFocus, setNotificationFocus]);
+
   const renderItem = (item: FeedItem, groupedItems?: FeedItem[]) => (
     <FeedCard
       key={item.id}
       item={item}
       groupedItems={groupedItems}
       onFocus={setFocusedItem}
-      onMarkRead={(targetItem) =>
-        markReadByKeys([toReadableKey(targetItem), targetItem.id], targetItem)
-      }
     />
   );
 
@@ -254,7 +239,6 @@ export function FeedView() {
         <Chat
           item={focusedItem}
           onClose={() => setFocusedItem(null)}
-          onMarkReadThrough={(readMessageIds) => markReadByKeys(readMessageIds, focusedItem)}
         />
       )}
       {showScrollTop && (
