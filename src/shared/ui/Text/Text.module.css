@@ -1,7 +1,7 @@
 .container {
   margin: 0;
   color: var(--ink);
-  font-size: 1.6rem;
+  font-size: clamp(4cqi, 1.6rem, 2.4rem);
   white-space: break-spaces;
   text-overflow: ellipsis;
   max-width: 100%;
