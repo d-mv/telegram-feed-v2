@@ -101,6 +101,47 @@ test("background refresh updates feed without toggling global loading state", as
   expect(store.get(isLoadingFeedAtom)).toBe(false);
 });
 
+test("emits refresh telemetry after a successful refresh", async () => {
+  const dal = createDalStub();
+  fetchRecentFeedMock.mockResolvedValue([
+    {
+      id: "dm-1",
+      type: "dm",
+      chatName: "Alice",
+      timestamp: "now",
+      text: "Hello",
+      isFocused: false,
+    },
+  ]);
+  const { Wrapper } = createWrapper({ isAuthenticated: true });
+  const telemetryEvents: Array<Record<string, unknown>> = [];
+  const handleTelemetry = (event: Event) => {
+    telemetryEvents.push((event as CustomEvent<Record<string, unknown>>).detail);
+  };
+
+  window.addEventListener("telegram-feed:telemetry", handleTelemetry);
+
+  renderHook(() => useRefresh({ dal }), {
+    wrapper: Wrapper,
+  });
+
+  await waitFor(() => {
+    expect(
+      telemetryEvents.some((event) => event.name === "feed_refresh_completed"),
+    ).toBe(true);
+  });
+
+  window.removeEventListener("telegram-feed:telemetry", handleTelemetry);
+
+  expect(telemetryEvents).toContainEqual(
+    expect.objectContaining({
+      name: "feed_refresh_completed",
+      background: false,
+      itemCount: 1,
+    }),
+  );
+});
+
 test("refreshes feed when app returns to foreground", async () => {
   const dal = createDalStub();
   fetchRecentFeedMock.mockResolvedValue([]);

@@ -6,6 +6,7 @@ import { feedItemsAtom } from "../../atoms/feedItems.atom";
 import type { FeedItem } from "../../types";
 import type { Dal } from "../dal/types";
 import { fetchRecentFeed } from "../feed/infra/telegramFeed";
+import { emitTelemetry } from "../../shared/infra/telemetry";
 
 export function useRefresh({ dal }: { dal: Dal }) {
   const setIsLoadingFeed = useSetAtom(isLoadingFeedAtom);
@@ -22,6 +23,7 @@ export function useRefresh({ dal }: { dal: Dal }) {
 
     const isBackground = options?.background === true;
     const refreshPromise = (async () => {
+      const startedAt = Date.now();
       if (!isBackground) {
         setIsLoadingFeed(true);
       }
@@ -48,6 +50,11 @@ export function useRefresh({ dal }: { dal: Dal }) {
         setFeedItems(items);
         const cacheItems = items.map(({ sourceMessage: _sourceMessage, ...rest }) => rest);
         await dal.setFeedCache(cacheItems);
+        emitTelemetry("feed_refresh_completed", {
+          background: isBackground,
+          durationMs: Date.now() - startedAt,
+          itemCount: items.length,
+        });
       } catch (err) {
         const error = err as Error;
         const message =
@@ -55,6 +62,11 @@ export function useRefresh({ dal }: { dal: Dal }) {
             ? String((error as { message?: string }).message)
             : "Failed to load feed";
         setFeedError(message);
+        emitTelemetry("feed_refresh_failed", {
+          background: isBackground,
+          durationMs: Date.now() - startedAt,
+          error: message,
+        });
       } finally {
         if (!isBackground) {
           setIsLoadingFeed(false);
