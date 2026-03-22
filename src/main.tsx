@@ -3,6 +3,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./domains/app/App.tsx";
 import "./index.css";
+import { attachServiceWorkerAutoUpdate } from "./serviceWorkerAutoUpdate";
 
 const rootElement = document.getElementById("root");
 
@@ -17,62 +18,6 @@ createRoot(rootElement).render(
     </Provider>
   </StrictMode>,
 );
-
-function attachServiceWorkerAutoUpdate(registration: ServiceWorkerRegistration) {
-  let hasRefreshed = false;
-
-  const requestSkipWaiting = () => {
-    if (registration.waiting) {
-      registration.waiting.postMessage({ type: "SKIP_WAITING" });
-    }
-  };
-
-  requestSkipWaiting();
-
-  const checkForUpdates = () => {
-    registration
-      .update()
-      .then(() => {
-        requestSkipWaiting();
-      })
-      .catch(() => {});
-  };
-
-  registration.addEventListener("updatefound", () => {
-    const nextWorker = registration.installing;
-    if (!nextWorker) {
-      return;
-    }
-    nextWorker.addEventListener("statechange", () => {
-      if (nextWorker.state === "installed" && navigator.serviceWorker.controller) {
-        nextWorker.postMessage({ type: "SKIP_WAITING" });
-      }
-    });
-  });
-
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (hasRefreshed) return;
-    hasRefreshed = true;
-    window.location.reload();
-  });
-
-  const UPDATE_INTERVAL_MS = 5 * 60 * 1000;
-  window.setInterval(() => {
-    checkForUpdates();
-  }, UPDATE_INTERVAL_MS);
-
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-      checkForUpdates();
-    }
-  });
-
-  window.addEventListener("pageshow", () => {
-    checkForUpdates();
-  });
-
-  checkForUpdates();
-}
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
