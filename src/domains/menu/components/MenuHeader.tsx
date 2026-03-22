@@ -4,12 +4,15 @@ import styles from "./MenuHeader.module.css";
 
 type Props = {
   onClose: () => void;
+  titleId?: string;
 };
 
-export function MenuHeader({ onClose, children }: PropsWithChildren<Props>) {
+export function MenuHeader({ onClose, children, titleId }: PropsWithChildren<Props>) {
   return (
     <header className={styles.container}>
-      <h3 className={styles.title}>{children}</h3>
+      <h3 id={titleId} className={styles.title}>
+        {children}
+      </h3>
       <Button
         variant="image"
         type="button"

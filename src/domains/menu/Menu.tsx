@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react";
-import { lazy, useContext } from "react";
+import { lazy, Suspense, useContext } from "react";
 import { menuIsOpenAtom, menuItemAtom, toggleMenuAtom } from "../../atoms/menu.atom";
 import { AppContext } from "../app/AppContext";
 import styles from "./Menu.module.css";
@@ -8,11 +8,16 @@ const NotificationSettings = lazy(() => import("./components/NotificationsSettin
 const FiltersSettings = lazy(() => import("./components/FiltersSettings"));
 const AvatarsSettings = lazy(() => import("./components/AvatarsSettings"));
 const Maintenance = lazy(() => import("./components/Maintenance"));
+const SearchDialog = lazy(() => import("./components/SearchDialog"));
 
 const MENU_ITEMS = [
   {
     label: "Refresh",
     action: "refresh",
+  },
+  {
+    label: "Search",
+    module: SearchDialog,
   },
   {
     label: "Notifications",
@@ -95,7 +100,7 @@ export function Menu() {
         Menu
       </button>
       {renderMenu()}
-      {renderModule()}
+      <Suspense fallback={null}>{renderModule()}</Suspense>
     </>
   );
 }

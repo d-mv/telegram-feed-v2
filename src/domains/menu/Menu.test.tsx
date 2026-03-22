@@ -89,5 +89,38 @@ test("filters menu item opens filters settings without manual refresh", async ()
   await user.click(screen.getByRole("menuitem", { name: "Filters" }));
 
   expect(onManualRefresh).not.toHaveBeenCalled();
-  expect(screen.getByRole("dialog", { name: "Filters" })).toBeInTheDocument();
+  expect(await screen.findByRole("dialog", { name: "Filters" })).toBeInTheDocument();
+});
+
+test("search menu item opens search dialog shell", async () => {
+  const user = userEvent.setup();
+
+  render(
+    <Provider>
+      <AppContext.Provider
+        value={{
+          dal: createDalStub(),
+          onManualRefresh: vi.fn(),
+          onSendMessage: vi.fn().mockResolvedValue(undefined),
+          ensureTelegramConnected: vi.fn().mockResolvedValue({}),
+          avatarVisibility: { feed: true, thread: true, notifications: true },
+          onSetAvatarVisibility: vi.fn(),
+          onToggleChannelNotification: vi.fn(),
+          onToggleChannelFilter: vi.fn(),
+          onRequestNotificationPermission: vi.fn(),
+          onDisableNotifications: vi.fn(),
+          onEnableAllFeedFilters: vi.fn(),
+        }}
+      >
+        <Menu />
+      </AppContext.Provider>
+    </Provider>,
+  );
+
+  await user.click(screen.getByRole("button", { name: "Menu" }));
+  await user.click(screen.getByRole("menuitem", { name: "Search" }));
+
+  expect(await screen.findByRole("dialog", { name: "Search" })).toBeInTheDocument();
+  expect(await screen.findByLabelText("Search Telegram")).toBeInTheDocument();
+  expect(screen.getByText("Search results will appear here.")).toBeInTheDocument();
 });
