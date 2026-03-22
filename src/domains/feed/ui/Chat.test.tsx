@@ -209,10 +209,14 @@ test("renders close icon button and leave action in the overflow menu", async ()
   );
 
   expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(2);
+  expect(screen.getByRole("button", { name: "More actions" })).toHaveStyle({
+    borderStyle: "none",
+  });
 
   await user.click(screen.getByRole("button", { name: "More actions" }));
 
   expect(screen.getByRole("menuitem", { name: "Leave" })).toBeInTheDocument();
+  expect(screen.getByRole("menu")).toHaveStyle({ zIndex: "4" });
 
   await user.click(screen.getAllByRole("button", { name: "Close" })[1]!);
 

@@ -115,6 +115,7 @@ export function Chat({ item, onClose }: ChatProps) {
                 type="button"
                 className={styles.iconButton}
                 aria-label="More actions"
+                style={{ border: "none", background: "transparent" }}
                 onClick={() => setIsMenuOpen((current) => !current)}
               >
                 <span className={styles.dot} />
@@ -122,7 +123,7 @@ export function Chat({ item, onClose }: ChatProps) {
                 <span className={styles.dot} />
               </button>
               {isMenuOpen && (
-                <div className={styles.menu} role="menu">
+                <div className={styles.menu} role="menu" style={{ zIndex: 4 }}>
                   <button
                     type="button"
                     role="menuitem"
