@@ -1,4 +1,7 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
+import { APP_OPEN_TARGET_EVENT } from "../../app/openTarget";
 import { FeedCard } from "./FeedCard";
 
 test("shows comments icon only when message has comments", () => {
@@ -230,4 +233,43 @@ test("renders a single message with multiple images as a gallery", () => {
   expect(screen.getByText("Album caption")).toBeInTheDocument();
   expect(container.querySelector('[data-media-group-layout="image-grid"]')).toBeTruthy();
   expect(container.querySelectorAll('[data-media-group-tile="true"]')).toHaveLength(3);
+});
+
+test("renders forwarded source metadata and opens resolvable forwarded targets internally", async () => {
+  const user = userEvent.setup();
+  const handler = vi.fn();
+  window.addEventListener(APP_OPEN_TARGET_EVENT, handler as EventListener);
+
+  render(
+    <FeedCard
+      item={{
+        id: "group-forwarded-1",
+        type: "group",
+        chatName: "Team",
+        senderName: "Alice",
+        timestamp: "now",
+        text: "Forwarded text",
+        sourceMessage: {
+          fwdFrom: {
+            channelPost: 33,
+            postAuthor: "Anonymous Admin",
+          },
+          forward: {
+            chat: {
+              title: "News",
+              username: "news",
+            },
+          },
+        },
+        isFocused: false,
+      }}
+      onFocus={() => {}}
+    />,
+  );
+
+  expect(screen.getByText("Forwarded from From anonymous via News")).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Forwarded from From anonymous via News" }));
+
+  expect(handler).toHaveBeenCalledTimes(1);
+  window.removeEventListener(APP_OPEN_TARGET_EVENT, handler as EventListener);
 });

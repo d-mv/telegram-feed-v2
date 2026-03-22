@@ -4,6 +4,8 @@ import { Header } from "../../../shared/ui/Header/Header";
 import { Media } from "../../../shared/ui/Media/Media";
 import { Text } from "../../../shared/ui/Text/Text";
 import type { FeedItem } from "../../../types";
+import { ForwardedBadge } from "./ForwardedBadge";
+import { getForwardedMessageMeta } from "./getForwardedMessageMeta";
 import styles from "./FeedCard.module.css";
 
 type FeedCardProps = {
@@ -51,6 +53,7 @@ function getGalleryItems(item: FeedItem, groupedItems?: FeedItem[]): FeedItem[] 
 }
 
 export function FeedCard({ item, onFocus, groupedItems }: FeedCardProps) {
+  const forwardedMeta = getForwardedMessageMeta(item.sourceMessage);
   const galleryItems = getGalleryItems(item, groupedItems);
   const hasGroupedMedia = galleryItems.length > 1;
   const hasGroupedImages =
@@ -62,7 +65,7 @@ export function FeedCard({ item, onFocus, groupedItems }: FeedCardProps) {
 
   return (
     <article
-      className={styles.feedCard}
+      className={`${styles.feedCard} ${forwardedMeta ? styles.feedCardForwarded : ""}`}
       role="button"
       tabIndex={0}
       data-feed-item-id={item.id}
@@ -78,6 +81,7 @@ export function FeedCard({ item, onFocus, groupedItems }: FeedCardProps) {
         <Header noPreview message={item}>
           {item.type === "dm" ? item.senderName : item.chatName}
         </Header>
+        <ForwardedBadge sourceMessage={item.sourceMessage} />
         <Text className={styles.text}>{item.text}</Text>
         {hasGroupedMedia ? (
           <div

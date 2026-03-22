@@ -16,6 +16,8 @@ import {
   toRelativeTime,
 } from "../infra/telegramFeed";
 import { groupConsecutiveMediaOnlyItems } from "./groupConsecutiveMediaOnlyItems";
+import { ForwardedBadge } from "./ForwardedBadge";
+import { getForwardedMessageMeta } from "./getForwardedMessageMeta";
 import styles from "./ChatThread.module.css";
 
 type ChatThreadProps = {
@@ -93,7 +95,7 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
   const [commentsLoading, setCommentsLoading] = useState<Record<string, boolean>>({});
   const focusedRef = useRef<HTMLDivElement | null>(null);
   const threadRef = useRef<HTMLDivElement | null>(null);
-  const sourceMessage = item.sourceMessage as Api.Message | undefined;
+  const sourceMessage = item.sourceMessage instanceof Api.Message ? item.sourceMessage : undefined;
   const focusId = sourceMessage?.id;
 
   const fallbackMessage = useMemo<FeedItem[]>(() => {
@@ -101,13 +103,13 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
       id: item.id,
       type: item.type,
       chatName: item.chatName,
-
       senderName: item.type === "dm" ? item.senderName : item.chatName,
       text: item.text,
       timestamp: item.timestamp,
       commentsCount: item.commentsCount,
       media: item.media,
       mediaItems: item.mediaItems,
+      sourceMessage: item.sourceMessage,
       isFocused: true,
     };
 
@@ -315,16 +317,18 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
             isGrouped && galleryItems.every((message) => message.media?.meta.type === "image");
           const imageGridColumns = hasGroupedImages ? getImageGridColumns(galleryItems.length) : undefined;
           const isFocusedGroup = group.some((message) => message.isFocused);
+          const forwardedMeta = getForwardedMessageMeta(representative.sourceMessage);
 
           return (
             <div
               key={representative.id}
-              className={`${styles.message} ${isFocusedGroup ? styles.messageFocused : ""}`}
+              className={`${styles.message} ${isFocusedGroup ? styles.messageFocused : ""} ${forwardedMeta ? styles.forwardedMessage : ""}`}
               ref={isFocusedGroup ? focusedRef : null}
             >
               <Header isThread message={representative} className={styles.header}>
                 {representative.senderName}
               </Header>
+              <ForwardedBadge sourceMessage={representative.sourceMessage} />
               {(!isGroupedRun || representative.text !== "") && (
                 <Text className={styles.text}>{representative.text}</Text>
               )}

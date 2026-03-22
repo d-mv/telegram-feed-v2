@@ -6,6 +6,7 @@ import { feedItemsAtom } from "../../atoms/feedItems.atom";
 import { notificationFocusAtom, type NotificationFocusTarget } from "../../atoms/notificationFocus.atom";
 import { pushToastAtom } from "../../atoms/toasts.atom";
 import type { FeedItem } from "../../types";
+import { APP_OPEN_TARGET_EVENT } from "./openTarget";
 import type { EnsureTelegramConnected } from "../auth/model/authTypes";
 import {
   getEntityLabel,
@@ -182,7 +183,7 @@ async function resolveTelegramRouteToFeedItem(
 }
 
 function parseInboundLocation(
-  location: Location,
+  location: Pick<Location, "pathname" | "search">,
 ): NotificationFocusTarget | TelegramRoute | "unsupported" | null {
   const params = new URLSearchParams(location.search);
   const focusItemId = params.get("focusItemId") ?? undefined;
@@ -291,6 +292,71 @@ export function useNotificationFocus() {
     setNotificationFocus(target as NotificationFocusTarget);
     return () => {
       isActive = false;
+    };
+  }, [authClient, isAuthenticated, pushToast, setFeedItems, setNotificationFocus]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    function handleOpenTarget(event: Event) {
+      const detail = (event as CustomEvent<string>).detail;
+      if (typeof detail !== "string" || detail === "") {
+        return;
+      }
+
+      let target: NotificationFocusTarget | TelegramRoute | "unsupported" | null;
+      try {
+        const parsed = detail.startsWith("/")
+          ? new URL(detail, window.location.origin)
+          : new URL(detail);
+        target = parseInboundLocation(parsed);
+      } catch {
+        pushToast("Unsupported link.");
+        return;
+      }
+
+      if (!target || target === "unsupported") {
+        pushToast("Unsupported link.");
+        return;
+      }
+      if (!isAuthenticated) {
+        pushToast("Open links after logging in.");
+        return;
+      }
+      if ("kind" in target && target.kind === "telegram") {
+        if (!authClient) {
+          pushToast("Unsupported link.");
+          return;
+        }
+        void resolveTelegramRouteToFeedItem(target, authClient.ensureTelegramConnected)
+          .then((item) => {
+            if (!isActive) {
+              return;
+            }
+            setFeedItems((currentItems) =>
+              currentItems.some((entry) => entry.id === item.id) ? currentItems : [item, ...currentItems],
+            );
+            setNotificationFocus({
+              channelKey: item.channelKey,
+              itemId: item.id,
+              view: "thread",
+            });
+          })
+          .catch(() => {
+            if (isActive) {
+              pushToast("Unsupported link.");
+            }
+          });
+        return;
+      }
+
+      setNotificationFocus(target as NotificationFocusTarget);
+    }
+
+    window.addEventListener(APP_OPEN_TARGET_EVENT, handleOpenTarget as EventListener);
+    return () => {
+      isActive = false;
+      window.removeEventListener(APP_OPEN_TARGET_EVENT, handleOpenTarget as EventListener);
     };
   }, [authClient, isAuthenticated, pushToast, setFeedItems, setNotificationFocus]);
 

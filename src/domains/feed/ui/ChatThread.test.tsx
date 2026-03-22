@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { vi } from "vitest";
+import { APP_OPEN_TARGET_EVENT } from "../../app/openTarget";
 import { AppContext } from "../../app/AppContext";
 import { ChatThread } from "./ChatThread";
 
@@ -379,4 +380,43 @@ test("groups a media-only multi-image thread message with adjacent media-only me
     expect(document.querySelectorAll('[data-media-group-tile="true"]')).toHaveLength(3);
   });
   expect(screen.getAllByText("Alice")).toHaveLength(1);
+});
+
+test("renders forwarded metadata inside the thread and routes clicks internally", async () => {
+  const user = userEvent.setup();
+  const handler = vi.fn();
+  window.addEventListener(APP_OPEN_TARGET_EVENT, handler as EventListener);
+
+  renderThread(
+    <ChatThread
+      item={{
+        id: "group-forwarded-1",
+        type: "group",
+        chatName: "Team",
+        senderName: "Alice",
+        timestamp: "now",
+        text: "Forwarded text",
+        sourceMessage: {
+          fwdFrom: {
+            channelPost: 42,
+            postAuthor: "Anonymous Admin",
+          },
+          forward: {
+            chat: {
+              title: "News",
+              username: "news",
+            },
+          },
+        },
+        isFocused: true,
+      }}
+    />,
+  );
+
+  const badge = screen.getByRole("button", { name: "Forwarded from From anonymous via News" });
+  expect(badge).toBeInTheDocument();
+  await user.click(badge);
+
+  expect(handler).toHaveBeenCalledTimes(1);
+  window.removeEventListener(APP_OPEN_TARGET_EVENT, handler as EventListener);
 });
