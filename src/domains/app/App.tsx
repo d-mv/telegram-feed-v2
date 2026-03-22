@@ -4,6 +4,7 @@ import { isAppLoadingAtom } from "../../atoms/app.atom";
 import { authClientAtom, isAuthenticatedAtom, isAuthLoadingAtom } from "../../atoms/auth.atom";
 import { LoginView } from "../auth/ui/LoginView";
 import { createIndexedDbDal } from "../dal/indexedDbDal";
+import { ToastViewport } from "../../shared/ui/Toast/ToastViewport";
 import { Message } from "./components/Message";
 import { useAuthentication } from "./useAuthentication";
 import { useNotificationFocus } from "./useNotificationFocus";
@@ -29,11 +30,19 @@ export default function App() {
 
   if (isAuthenticated) {
     return (
-      <Suspense fallback={<Message>Loading feed...</Message>}>
-        <AuthenticatedApp dal={dal} />
-      </Suspense>
+      <>
+        <Suspense fallback={<Message>Loading feed...</Message>}>
+          <AuthenticatedApp dal={dal} />
+        </Suspense>
+        <ToastViewport />
+      </>
     );
   }
 
-  return <LoginView auth={authClient} onAuthenticated={() => setIsAuthenticated(true)} />;
+  return (
+    <>
+      <LoginView auth={authClient} onAuthenticated={() => setIsAuthenticated(true)} />
+      <ToastViewport />
+    </>
+  );
 }
