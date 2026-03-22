@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Button } from "../../../shared/ui/Button/Button";
 import type { FeedItem } from "../../../types";
 import { AppContext } from "../../app/AppContext";
+import { leaveFeedChannel } from "../../search/infra/telegramMembership";
 import styles from "./Chat.module.css";
 import { ChatThread } from "./ChatThread";
 
@@ -12,9 +13,11 @@ type ChatProps = {
 
 export function Chat({ item, onClose }: ChatProps) {
   const title = item.type === "dm" ? item.chatName : item.chatName;
-  const { onSendMessage } = useContext(AppContext);
+  const { ensureTelegramConnected, onClearChannelState, onManualRefresh, onSendMessage } = useContext(AppContext);
   const [draft, setDraft] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [error, setError] = useState("");
   const [sentMessages, setSentMessages] = useState<FeedItem[]>([]);
 
@@ -78,6 +81,26 @@ export function Chat({ item, onClose }: ChatProps) {
     }
   }
 
+  async function handleLeave() {
+    if (isLeaving || !window.confirm(`Leave ${title}?`)) {
+      return;
+    }
+
+    setIsLeaving(true);
+    setIsMenuOpen(false);
+    setError("");
+    try {
+      await leaveFeedChannel(item, ensureTelegramConnected);
+      onClearChannelState?.(item.channelKey ?? "");
+      await Promise.resolve(onManualRefresh());
+      onClose();
+    } catch {
+      setError("Could not leave chat.");
+    } finally {
+      setIsLeaving(false);
+    }
+  }
+
   return (
     <div className={styles.overlay} role="dialog" aria-modal="true">
       <button className={styles.backdrop} type="button" onClick={onClose}>
@@ -86,9 +109,42 @@ export function Chat({ item, onClose }: ChatProps) {
       <section className={styles.panel}>
         <header className={styles.header}>
           <h2 className={styles.title}>{title}</h2>
-          <Button variant="ghost" type="button" onClick={onClose}>
-            Close
-          </Button>
+          <div className={styles.headerActions}>
+            <div className={styles.menuWrap}>
+              <button
+                type="button"
+                className={styles.iconButton}
+                aria-label="More actions"
+                onClick={() => setIsMenuOpen((current) => !current)}
+              >
+                <span className={styles.dot} />
+                <span className={styles.dot} />
+                <span className={styles.dot} />
+              </button>
+              {isMenuOpen && (
+                <div className={styles.menu} role="menu">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={styles.menuItem}
+                    onClick={() => {
+                      void handleLeave();
+                    }}
+                    disabled={isLeaving}
+                  >
+                    {isLeaving ? "Leaving..." : "Leave"}
+                  </button>
+                </div>
+              )}
+            </div>
+            <Button
+              variant="image"
+              type="button"
+              onClick={onClose}
+              imgSrc="/icons/close_dark.svg"
+              imgAlt="Close"
+            />
+          </div>
         </header>
         <div className={styles.body}>
           <ChatThread item={item} sentMessages={sentMessages} />

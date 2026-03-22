@@ -4,6 +4,12 @@ import { vi } from "vitest";
 import { AppContext } from "../../app/AppContext";
 import { Chat } from "./Chat";
 
+const leaveFeedChannelMock = vi.hoisted(() => vi.fn());
+
+vi.mock("../../search/infra/telegramMembership", () => ({
+  leaveFeedChannel: leaveFeedChannelMock,
+}));
+
 vi.mock("./ChatThread", () => ({
   ChatThread: ({
     sentMessages = [],
@@ -58,11 +64,12 @@ test("sends typed message and clears composer", async () => {
         ensureTelegramConnected: vi.fn().mockResolvedValue({}),
         avatarVisibility: { feed: true, thread: true, notifications: true },
         onSetAvatarVisibility: vi.fn(),
-        onToggleChannelNotification: vi.fn(),
-        onToggleChannelFilter: vi.fn(),
-        onRequestNotificationPermission: vi.fn(),
-        onDisableNotifications: vi.fn(),
-        onEnableAllFeedFilters: vi.fn(),
+          onToggleChannelNotification: vi.fn(),
+          onToggleChannelFilter: vi.fn(),
+          onClearChannelState: vi.fn(),
+          onRequestNotificationPermission: vi.fn(),
+          onDisableNotifications: vi.fn(),
+          onEnableAllFeedFilters: vi.fn(),
       }}
     >
       <Chat
@@ -113,11 +120,12 @@ test("shows sent message immediately in the open thread", async () => {
         ensureTelegramConnected: vi.fn().mockResolvedValue({}),
         avatarVisibility: { feed: true, thread: true, notifications: true },
         onSetAvatarVisibility: vi.fn(),
-        onToggleChannelNotification: vi.fn(),
-        onToggleChannelFilter: vi.fn(),
-        onRequestNotificationPermission: vi.fn(),
-        onDisableNotifications: vi.fn(),
-        onEnableAllFeedFilters: vi.fn(),
+          onToggleChannelNotification: vi.fn(),
+          onToggleChannelFilter: vi.fn(),
+          onClearChannelState: vi.fn(),
+          onRequestNotificationPermission: vi.fn(),
+          onDisableNotifications: vi.fn(),
+          onEnableAllFeedFilters: vi.fn(),
       }}
     >
       <Chat
@@ -160,4 +168,112 @@ test("shows sent message immediately in the open thread", async () => {
     expect(screen.getByText("1 min ago")).toBeInTheDocument();
   });
   expect(screen.queryByText("Just now")).not.toBeInTheDocument();
+});
+
+test("renders close icon button and leave action in the overflow menu", async () => {
+  const user = userEvent.setup();
+  const onClose = vi.fn();
+
+  render(
+    <AppContext.Provider
+      value={{
+        dal: createDalStub(),
+        onManualRefresh: vi.fn(),
+        onSendMessage: vi.fn().mockResolvedValue(undefined),
+        ensureTelegramConnected: vi.fn().mockResolvedValue({}),
+        avatarVisibility: { feed: true, thread: true, notifications: true },
+        onSetAvatarVisibility: vi.fn(),
+        onToggleChannelNotification: vi.fn(),
+        onToggleChannelFilter: vi.fn(),
+        onClearChannelState: vi.fn(),
+        onRequestNotificationPermission: vi.fn(),
+        onDisableNotifications: vi.fn(),
+        onEnableAllFeedFilters: vi.fn(),
+      }}
+    >
+      <Chat
+        item={{
+          id: "group-1-1",
+          type: "group",
+          channelKey: "group:1",
+          chatName: "Group",
+          senderName: "Group",
+          timestamp: "now",
+          text: "Hello",
+          commentsCount: 0,
+          isFocused: false,
+        }}
+        onClose={onClose}
+      />
+    </AppContext.Provider>,
+  );
+
+  expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(2);
+
+  await user.click(screen.getByRole("button", { name: "More actions" }));
+
+  expect(screen.getByRole("menuitem", { name: "Leave" })).toBeInTheDocument();
+
+  await user.click(screen.getAllByRole("button", { name: "Close" })[1]!);
+
+  expect(onClose).toHaveBeenCalledTimes(1);
+});
+
+test("leaves the current chat, clears channel state, refreshes, and closes", async () => {
+  const user = userEvent.setup();
+  const onClose = vi.fn();
+  const onManualRefresh = vi.fn().mockResolvedValue(undefined);
+  const onClearChannelState = vi.fn();
+  const ensureTelegramConnected = vi.fn().mockResolvedValue({});
+
+  vi.stubGlobal("confirm", vi.fn(() => true));
+  leaveFeedChannelMock.mockResolvedValue(undefined);
+
+  render(
+    <AppContext.Provider
+      value={{
+        dal: createDalStub(),
+        onManualRefresh,
+        onSendMessage: vi.fn().mockResolvedValue(undefined),
+        ensureTelegramConnected,
+        avatarVisibility: { feed: true, thread: true, notifications: true },
+        onSetAvatarVisibility: vi.fn(),
+        onToggleChannelNotification: vi.fn(),
+        onToggleChannelFilter: vi.fn(),
+        onClearChannelState,
+        onRequestNotificationPermission: vi.fn(),
+        onDisableNotifications: vi.fn(),
+        onEnableAllFeedFilters: vi.fn(),
+      }}
+    >
+      <Chat
+        item={{
+          id: "group-4-1",
+          type: "group",
+          channelKey: "group:4",
+          chatName: "Group",
+          senderName: "Group",
+          timestamp: "now",
+          text: "Hello",
+          commentsCount: 0,
+          isFocused: false,
+          sourceMessage: { inputChat: { className: "InputPeerChannel", channelId: 4 } },
+        }}
+        onClose={onClose}
+      />
+    </AppContext.Provider>,
+  );
+
+  await user.click(screen.getByRole("button", { name: "More actions" }));
+  await user.click(screen.getByRole("menuitem", { name: "Leave" }));
+
+  await waitFor(() => {
+    expect(leaveFeedChannelMock).toHaveBeenCalledWith(
+      expect.objectContaining({ channelKey: "group:4" }),
+      ensureTelegramConnected,
+    );
+  });
+  expect(onClearChannelState).toHaveBeenCalledWith("group:4");
+  expect(onManualRefresh).toHaveBeenCalledTimes(1);
+  expect(onClose).toHaveBeenCalledTimes(1);
 });

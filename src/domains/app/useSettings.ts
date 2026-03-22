@@ -115,6 +115,22 @@ export function useSettings({ dal }: { dal: Dal }) {
     closeVisibleNotifications();
   }
 
+  function handleClearChannelState(channelKey: string) {
+    const nextNotificationSettings = { ...notificationSettings };
+    delete nextNotificationSettings[channelKey];
+    setNotificationSettings(nextNotificationSettings);
+    dal.setNotificationSettings(nextNotificationSettings).catch(() => {});
+
+    const nextFeedFilterSettings = { ...feedFilterSettings };
+    delete nextFeedFilterSettings[channelKey];
+    setFeedFilterSettings(nextFeedFilterSettings);
+    dal.setFeedFilterSettings(nextFeedFilterSettings).catch(() => {});
+
+    if (!hasEnabledChannels(nextNotificationSettings)) {
+      closeVisibleNotifications();
+    }
+  }
+
   async function handleRequestNotificationPermission() {
     if (typeof Notification === "undefined") {
       setNotificationPermission("unsupported");
@@ -129,6 +145,7 @@ export function useSettings({ dal }: { dal: Dal }) {
     handleEnableAllFeedFilters,
     handleRequestNotificationPermission,
     handleSetAvatarVisibility,
+    handleClearChannelState,
     handleToggleChannelFilter,
     handleToggleChannelNotification,
   };

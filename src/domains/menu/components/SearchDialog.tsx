@@ -6,8 +6,13 @@ import { feedItemsAtom } from "../../../atoms/feedItems.atom";
 import { pushToastAtom } from "../../../atoms/toasts.atom";
 import { resolveTelegramFeedItem } from "../../app/resolveTelegramFeedItem";
 import { AppContext } from "../../app/AppContext";
+import {
+  joinInviteLink,
+  joinSearchResult,
+  previewInviteLink,
+} from "../../search/infra/telegramMembership";
 import { searchTelegram } from "../../search/infra/telegramSearch";
-import type { SearchResult } from "../../search/model/searchTypes";
+import type { SearchChatTarget, SearchResult } from "../../search/model/searchTypes";
 import { MenuDialog } from "./MenuDialog";
 
 function getResultKindLabel(result: SearchResult) {
@@ -38,9 +43,10 @@ export default function SearchDialog() {
   const setFeedItems = useSetAtom(feedItemsAtom);
   const setNotificationFocus = useSetAtom(notificationFocusAtom);
   const pushToast = useSetAtom(pushToastAtom);
-  const { ensureTelegramConnected } = useContext(AppContext);
+  const { ensureTelegramConnected, onManualRefresh } = useContext(AppContext);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [invitePreview, setInvitePreview] = useState<Awaited<ReturnType<typeof previewInviteLink>>>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -56,16 +62,29 @@ export default function SearchDialog() {
     let isActive = true;
     setIsLoading(true);
     setError("");
+    setInvitePreview(null);
 
-    searchTelegram(trimmed, ensureTelegramConnected)
-      .then((nextResults) => {
-        if (isActive) {
-          setResults(nextResults);
+    previewInviteLink(trimmed, ensureTelegramConnected)
+      .then((preview) => {
+        if (!isActive) {
+          return;
         }
+        if (preview) {
+          setResults([]);
+          setInvitePreview(preview);
+          return;
+        }
+        return searchTelegram(trimmed, ensureTelegramConnected)
+          .then((nextResults) => {
+            if (isActive) {
+              setResults(nextResults);
+            }
+          });
       })
       .catch(() => {
         if (isActive) {
           setResults([]);
+          setInvitePreview(null);
           setError("Search failed.");
         }
       })
@@ -82,11 +101,48 @@ export default function SearchDialog() {
 
   async function handleSelect(result: SearchResult) {
     try {
+      let entity = result.entity;
+      if (!result.isJoined && result.kind !== "direct") {
+        if (!window.confirm(`Join ${result.title}?`)) {
+          return;
+        }
+        entity = await joinSearchResult(result as SearchChatTarget, ensureTelegramConnected);
+        await Promise.resolve(onManualRefresh());
+      }
       const item = await resolveTelegramFeedItem(
-        result.entity,
+        entity,
         ensureTelegramConnected,
         result.kind === "message" ? result.messageId : undefined,
       );
+      setFeedItems((currentItems) =>
+        currentItems.some((entry) => entry.id === item.id) ? currentItems : [item, ...currentItems],
+      );
+      setNotificationFocus({
+        channelKey: item.channelKey,
+        itemId: item.id,
+        view: "thread",
+      });
+      closeMenu();
+    } catch {
+      pushToast("Unsupported link.");
+    }
+  }
+
+  async function handleInviteAction() {
+    if (!invitePreview) {
+      return;
+    }
+
+    try {
+      let entity = invitePreview.entity;
+      if (!invitePreview.isJoined) {
+        if (!window.confirm(`Join ${invitePreview.title}?`)) {
+          return;
+        }
+        entity = await joinInviteLink(query.trim(), ensureTelegramConnected);
+        await Promise.resolve(onManualRefresh());
+      }
+      const item = await resolveTelegramFeedItem(entity, ensureTelegramConnected);
       setFeedItems((currentItems) =>
         currentItems.some((entry) => entry.id === item.id) ? currentItems : [item, ...currentItems],
       );
@@ -115,17 +171,27 @@ export default function SearchDialog() {
       />
       {isLoading && <p aria-live="polite">Searching…</p>}
       {error && <p>{error}</p>}
-      {!isLoading && !error && query.trim() !== "" && results.length === 0 && (
+      {!isLoading && !error && !invitePreview && query.trim() !== "" && results.length === 0 && (
         <p>No results.</p>
       )}
       {query.trim() === "" && <p>Search results will appear here.</p>}
+      {invitePreview && (
+        <div>
+          <strong>{invitePreview.title}</strong>
+          <p>{invitePreview.kind === "channel" ? "Channel" : "Group"}</p>
+          <p>{invitePreview.participantsCount} members</p>
+          <button type="button" onClick={() => void handleInviteAction()}>
+            {invitePreview.isJoined ? "Open" : "Join"}
+          </button>
+        </div>
+      )}
       {results.length > 0 && (
         <div role="list" aria-label="Search results">
           {results.map((result) => (
             <div key={`${result.kind}:${result.id}`} role="listitem">
               <button
                 type="button"
-                aria-label={`Open ${result.title}`}
+                aria-label={`${result.isJoined || result.kind === "direct" ? "Open" : "Join"} ${result.title}`}
                 onClick={() => {
                   void handleSelect(result);
                 }}
@@ -133,6 +199,7 @@ export default function SearchDialog() {
                 <strong>{result.title}</strong>
                 <span>{getResultKindLabel(result)}</span>
                 <span>{getResultDescription(result)}</span>
+                <span>{result.isJoined || result.kind === "direct" ? "Open" : "Join"}</span>
               </button>
             </div>
           ))}
