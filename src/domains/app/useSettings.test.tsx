@@ -5,6 +5,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { avatarVisibilityAtom } from "../../atoms/avatarVisibility.atom";
 import { feedFilterSettingsAtom } from "../../atoms/feedFilters.atom";
 import { notificationPermissionAtom, notificationSettingsAtom } from "../../atoms/notifications.atom";
+
+const runtimeLoggerMock = vi.hoisted(() => ({
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+}));
+
+vi.mock("../../shared/infra/runtimeLogger", () => ({
+  runtimeLogger: runtimeLoggerMock,
+}));
+
 import { useSettings } from "./useSettings";
 
 function createDalStub() {
@@ -19,10 +30,6 @@ function createDalStub() {
     setAvatarVisibilitySettings: vi.fn().mockResolvedValue(undefined),
     getFeedCache: vi.fn(),
     setFeedCache: vi.fn(),
-    getSaved: vi.fn(),
-    setSaved: vi.fn(),
-    getDrafts: vi.fn(),
-    setDrafts: vi.fn(),
     getMedia: vi.fn(),
     setMedia: vi.fn(),
     clearCache: vi.fn(),
@@ -52,9 +59,8 @@ afterEach(() => {
 });
 
 describe("useSettings", () => {
-  it("does not log recoverable storage read failures", async () => {
+  it("logs structured warnings for recoverable storage read failures", async () => {
     const dal = createDalStub();
-    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     const { Wrapper } = createWrapper();
 
     renderHook(() => useSettings({ dal }), {
@@ -67,6 +73,17 @@ describe("useSettings", () => {
       expect(dal.getAvatarVisibilitySettings).toHaveBeenCalled();
     });
 
-    expect(logSpy).not.toHaveBeenCalled();
+    expect(runtimeLoggerMock.warn).toHaveBeenCalledWith("settings_load_failed", {
+      scope: "notifications",
+      error: "no settings",
+    });
+    expect(runtimeLoggerMock.warn).toHaveBeenCalledWith("settings_load_failed", {
+      scope: "feed_filters",
+      error: "no filters",
+    });
+    expect(runtimeLoggerMock.warn).toHaveBeenCalledWith("settings_load_failed", {
+      scope: "avatar_visibility",
+      error: "no avatars",
+    });
   });
 });

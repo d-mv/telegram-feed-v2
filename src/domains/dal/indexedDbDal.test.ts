@@ -154,10 +154,17 @@ test('clearCache preserves session and removes other keys', async () => {
 
   await dal.setSession('session-token')
   await dal.setFeedCache([{ id: 'feed' }])
-  await dal.setDrafts([{ id: 'draft' }])
   await dal.clearCache()
 
   expect(await dal.getSession()).toBe('session-token')
   expect(await dal.getFeedCache()).toBeUndefined()
-  expect(await dal.getDrafts()).toBeUndefined()
+})
+
+test('does not expose unused saved or draft persistence helpers', () => {
+  const dal = createIndexedDbDal() as Record<string, unknown>
+
+  expect(dal).not.toHaveProperty('getSaved')
+  expect(dal).not.toHaveProperty('setSaved')
+  expect(dal).not.toHaveProperty('getDrafts')
+  expect(dal).not.toHaveProperty('setDrafts')
 })

@@ -84,10 +84,6 @@ export function createIndexedDbDal(): Dal {
       setValue('avatar-visibility-settings', settings),
     getFeedCache: () => getValue('feed'),
     setFeedCache: (feed) => setValue('feed', feed),
-    getSaved: () => getValue('saved'),
-    setSaved: (saved) => setValue('saved', saved),
-    getDrafts: () => getValue('drafts'),
-    setDrafts: (drafts) => setValue('drafts', drafts),
     getMedia: async (key) => {
       const value = await getValue(`media:${key}`)
       return value instanceof Blob ? value : undefined
