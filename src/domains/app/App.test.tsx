@@ -1,19 +1,16 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { vi } from "vitest";
+import { beforeEach, vi } from "vitest";
 import type { AuthClient } from "../auth/model/authTypes";
 import App from "./App";
 
-vi.mock("./domains/auth/infra/telegramAuth", () => ({
-  ensureTelegramConnected: vi.fn().mockResolvedValue({
-    checkAuthorization: vi.fn().mockResolvedValue(false),
-    getMe: vi.fn().mockResolvedValue({ id: 1 }),
-    addEventHandler: vi.fn(),
-    removeEventHandler: vi.fn(),
-  }),
+const createAuthFromEnvMock = vi.hoisted(() => vi.fn());
+
+vi.mock("../auth/infra/authFactory", () => ({
+  createAuthFromEnv: createAuthFromEnvMock,
 }));
 
-vi.mock("./domains/dal/indexedDbDal", () => ({
+vi.mock("../dal/indexedDbDal", () => ({
   createIndexedDbDal: () => ({
     getSession: vi.fn().mockResolvedValue(undefined),
     setSession: vi.fn().mockResolvedValue(undefined),
@@ -35,44 +32,46 @@ vi.mock("./domains/dal/indexedDbDal", () => ({
   }),
 }));
 
-vi.mock("./domains/feed/infra/telegramFeed", () => ({
-  fetchRecentFeed: vi.fn().mockResolvedValue([
-    {
-      id: "dm-1",
-      type: "dm",
-      chatName: "Test",
-      senderName: "Test",
-      timestamp: "Just now",
-      text: "Hello",
-      reactions: [],
-    },
-  ]),
-  getAvatarPhotoUrl: vi.fn().mockResolvedValue(undefined),
+vi.mock("./AuthenticatedApp", () => ({
+  default: () => <h1>Your feed is ready</h1>,
 }));
 
-test("renders login view", async () => {
+beforeEach(() => {
   const auth: AuthClient = {
-    ensureTelegramConnected: vi.fn().mockResolvedValue({} as never),
+    ensureTelegramConnected: vi.fn().mockResolvedValue({
+      checkAuthorization: vi.fn().mockResolvedValue(false),
+      getMe: vi.fn().mockResolvedValue({ id: 1 }),
+      addEventHandler: vi.fn(),
+      removeEventHandler: vi.fn(),
+    } as never),
     sendCode: vi.fn().mockResolvedValue({ ok: true }),
     submitCode: vi.fn().mockResolvedValue({ status: "logged_in" }),
     submitPassword: vi.fn().mockResolvedValue({ status: "logged_in" }),
+    requestQrLogin: vi.fn().mockResolvedValue({ status: "pending" }),
+    checkQrLogin: vi.fn().mockResolvedValue({ status: "pending" }),
   };
+  createAuthFromEnvMock.mockReturnValue(auth);
+});
 
-  render(<App auth={auth} />);
+test("renders login view", async () => {
+  render(<App />);
 
   expect(await screen.findByLabelText(/phone/i)).toBeInTheDocument();
 });
 
 test("switches to feed after login", async () => {
-  const user = userEvent.setup();
   const auth: AuthClient = {
     ensureTelegramConnected: vi.fn().mockResolvedValue({} as never),
     sendCode: vi.fn().mockResolvedValue({ ok: true }),
     submitCode: vi.fn().mockResolvedValue({ status: "logged_in" }),
     submitPassword: vi.fn().mockResolvedValue({ status: "logged_in" }),
+    requestQrLogin: vi.fn().mockResolvedValue({ status: "pending" }),
+    checkQrLogin: vi.fn().mockResolvedValue({ status: "pending" }),
   };
+  createAuthFromEnvMock.mockReturnValue(auth);
 
-  render(<App auth={auth} />);
+  const user = userEvent.setup();
+  render(<App />);
 
   const phoneInput = await screen.findByLabelText(/phone/i);
   await user.type(phoneInput, "+123456789");
