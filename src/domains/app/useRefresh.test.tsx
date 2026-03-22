@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { Provider, createStore } from "jotai";
 import type { ReactNode } from "react";
-import { vi } from "vitest";
+import { beforeEach, vi } from "vitest";
 import { isLoadingFeedAtom } from "../../atoms/app.atom";
 import { authClientAtom, isAuthenticatedAtom } from "../../atoms/auth.atom";
 import { feedItemsAtom } from "../../atoms/feedItems.atom";
@@ -13,6 +13,10 @@ vi.mock("../feed/infra/telegramFeed", () => ({
 }));
 
 import { useRefresh } from "./useRefresh";
+
+beforeEach(() => {
+  fetchRecentFeedMock.mockReset();
+});
 
 function createDalStub() {
   return {
@@ -129,6 +133,49 @@ test("refreshes feed when app returns to foreground", async () => {
 
   await waitFor(() => {
     expect(fetchRecentFeedMock.mock.calls.length).toBe(initialCalls + 1);
+  });
+
+  if (originalVisibilityState) {
+    Object.defineProperty(document, "visibilityState", originalVisibilityState);
+  }
+});
+
+test("coalesces overlapping background refresh triggers into a single fetch", async () => {
+  const dal = createDalStub();
+  let resolveFeed: ((value: unknown[]) => void) | null = null;
+  fetchRecentFeedMock.mockReturnValue(
+    new Promise<unknown[]>((resolve) => {
+      resolveFeed = resolve;
+    }),
+  );
+  const { Wrapper } = createWrapper({ isAuthenticated: true });
+  const originalVisibilityState = Object.getOwnPropertyDescriptor(document, "visibilityState");
+
+  Object.defineProperty(document, "visibilityState", {
+    configurable: true,
+    get: () => "visible",
+  });
+
+  renderHook(() => useRefresh({ dal }), {
+    wrapper: Wrapper,
+  });
+
+  await waitFor(() => {
+    expect(fetchRecentFeedMock).toHaveBeenCalledTimes(1);
+  });
+
+  act(() => {
+    window.dispatchEvent(new Event("focus"));
+    window.dispatchEvent(new Event("pageshow"));
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+
+  await waitFor(() => {
+    expect(fetchRecentFeedMock).toHaveBeenCalledTimes(1);
+  });
+
+  await act(async () => {
+    resolveFeed?.([]);
   });
 
   if (originalVisibilityState) {
