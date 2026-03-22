@@ -419,3 +419,29 @@ test('keeps thread open and focuses target there when notification is for the op
     expect(within(screen.getByRole('dialog')).getByText('Second thread message')).toBeInTheDocument()
   })
 })
+
+test('opens the thread immediately when navigation target requests thread view', async () => {
+  const store = createStore()
+  act(() => {
+    store.set(feedItemsAtom, [
+      {
+        id: 'dm-1-1',
+        channelKey: 'dm:1',
+        type: 'dm',
+        chatName: 'Alice',
+        senderName: 'Alice',
+        timestamp: 'now',
+        text: 'Open me',
+        reactions: [],
+      },
+    ])
+    store.set(notificationFocusAtom, { channelKey: 'dm:1', view: 'thread' })
+  })
+
+  renderWithStore(store)
+
+  await waitFor(() => {
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+  expect(screen.getByLabelText('Write a reply')).toBeInTheDocument()
+})

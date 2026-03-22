@@ -183,6 +183,12 @@ export function FeedView() {
     }
 
     const targetChannelKey = getItemChannelKey(targetItem);
+    if (notificationFocus.view === "thread") {
+      setFocusedItem(targetItem);
+      setNotificationFocus(null);
+      return;
+    }
+
     if (focusedItem && getItemChannelKey(focusedItem) === targetChannelKey) {
       setFocusedItem(targetItem);
       setNotificationFocus(null);

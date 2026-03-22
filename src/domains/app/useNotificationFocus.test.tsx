@@ -3,6 +3,7 @@ import { createStore } from "jotai/vanilla";
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { authClientAtom, isAuthenticatedAtom } from "../../atoms/auth.atom";
+import { feedItemsAtom } from "../../atoms/feedItems.atom";
 import { notificationFocusAtom } from "../../atoms/notificationFocus.atom";
 import { toastsAtom } from "../../atoms/toasts.atom";
 import { ToastViewport } from "../../shared/ui/Toast/ToastViewport";
@@ -13,17 +14,28 @@ function FocusProbe() {
   return <div data-testid="focus">{focus ? JSON.stringify(focus) : ""}</div>;
 }
 
+function FeedItemsProbe() {
+  const items = useAtomValue(feedItemsAtom);
+  return <div data-testid="feed-items">{JSON.stringify(items)}</div>;
+}
+
 function expectFocusToEqual(expected: Record<string, string>) {
   const raw = screen.getByTestId("focus").textContent;
   expect(raw).toBeTruthy();
   expect(JSON.parse(raw ?? "{}")).toEqual(expected);
 }
 
-function renderHookAt(url: string, options: { isAuthenticated?: boolean } = {}) {
+function renderHookAt(
+  url: string,
+  options: {
+    isAuthenticated?: boolean;
+    ensureTelegramConnected?: () => Promise<unknown>;
+  } = {},
+) {
   const store = createStore();
   store.set(isAuthenticatedAtom, options.isAuthenticated ?? true);
   store.set(authClientAtom, {
-    ensureTelegramConnected: vi.fn().mockResolvedValue({}),
+    ensureTelegramConnected: options.ensureTelegramConnected ?? vi.fn().mockResolvedValue({}),
     sendCode: vi.fn(),
     submitCode: vi.fn(),
     submitPassword: vi.fn(),
@@ -38,6 +50,7 @@ function renderHookAt(url: string, options: { isAuthenticated?: boolean } = {}) 
     return (
       <>
         <FocusProbe />
+        <FeedItemsProbe />
         <ToastViewport />
       </>
     );
@@ -123,6 +136,47 @@ test("registers a protocol handler when supported", async () => {
   await waitFor(() => {
     expect(registerProtocolHandler).toHaveBeenCalledWith("web+tgfeed", "/?url=%s");
   });
+});
+
+test("resolves Telegram message permalinks into thread targets", async () => {
+  const { Api } = await import("telegram");
+  const sourceMessage = Object.assign(
+    new Api.Message({
+      id: 33,
+    }),
+    {
+      id: 33,
+      date: Math.floor(Date.now() / 1000),
+      message: "Permalink target",
+      getSender: vi.fn().mockResolvedValue({
+        firstName: "Alice",
+      }),
+    },
+  );
+  const getEntity = vi.fn().mockResolvedValue({
+    className: "Channel",
+    id: { toString: () => "99" },
+    title: "News",
+  });
+  const getMessages = vi.fn().mockResolvedValue([sourceMessage]);
+
+  renderHookAt("/?url=https%3A%2F%2Ft.me%2Fnews%2F33", {
+    ensureTelegramConnected: vi.fn().mockResolvedValue({
+      getEntity,
+      getMessages,
+    }),
+  });
+
+  await waitFor(() => {
+    expectFocusToEqual({
+      channelKey: "group:99",
+      itemId: "group-99-33",
+      view: "thread",
+    });
+  });
+  expect(getEntity).toHaveBeenCalledWith("news");
+  expect(getMessages).toHaveBeenCalled();
+  expect(screen.getByTestId("feed-items")).toHaveTextContent("Permalink target");
 });
 
 test("toast viewport renders the latest toast message", () => {
