@@ -330,7 +330,9 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
               </Header>
               <ForwardedBadge sourceMessage={representative.sourceMessage} />
               {(!isGroupedRun || representative.text !== "") && (
-                <Text className={styles.text}>{representative.text}</Text>
+                <Text className={styles.text} sourceMessage={representative.sourceMessage}>
+                  {representative.text}
+                </Text>
               )}
               {isGrouped ? (
                 <div

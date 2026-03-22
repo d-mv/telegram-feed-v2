@@ -82,7 +82,9 @@ export function FeedCard({ item, onFocus, groupedItems }: FeedCardProps) {
           {item.type === "dm" ? item.senderName : item.chatName}
         </Header>
         <ForwardedBadge sourceMessage={item.sourceMessage} />
-        <Text className={styles.text}>{item.text}</Text>
+        <Text className={styles.text} sourceMessage={item.sourceMessage}>
+          {item.text}
+        </Text>
         {hasGroupedMedia ? (
           <div
             className={hasGroupedImages ? styles.mediaGrid : styles.mediaStack}

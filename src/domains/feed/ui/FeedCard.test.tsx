@@ -273,3 +273,41 @@ test("renders forwarded source metadata and opens resolvable forwarded targets i
   expect(handler).toHaveBeenCalledTimes(1);
   window.removeEventListener(APP_OPEN_TARGET_EVENT, handler as EventListener);
 });
+
+test("renders Telegram message entities in feed text and routes Telegram links internally", async () => {
+  const user = userEvent.setup();
+  const handler = vi.fn();
+  window.addEventListener(APP_OPEN_TARGET_EVENT, handler as EventListener);
+
+  render(
+    <FeedCard
+      item={{
+        id: "group-format-1",
+        type: "group",
+        chatName: "Team",
+        senderName: "Alice",
+        timestamp: "now",
+        text: "Bold Telegram",
+        sourceMessage: {
+          entities: [
+            { className: "MessageEntityBold", offset: 0, length: 4 },
+            {
+              className: "MessageEntityTextUrl",
+              offset: 5,
+              length: 8,
+              url: "https://t.me/news/33",
+            },
+          ],
+        },
+        isFocused: false,
+      }}
+      onFocus={() => {}}
+    />,
+  );
+
+  expect(screen.getByText("Bold").tagName).toBe("STRONG");
+  await user.click(screen.getByRole("button", { name: "Telegram" }));
+  expect(handler).toHaveBeenCalledTimes(1);
+
+  window.removeEventListener(APP_OPEN_TARGET_EVENT, handler as EventListener);
+});
