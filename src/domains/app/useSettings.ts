@@ -19,6 +19,7 @@ import {
   isFeedFilterSettings,
   isNotificationSettings,
 } from "./utils";
+import { runtimeLogger } from "../../shared/infra/runtimeLogger";
 
 export function useSettings({ dal }: { dal: Dal }) {
   const [feedFilterSettings, setFeedFilterSettings] = useAtom(feedFilterSettingsAtom);
@@ -34,7 +35,7 @@ export function useSettings({ dal }: { dal: Dal }) {
         setNotificationSettings(stored);
       }
     } catch (e) {
-      console.log("getNotificationSettings", e);
+      runtimeLogger.error("getNotificationSettings", e);
     }
   }, [dal]);
 
@@ -45,7 +46,7 @@ export function useSettings({ dal }: { dal: Dal }) {
         setFeedFilterSettings(stored);
       }
     } catch (e) {
-      console.log("getFeedFilterSettings", e);
+      runtimeLogger.error("getFeedFilterSettings", e);
     }
   }, [dal, setFeedFilterSettings]);
 
@@ -56,7 +57,7 @@ export function useSettings({ dal }: { dal: Dal }) {
         setAvatarVisibility(stored);
       }
     } catch (e) {
-      console.log("getAvatarVisibilitySettings", e);
+      runtimeLogger.error("getAvatarVisibilitySettings", e);
     }
   }, [dal, setAvatarVisibility]);
 

@@ -8,6 +8,7 @@ import {
 import type { FeedItem } from "../../../types";
 import { Controls } from "./Controls";
 import styles from "./Media.module.css";
+import { runtimeLogger } from "../../infra/runtimeLogger";
 
 type Props = {
   item: FeedItem;
@@ -189,7 +190,6 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
       let nextUrl: string | undefined;
       if (item.media.meta.type === "video") {
         nextUrl = await downloadMediaForItem(item, ensureTelegramConnected, (downloaded, total) => {
-          console.log("downloaded", downloaded, "total", total);
           if (Number(total) > 0) setDownloadProgress(Number(downloaded) / Number(total));
         });
       } else {
@@ -207,7 +207,7 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
       setPreviewUrl(url);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Download failed";
-      console.error("[FeedCardMedia] download failed", error);
+      runtimeLogger.error("[FeedCardMedia] download failed", error);
       setDownloadError(message || "Download failed");
     } finally {
       setIsDownloading(false);
@@ -225,7 +225,7 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
         }
       })
       .catch((error) => {
-        console.error("Failed to load media preview", error);
+        runtimeLogger.error("Failed to load media preview", error);
       });
 
     return () => {

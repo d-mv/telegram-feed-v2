@@ -3,6 +3,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./domains/app/App.tsx";
 import "./index.css";
+import { runtimeLogger } from "./shared/infra/runtimeLogger";
 import { attachServiceWorkerAutoUpdate } from "./serviceWorkerAutoUpdate";
 
 const rootElement = document.getElementById("root");
@@ -27,7 +28,7 @@ if ("serviceWorker" in navigator) {
         .then((registration) => {
           attachServiceWorkerAutoUpdate(registration);
         })
-        .catch((error: unknown) => console.error("Service worker registration failed", error));
+        .catch((error: unknown) => runtimeLogger.error("Service worker registration failed", error));
       return;
     }
 
