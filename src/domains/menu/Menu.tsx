@@ -1,13 +1,14 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react";
-import { Suspense, useContext } from "react";
+import { lazy, Suspense, useContext } from "react";
 import { menuIsOpenAtom, menuItemAtom, toggleMenuAtom } from "../../atoms/menu.atom";
 import { AppContext } from "../app/AppContext";
 import AvatarsSettings from "./components/AvatarsSettings";
 import FiltersSettings from "./components/FiltersSettings";
 import Maintenance from "./components/Maintenance";
 import NotificationsSettings from "./components/NotificationsSettings";
-import SearchDialog from "./components/SearchDialog";
 import styles from "./Menu.module.css";
+
+const SearchDialog = lazy(() => import("./components/SearchDialog"));
 
 const MENU_ITEMS = [
   {
