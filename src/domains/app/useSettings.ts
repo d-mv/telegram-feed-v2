@@ -35,7 +35,10 @@ export function useSettings({ dal }: { dal: Dal }) {
         setNotificationSettings(stored);
       }
     } catch (e) {
-      runtimeLogger.error("getNotificationSettings", e);
+      runtimeLogger.warn("settings_load_failed", {
+        scope: "notifications",
+        error: e instanceof Error ? e.message : String(e),
+      });
     }
   }, [dal]);
 
@@ -46,7 +49,10 @@ export function useSettings({ dal }: { dal: Dal }) {
         setFeedFilterSettings(stored);
       }
     } catch (e) {
-      runtimeLogger.error("getFeedFilterSettings", e);
+      runtimeLogger.warn("settings_load_failed", {
+        scope: "feed_filters",
+        error: e instanceof Error ? e.message : String(e),
+      });
     }
   }, [dal, setFeedFilterSettings]);
 
@@ -57,7 +63,10 @@ export function useSettings({ dal }: { dal: Dal }) {
         setAvatarVisibility(stored);
       }
     } catch (e) {
-      runtimeLogger.error("getAvatarVisibilitySettings", e);
+      runtimeLogger.warn("settings_load_failed", {
+        scope: "avatar_visibility",
+        error: e instanceof Error ? e.message : String(e),
+      });
     }
   }, [dal, setAvatarVisibility]);
 

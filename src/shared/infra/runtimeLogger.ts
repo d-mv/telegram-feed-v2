@@ -1,4 +1,4 @@
-type ConsoleTarget = Pick<Console, "error">;
+type ConsoleTarget = Pick<Console, "warn" | "error">;
 
 export function createRuntimeLogger({
   debug,
@@ -8,6 +8,12 @@ export function createRuntimeLogger({
   consoleTarget: ConsoleTarget;
 }) {
   return {
+    warn(message: string, context?: unknown) {
+      if (!debug) {
+        return;
+      }
+      consoleTarget.warn(message, context);
+    },
     error(message: string, error?: unknown) {
       if (!debug) {
         return;
