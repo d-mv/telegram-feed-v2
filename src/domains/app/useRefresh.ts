@@ -5,6 +5,7 @@ import { authClientAtom, isAuthenticatedAtom } from "../../atoms/auth.atom";
 import { feedItemsAtom } from "../../atoms/feedItems.atom";
 import type { FeedItem } from "../../types";
 import type { Dal } from "../dal/types";
+import { getLatestMessageIdsByChat, mergeFeedItems, toCachedFeedItems } from "../feed/infra/feedCache";
 import { fetchRecentFeed } from "../feed/infra/telegramFeed";
 import { emitTelemetry } from "../../shared/infra/telemetry";
 
@@ -12,6 +13,7 @@ export function useRefresh({ dal }: { dal: Dal }) {
   const setIsLoadingFeed = useSetAtom(isLoadingFeedAtom);
   const [feedError, setFeedError] = useState("");
   const setFeedItems = useSetAtom(feedItemsAtom);
+  const feedItems = useAtomValue(feedItemsAtom);
   const isAuthenticated = useAtomValue(isAuthenticatedAtom);
   const authClient = useAtomValue(authClientAtom);
   const inFlightRefreshRef = useRef<Promise<void> | null>(null);
@@ -24,36 +26,42 @@ export function useRefresh({ dal }: { dal: Dal }) {
     const isBackground = options?.background === true;
     const refreshPromise = (async () => {
       const startedAt = Date.now();
-      if (!isBackground) {
+      setFeedError("");
+      const cachedFeedPromise = dal
+        .getFeedCache()
+        .then((cached) => (Array.isArray(cached) ? (cached as FeedItem[]) : []))
+        .catch(() => []);
+
+      const cachedItems = await cachedFeedPromise;
+
+      if (cachedItems.length > 0) {
+        setFeedItems(cachedItems);
+      }
+
+      const shouldShowLoading = !isBackground && cachedItems.length === 0 && feedItems.length === 0;
+      if (shouldShowLoading) {
         setIsLoadingFeed(true);
       }
-      setFeedError("");
-      dal
-        .getFeedCache()
-        .then((cached) => {
-          if (Array.isArray(cached)) {
-            const nextItems = cached as FeedItem[];
-
-            setFeedItems(nextItems);
-          }
-        })
-        .catch(() => {});
 
       try {
         if (!authClient) {
           throw new Error("Telegram auth client not initialized");
         }
         const items = await fetchRecentFeed(
-          { perChat: 10, maxAgeDays: 7 },
+          {
+            perChat: 10,
+            maxAgeDays: 7,
+            latestMessageIdsByChat: getLatestMessageIdsByChat(cachedItems),
+          },
           authClient.ensureTelegramConnected,
         );
-        setFeedItems(items);
-        const cacheItems = items.map(({ sourceMessage: _sourceMessage, ...rest }) => rest);
-        await dal.setFeedCache(cacheItems);
+        const nextItems = mergeFeedItems(items, cachedItems);
+        setFeedItems(nextItems);
+        await dal.setFeedCache(toCachedFeedItems(nextItems));
         emitTelemetry("feed_refresh_completed", {
           background: isBackground,
           durationMs: Date.now() - startedAt,
-          itemCount: items.length,
+          itemCount: nextItems.length,
         });
       } catch (err) {
         const error = err as Error;
@@ -68,7 +76,7 @@ export function useRefresh({ dal }: { dal: Dal }) {
           error: message,
         });
       } finally {
-        if (!isBackground) {
+        if (shouldShowLoading) {
           setIsLoadingFeed(false);
         }
         inFlightRefreshRef.current = null;
@@ -77,7 +85,7 @@ export function useRefresh({ dal }: { dal: Dal }) {
 
     inFlightRefreshRef.current = refreshPromise;
     return refreshPromise;
-  }, [authClient, dal, setFeedItems, setIsLoadingFeed]);
+  }, [authClient, dal, feedItems.length, setFeedItems, setIsLoadingFeed]);
 
   useEffect(() => {
     if (!isAuthenticated) {

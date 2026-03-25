@@ -28,7 +28,7 @@ export default function AuthenticatedApp({ dal }: { dal: Dal }) {
   }
   const ensureTelegramConnected = authClient.ensureTelegramConnected;
 
-  useProcessMessages();
+  useProcessMessages({ dal });
   const {
     handleSetAvatarVisibility,
     handleEnableAllFeedFilters,

@@ -457,6 +457,81 @@ describe('fetchRecentFeed', () => {
     expect(items[0]?.senderName).toBe('Alice')
     expect(getSender).not.toHaveBeenCalled()
   })
+
+  test('fetches only messages newer than the cached latest item for each chat', async () => {
+    const nowSeconds = Math.floor(Date.now() / 1000)
+    const dialogUser = {
+      id: 101,
+      isUser: true,
+      name: 'Alice',
+      entity: { id: 'first' },
+    }
+    const dialogGroup = {
+      id: 202,
+      isUser: false,
+      title: 'Team',
+      entity: { id: 'second' },
+    }
+    const client = {
+      getMe: vi.fn().mockResolvedValue({ id: 1 }),
+      getDialogs: vi.fn().mockResolvedValue([dialogUser, dialogGroup]),
+      getMessages: vi
+        .fn()
+        .mockResolvedValueOnce([
+          new Api.Message({
+            id: 11,
+            date: nowSeconds - 30,
+            message: 'new dm',
+            out: false,
+            fromId: { userId: 2 },
+          }),
+        ])
+        .mockResolvedValueOnce([
+          new Api.Message({
+            id: 9,
+            date: nowSeconds - 40,
+            message: 'new group',
+            out: false,
+          }),
+        ]),
+    }
+
+    ensureTelegramConnectedMock.mockResolvedValue(client)
+
+    const items = await fetchRecentFeed(
+      {
+        perChat: 10,
+        maxAgeDays: 7,
+        latestMessageIdsByChat: {
+          'dm:101': 10,
+          'group:202': 8,
+        },
+      },
+      ensureTelegramConnectedMock,
+    )
+
+    expect(client.getMessages).toHaveBeenNthCalledWith(
+      1,
+      dialogUser.entity,
+      expect.objectContaining({
+        minId: 10,
+        maxId: Number.MAX_SAFE_INTEGER,
+        limit: undefined,
+      }),
+    )
+    expect(client.getMessages).toHaveBeenNthCalledWith(
+      2,
+      dialogGroup.entity,
+      expect.objectContaining({
+        minId: 8,
+        maxId: Number.MAX_SAFE_INTEGER,
+        limit: undefined,
+      }),
+    )
+    expect(items).toHaveLength(2)
+    expect(items[0]?.id).toBe('dm-101-11')
+    expect(items[1]?.id).toBe('group-202-9')
+  })
 })
 
 describe('avatar helpers', () => {

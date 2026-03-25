@@ -20,8 +20,10 @@ import {
   toRelativeTime,
 } from "../feed/infra/telegramFeed";
 import { formatSender, getFallbackChatName } from "./utils";
+import type { Dal } from "../dal/types";
+import { toCachedFeedItems } from "../feed/infra/feedCache";
 
-export function useProcessMessages() {
+export function useProcessMessages({ dal }: { dal: Dal }) {
   const notificationPermission = useAtomValue(notificationPermissionAtom);
   const isAuthenticated = useAtomValue(isAuthenticatedAtom);
   const authClient = useAtomValue(authClientAtom);
@@ -111,16 +113,22 @@ export function useProcessMessages() {
             };
           }
 
+          let nextFeedItems: FeedItem[] | null = null;
           setFeedItems((currentFeedItems) => {
             isDuplicate = currentFeedItems.some((entry) => entry.id === itemId);
             if (isDuplicate) {
               return currentFeedItems;
             }
-            return mergeAlbumFeedItems([nextItem, ...currentFeedItems]);
+            nextFeedItems = mergeAlbumFeedItems([nextItem, ...currentFeedItems]);
+            return nextFeedItems;
           });
 
           if (isDuplicate) {
             return;
+          }
+
+          if (nextFeedItems) {
+            await dal.setFeedCache(toCachedFeedItems(nextFeedItems));
           }
 
           const notificationsEnabled =
@@ -202,6 +210,7 @@ export function useProcessMessages() {
   }, [
     authClient,
     avatarVisibility.notifications,
+    dal,
     isAuthenticated,
     notificationPermission,
     notificationSettings,

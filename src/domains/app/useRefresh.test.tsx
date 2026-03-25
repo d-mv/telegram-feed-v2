@@ -97,6 +97,76 @@ test("background refresh updates feed without toggling global loading state", as
   expect(store.get(isLoadingFeedAtom)).toBe(false);
 });
 
+test("hydrates cached feed immediately and merges refresh results into cache", async () => {
+  const cachedItems = [
+    {
+      id: "dm-1-10",
+      type: "dm",
+      channelKey: "dm:1",
+      chatName: "Alice",
+      senderName: "Alice",
+      timestamp: "1 min ago",
+      text: "Cached",
+      reactions: [],
+      isFocused: false,
+    },
+  ];
+  const freshItems = [
+    {
+      id: "dm-1-11",
+      type: "dm",
+      channelKey: "dm:1",
+      chatName: "Alice",
+      senderName: "Alice",
+      timestamp: "Just now",
+      text: "Fresh",
+      reactions: [],
+      isFocused: false,
+    },
+  ];
+  const dal = createDalStub();
+  dal.getFeedCache.mockResolvedValue(cachedItems);
+  let resolveFeed: ((value: typeof freshItems) => void) | null = null;
+  fetchRecentFeedMock.mockReturnValue(
+    new Promise<typeof freshItems>((resolve) => {
+      resolveFeed = resolve;
+    }),
+  );
+  const { store, Wrapper } = createWrapper({ isAuthenticated: true });
+
+  renderHook(() => useRefresh({ dal }), {
+    wrapper: Wrapper,
+  });
+
+  await waitFor(() => {
+    expect(store.get(feedItemsAtom)).toEqual(cachedItems);
+  });
+
+  await waitFor(() => {
+    expect(fetchRecentFeedMock).toHaveBeenCalledWith(
+      {
+        perChat: 10,
+        maxAgeDays: 7,
+        latestMessageIdsByChat: {
+          "dm:1": 10,
+        },
+      },
+      expect.any(Function),
+    );
+  });
+  expect(store.get(isLoadingFeedAtom)).toBe(false);
+
+  await act(async () => {
+    resolveFeed?.(freshItems);
+  });
+
+  await waitFor(() => {
+    expect(store.get(feedItemsAtom)).toEqual([...freshItems, ...cachedItems]);
+  });
+
+  expect(dal.setFeedCache).toHaveBeenCalledWith([...freshItems, ...cachedItems]);
+});
+
 test("emits refresh telemetry after a successful refresh", async () => {
   const dal = createDalStub();
   fetchRecentFeedMock.mockResolvedValue([

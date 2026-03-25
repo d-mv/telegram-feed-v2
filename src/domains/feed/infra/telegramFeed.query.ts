@@ -12,6 +12,7 @@ import {
 type FetchFeedOptions = {
   perChat: number;
   maxAgeDays: number;
+  latestMessageIdsByChat?: Record<string, number>;
 };
 
 type TelegramDialog = {
@@ -70,11 +71,16 @@ function toFeedItem(dialog: TelegramDialog, message: Api.Message, senderName: st
   };
 }
 
+function getDialogChannelKey(dialog: TelegramDialog): string {
+  const chatId = dialog.id?.toString() ?? "chat";
+  return `${dialog.isUser ? "dm" : "group"}:${chatId}`;
+}
+
 export async function fetchRecentFeed(
   options: Partial<FetchFeedOptions> = {},
   ensureTelegramConnected: EnsureTelegramConnected,
 ): Promise<FeedItem[]> {
-  const { perChat, maxAgeDays } = { ...DEFAULT_OPTIONS, ...options };
+  const { perChat, maxAgeDays, latestMessageIdsByChat } = { ...DEFAULT_OPTIONS, ...options };
   const client = await ensureTelegramConnected();
   const me = await client.getMe();
   const dialogs = await client.getDialogs({});
@@ -85,7 +91,17 @@ export async function fetchRecentFeed(
         return [];
       }
 
-      const messages = await client.getMessages(dialog.entity as MessagesTarget, { limit: perChat });
+      const latestMessageId = latestMessageIdsByChat?.[getDialogChannelKey(dialog)];
+      const messages = await client.getMessages(
+        dialog.entity as MessagesTarget,
+        latestMessageId === undefined
+          ? { limit: perChat }
+          : {
+              limit: undefined,
+              minId: latestMessageId,
+              maxId: Number.MAX_SAFE_INTEGER,
+            },
+      );
       return Promise.all(
         messages.map(async (message) => {
           if (!(message instanceof Api.Message)) {
@@ -98,6 +114,9 @@ export async function fetchRecentFeed(
             if (message.fromId.userId?.toString() === me.id?.toString()) {
               return null;
             }
+          }
+          if (latestMessageId !== undefined && typeof message.id === "number" && message.id <= latestMessageId) {
+            return null;
           }
           if (!message.date || message.date < cutoff) {
             return null;

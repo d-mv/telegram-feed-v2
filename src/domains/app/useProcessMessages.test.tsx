@@ -58,7 +58,11 @@ test("keeps Telegram message handler subscribed until unmount", async () => {
     removeEventHandler,
   });
 
-  const { unmount } = renderHook(() => useProcessMessages(), {
+  const dal = {
+    setFeedCache: vi.fn().mockResolvedValue(undefined),
+  };
+
+  const { unmount } = renderHook(() => useProcessMessages({ dal } as never), {
     wrapper: createWrapper().Wrapper,
   });
 
@@ -89,8 +93,11 @@ test("appends incoming messages to the feed", async () => {
   });
 
   const { store, Wrapper } = createWrapper();
+  const dal = {
+    setFeedCache: vi.fn().mockResolvedValue(undefined),
+  };
 
-  renderHook(() => useProcessMessages(), {
+  renderHook(() => useProcessMessages({ dal } as never), {
     wrapper: Wrapper,
   });
 
@@ -127,4 +134,11 @@ test("appends incoming messages to the feed", async () => {
     senderName: "Alice",
     text: "Hello from runtime",
   });
+  expect(dal.setFeedCache).toHaveBeenCalledWith([
+    expect.objectContaining({
+      id: "dm-99-42",
+      channelKey: "dm:99",
+      text: "Hello from runtime",
+    }),
+  ]);
 });
