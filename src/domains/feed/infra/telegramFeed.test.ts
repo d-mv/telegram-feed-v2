@@ -515,7 +515,7 @@ describe('fetchRecentFeed', () => {
       dialogUser.entity,
       expect.objectContaining({
         minId: 10,
-        maxId: Number.MAX_SAFE_INTEGER,
+        maxId: 2147483647,
         limit: undefined,
       }),
     )
@@ -524,7 +524,7 @@ describe('fetchRecentFeed', () => {
       dialogGroup.entity,
       expect.objectContaining({
         minId: 8,
-        maxId: Number.MAX_SAFE_INTEGER,
+        maxId: 2147483647,
         limit: undefined,
       }),
     )

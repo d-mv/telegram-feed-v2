@@ -30,6 +30,7 @@ const DEFAULT_OPTIONS: FetchFeedOptions = {
   perChat: 10,
   maxAgeDays: 7,
 };
+const TELEGRAM_MAX_MESSAGE_ID = 2_147_483_647;
 
 function toFeedItem(dialog: TelegramDialog, message: Api.Message, senderName: string): FeedItem {
   const chatName = dialog.name || dialog.title || (dialog.isUser ? "User" : "Group");
@@ -99,7 +100,7 @@ export async function fetchRecentFeed(
           : {
               limit: undefined,
               minId: latestMessageId,
-              maxId: Number.MAX_SAFE_INTEGER,
+              maxId: TELEGRAM_MAX_MESSAGE_ID,
             },
       );
       return Promise.all(
