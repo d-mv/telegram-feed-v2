@@ -787,6 +787,42 @@ describe('downloadMediaForItem', () => {
     expect(setMedia).toHaveBeenCalledWith('key-3', expect.any(Blob))
   })
 
+  test('resolves a cached item source message before downloading full media', async () => {
+    const setMedia = vi.fn().mockResolvedValue(undefined)
+    const sourceMessage = new Api.Message({ id: 44 })
+    createIndexedDbDalMock.mockReturnValue({
+      getMedia: vi.fn().mockResolvedValue(undefined),
+      setMedia,
+    })
+    const client = {
+      getMessages: vi.fn().mockResolvedValue([sourceMessage]),
+      downloadMedia: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
+    }
+    ensureTelegramConnectedMock.mockResolvedValue(client)
+
+    const url = await downloadMediaForItem({
+      id: 'group-77-44',
+      type: 'group',
+      channelKey: 'group:77',
+      chatName: 'Team',
+      timestamp: 'now',
+      text: 'cached file',
+      media: {
+        key: 'key-44',
+        meta: { type: 'file', width: 0, height: 0, sizeBytes: 3, mimeType: 'application/pdf' },
+        alt: 'file',
+      },
+      isFocused: false,
+    }, ensureTelegramConnectedMock)
+
+    expect(client.getMessages).toHaveBeenCalledWith('77', { ids: [44] })
+    expect(client.downloadMedia).toHaveBeenCalledWith(sourceMessage, {
+      progressCallback: undefined,
+    })
+    expect(url).toBe('blob:mock')
+    expect(setMedia).toHaveBeenCalledWith('key-44', expect.any(Blob))
+  })
+
   test('downloads thumbnail and handles no-video-thumb case', async () => {
     const sourceMessage = new Api.Message({
       id: 99,
@@ -820,5 +856,51 @@ describe('downloadMediaForItem', () => {
     )
 
     expect(noThumb).toBeUndefined()
+  })
+
+  test('resolves a cached item source message before downloading a thumbnail', async () => {
+    const sourceMessage = new Api.Message({
+      id: 99,
+      media: new Api.MessageMediaPhoto({
+        photo: new Api.Photo({
+          sizes: [{ w: 640, h: 480, size: 1000 }],
+        }),
+      }),
+    })
+    const client = {
+      getMessages: vi.fn().mockResolvedValue([sourceMessage]),
+      downloadMedia: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
+    }
+    ensureTelegramConnectedMock.mockResolvedValue(client)
+    createIndexedDbDalMock.mockReturnValue({
+      getMedia: vi.fn().mockResolvedValue(undefined),
+      setMedia: vi.fn().mockResolvedValue(undefined),
+    })
+
+    const thumbUrl = await downloadThumbnailForItem(
+      {
+        id: 'group-55-99',
+        type: 'group',
+        channelKey: 'group:55',
+        chatName: 'Team',
+        timestamp: 'now',
+        text: '',
+        media: {
+          key: 'photo-99',
+          meta: { type: 'image', width: 640, height: 480, sizeBytes: 10, mimeType: 'image/jpeg' },
+          alt: 'photo',
+        },
+        isFocused: false,
+      },
+      320,
+      ensureTelegramConnectedMock,
+    )
+
+    expect(client.getMessages).toHaveBeenCalledWith('55', { ids: [99] })
+    expect(client.downloadMedia).toHaveBeenCalledWith(
+      sourceMessage,
+      expect.objectContaining({ thumb: expect.anything() }),
+    )
+    expect(thumbUrl).toBe('blob:mock')
   })
 })
