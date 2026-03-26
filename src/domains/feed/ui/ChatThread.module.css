@@ -1,6 +1,6 @@
 .thread {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   height: 100%;
   width: 100%;
 }
@@ -38,7 +38,7 @@
 .threadList {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
   justify-content: flex-end;
   min-height: 100%;
   width: 100%;
@@ -68,41 +68,38 @@
 
 .message {
   display: grid;
-  gap: 10px;
-  border-radius: 18px;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface) 84%, white 16%), color-mix(in srgb, var(--surface-2) 88%, white 12%));
-  border: 1px solid color-mix(in srgb, var(--border) 64%, transparent);
+  gap: 6px;
+  border-radius: 0;
+  background: transparent;
+  border: none;
   width: 100%;
   box-sizing: border-box;
-  overflow: hidden;
-  cursor: pointer;
+  overflow: visible;
+  cursor: default;
   position: relative;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.65),
-    0 10px 24px rgba(20, 18, 16, 0.05);
+  box-shadow: none;
 }
 
 .forwardedMessage {
-  box-shadow: inset 4px 0 0 rgba(162, 74, 35, 0.55);
+  border-left: 3px solid rgba(162, 74, 35, 0.45);
+  padding-left: 8px;
 }
 
 .messageFocused {
-  border-color: var(--accent);
-  box-shadow:
-    0 0 0 1px rgba(162, 74, 35, 0.26),
-    0 14px 32px rgba(162, 74, 35, 0.1);
+  border-left: 3px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  padding-left: 8px;
 }
 
 .header {
-  padding: 14px 14px 0;
+  padding: 0;
 }
 
 .text {
-  padding-inline: 14px;
-  padding-block-end: 14px;
-  font-size: clamp(1rem, 2.7vw, 1.14rem);
-  line-height: 1.45;
+  margin-left: 38px;
+  max-width: min(100%, 34rem);
+  padding: 0;
+  font-size: clamp(0.98rem, 2.4vw, 1.08rem);
+  line-height: 1.42;
   color: color-mix(in srgb, var(--ink) 90%, black 10%);
 }
 
@@ -110,8 +107,9 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding-inline: 6px;
-  padding-block-end: 6px;
+  margin-left: 38px;
+  width: min(100%, 25rem);
+  padding: 0;
 }
 
 .messageMediaItem {
@@ -119,7 +117,7 @@
   flex-direction: column;
   gap: 0;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: 18px;
 }
 
 .messageMediaGrid {
@@ -127,15 +125,16 @@
   grid-template-columns: repeat(var(--media-group-columns, 4), minmax(0, 1fr));
   gap: 2px;
   background: transparent;
-  padding-inline: 6px;
-  padding-block-end: 6px;
+  margin-left: 38px;
+  width: min(100%, 25rem);
+  padding: 0;
 }
 
 .messageMediaGridTile {
   min-width: 0;
-  background: var(--surface-2);
+  background: transparent;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: 18px;
 }
 
 .messageMediaGridTile > * {
@@ -149,23 +148,24 @@
 }
 
 .unreadIndicator {
-  padding-inline: 16px;
   color: var(--accent-strong);
   display: inline-flex;
   align-items: center;
   position: absolute;
-  top: 14px;
-  right: 12px;
+  top: 2px;
+  right: 0;
 }
 
 .commentsAccordion {
-  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  margin-left: 38px;
+  max-width: min(100%, 25rem);
+  border-top: none;
 }
 
 .commentsSummary {
   list-style: none;
   cursor: pointer;
-  padding: 10px 14px;
+  padding: 8px 0 0;
   color: var(--muted);
   display: inline-flex;
   align-items: center;
@@ -181,7 +181,7 @@
 }
 
 .commentsPanel {
-  padding: 0 14px 14px;
+  padding: 10px 0 0;
   display: grid;
   gap: 10px;
 }
@@ -195,7 +195,7 @@
 
 .comment {
   border: 1px solid color-mix(in srgb, var(--border) 56%, transparent);
-  background: color-mix(in srgb, var(--surface) 90%, white 10%);
+  background: color-mix(in srgb, var(--surface) 94%, white 6%);
   border-radius: 14px;
   padding: 10px 11px;
   display: grid;
@@ -220,28 +220,26 @@
 
 @media (max-width: 720px) {
   .threadList {
-    gap: 10px;
-  }
-
-  .message {
-    border-radius: 16px;
+    gap: 16px;
   }
 
   .header {
-    padding: 12px 12px 0;
+    padding: 0;
   }
 
   .text {
-    padding-inline: 12px;
-    padding-block-end: 12px;
     font-size: 0.98rem;
   }
 
-  .commentsSummary {
-    padding: 8px 12px;
+  .text,
+  .messageMediaStack,
+  .messageMediaGrid,
+  .commentsAccordion {
+    margin-left: 34px;
+    max-width: calc(100% - 34px);
   }
 
   .commentsPanel {
-    padding: 0 12px 12px;
+    padding: 8px 0 0;
   }
 }

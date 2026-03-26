@@ -33,20 +33,27 @@
 .attachment {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 90px;
-  padding: 14px 16px;
+  gap: 12px;
+  min-height: 72px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface) 96%, white 4%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 8px 18px rgba(20, 18, 16, 0.05);
 }
 
 .attachmentIcon {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(162, 74, 35, 0.15);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(236, 229, 222, 0.92));
   color: var(--accent-strong);
+  border: 1px solid rgba(210, 199, 189, 0.92);
 }
 
 .attachmentIconSvg {
@@ -61,7 +68,8 @@
 
 .attachmentName {
   margin: 0;
-  font-size: 0.92rem;
+  font-size: 1rem;
+  font-weight: 600;
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
@@ -69,25 +77,26 @@
 
 .attachmentType {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.88rem;
   color: var(--muted);
 }
 
 .download-button {
   position: absolute;
-  right: 12px;
-  top: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(12, 12, 12, 0.5);
-  color: var(--text);
-  padding: 6px;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(40, 34, 28, 0.88);
+  color: #fff7ef;
+  padding: 7px;
   border-radius: 999px;
   cursor: pointer;
   z-index: 2;
-  backdrop-filter: blur(6px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 6px 14px rgba(30, 24, 20, 0.18);
 }
 
 .download-button:disabled {

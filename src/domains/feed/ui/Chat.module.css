@@ -128,12 +128,11 @@
 }
 
 .body {
-  padding: 12px;
+  padding: 14px 12px 10px;
   display: grid;
   gap: 16px;
   overflow: auto;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, white 4%), color-mix(in srgb, var(--surface-2) 74%, white 26%));
+  background: color-mix(in srgb, var(--surface) 94%, white 6%);
 }
 
 .composer {
@@ -202,7 +201,7 @@
   }
 
   .body {
-    padding: 8px;
+    padding: 10px 8px 6px;
   }
 
   .composer {
