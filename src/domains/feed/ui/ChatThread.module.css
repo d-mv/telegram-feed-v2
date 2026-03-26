@@ -1,6 +1,6 @@
 .thread {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   height: 100%;
   width: 100%;
 }
@@ -38,7 +38,7 @@
 .threadList {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
   justify-content: flex-end;
   min-height: 100%;
   width: 100%;
@@ -68,7 +68,7 @@
 
 .message {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   border-radius: 0;
   background: transparent;
   border: none;
@@ -82,12 +82,12 @@
 
 .forwardedMessage {
   border-left: 3px solid rgba(162, 74, 35, 0.45);
-  padding-left: 8px;
+  padding-left: 6px;
 }
 
 .messageFocused {
   border-left: 3px solid color-mix(in srgb, var(--accent) 70%, transparent);
-  padding-left: 8px;
+  padding-left: 6px;
 }
 
 .header {
@@ -98,15 +98,15 @@
   margin-left: 38px;
   max-width: min(100%, 34rem);
   padding: 0;
-  font-size: clamp(0.98rem, 2.4vw, 1.08rem);
-  line-height: 1.42;
+  font-size: clamp(0.96rem, 2.2vw, 1.04rem);
+  line-height: 1.38;
   color: color-mix(in srgb, var(--ink) 90%, black 10%);
 }
 
 .messageMediaStack {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   margin-left: 38px;
   width: min(100%, 25rem);
   padding: 0;
@@ -123,7 +123,7 @@
 .messageMediaGrid {
   display: grid;
   grid-template-columns: repeat(var(--media-group-columns, 4), minmax(0, 1fr));
-  gap: 2px;
+  gap: 4px;
   background: transparent;
   margin-left: 38px;
   width: min(100%, 25rem);
@@ -152,12 +152,12 @@
   display: inline-flex;
   align-items: center;
   position: absolute;
-  top: 2px;
+  top: 0;
   right: 0;
 }
 
 .commentsAccordion {
-  margin-left: 38px;
+  margin-left: 36px;
   max-width: min(100%, 25rem);
   border-top: none;
 }
@@ -165,10 +165,11 @@
 .commentsSummary {
   list-style: none;
   cursor: pointer;
-  padding: 8px 0 0;
+  padding: 4px 0 0;
   color: var(--muted);
   display: inline-flex;
   align-items: center;
+  opacity: 0.86;
 }
 
 .commentsSummary::-webkit-details-marker {
@@ -176,8 +177,8 @@
 }
 
 .commentsIcon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
 .commentsPanel {
@@ -220,7 +221,7 @@
 
 @media (max-width: 720px) {
   .threadList {
-    gap: 16px;
+    gap: 12px;
   }
 
   .header {
@@ -228,15 +229,15 @@
   }
 
   .text {
-    font-size: 0.98rem;
+    font-size: 0.95rem;
   }
 
   .text,
   .messageMediaStack,
   .messageMediaGrid,
   .commentsAccordion {
-    margin-left: 34px;
-    max-width: calc(100% - 34px);
+    margin-left: 32px;
+    max-width: calc(100% - 32px);
   }
 
   .commentsPanel {
