@@ -24,7 +24,7 @@
   grid-template-rows: auto 1fr auto;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--border-radius);
+  border-radius: 22px;
   box-shadow: var(--shadow);
   overflow: hidden;
 }
@@ -35,8 +35,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--border);
+  gap: 12px;
+  padding: 16px 18px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, white 8%), var(--surface));
   width: 100%;
   max-width: 100%;
   overflow: visible;
@@ -45,7 +48,10 @@
 .title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.4rem;
+  flex: 1;
+  min-width: 0;
+  font-size: clamp(1rem, 3vw, 1.2rem);
+  line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -122,19 +128,22 @@
 }
 
 .body {
-  padding: 16px;
+  padding: 12px;
   display: grid;
   gap: 16px;
   overflow: auto;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, white 4%), color-mix(in srgb, var(--surface-2) 74%, white 26%));
 }
 
 .composer {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  padding: 16px;
-  border-top: 1px solid var(--border);
-  background: var(--surface-2);
+  gap: 10px;
+  padding: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 88%, transparent), color-mix(in srgb, var(--surface-2) 82%, white 18%));
 }
 
 .error {
@@ -146,11 +155,70 @@
 
 .composerInput {
   flex: 1;
-  border-radius: var(--border-radius);
-  border: 1px solid var(--border);
-  background: var(--surface);
+  min-height: 46px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  background: color-mix(in srgb, var(--surface) 92%, white 8%);
   padding: 12px 14px;
   color: var(--ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.composerInput::placeholder {
+  color: color-mix(in srgb, var(--muted) 82%, white 18%);
+}
+
+.composerInput:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border) 45%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.sendButton {
+  min-height: 46px;
+  padding-inline: 18px;
+}
+
+@media (max-width: 720px) {
+  .panel {
+    border-radius: 0;
+    border-inline: none;
+    border-block: none;
+  }
+
+  .header {
+    padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px;
+  }
+
+  .headerActions {
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .title {
+    font-size: 0.96rem;
+  }
+
+  .body {
+    padding: 8px;
+  }
+
+  .composer {
+    position: sticky;
+    bottom: 0;
+    padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .composerInput {
+    flex-basis: 100%;
+  }
+
+  .sendButton {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .srOnly {

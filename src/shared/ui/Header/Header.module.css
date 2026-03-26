@@ -10,6 +10,14 @@
   padding-inline: 16px;
 }
 
+.threadContainer {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  margin-block-start: 0;
+  padding-inline: 0;
+}
+
 .left {
   display: flex;
   align-items: center;
@@ -17,6 +25,11 @@
   width: 100%;
   max-width: 100%;
   overflow: hidden;
+}
+
+.threadLeft {
+  gap: 0.75rem;
+  min-width: 0;
 }
 
 .header {
@@ -30,6 +43,15 @@
   text-overflow: ellipsis;
 }
 
+.threadHeader {
+  width: auto;
+  max-width: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: color-mix(in srgb, var(--ink) 84%, white 16%);
+}
+
 .timestamp {
   color: var(--ink);
   font-size: 1.2rem;
@@ -37,4 +59,11 @@
   white-space: nowrap;
   justify-self: end;
   align-self: center;
+}
+
+.threadTimestamp {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
 }

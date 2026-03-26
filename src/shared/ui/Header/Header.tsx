@@ -35,12 +35,12 @@ export function Header({
     typeof sourceDate === "number" ? toRelativeTime(sourceDate) : message.timestamp;
 
   return (
-    <div className={clsx(styles.container, className)}>
-      <div className={styles.left}>
+    <div className={clsx(styles.container, isThread && styles.threadContainer, className)}>
+      <div className={clsx(styles.left, isThread && styles.threadLeft)}>
         <Avatar isThread={isThread} noPreview={noPreview} message={message} />
-        <h2 className={styles.header}>{children}</h2>
+        <h2 className={clsx(styles.header, isThread && styles.threadHeader)}>{children}</h2>
       </div>
-      <span className={styles.timestamp}>{timestamp}</span>
+      <span className={clsx(styles.timestamp, isThread && styles.threadTimestamp)}>{timestamp}</span>
     </div>
   );
 }

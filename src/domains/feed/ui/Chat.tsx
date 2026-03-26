@@ -170,6 +170,7 @@ export function Chat({ item, onClose }: ChatProps) {
           <Button
             variant="primary"
             type="button"
+            className={styles.sendButton}
             onClick={() => void handleSend()}
             disabled={isSending || draft.trim() === ""}
           >
