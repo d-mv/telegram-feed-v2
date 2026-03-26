@@ -211,6 +211,59 @@ test("groups consecutive media-only messages from the same sender in the thread"
   expect(document.querySelector('[data-media-type="image"]')).toHaveStyle({ aspectRatio: '1 / 1' });
 });
 
+test("loads full thread history for a cached item without sourceMessage", async () => {
+  const now = Math.floor(Date.now() / 1000);
+  const { Api } = await import("telegram");
+
+  const firstMessage = new Api.Message({
+    id: 70,
+    date: now - 120,
+    message: "Older message",
+    toId: {},
+    sender: { firstName: "Alice" },
+  });
+
+  const secondMessage = new Api.Message({
+    id: 71,
+    date: now - 60,
+    message: "Newest message",
+    toId: {},
+    getInputChat: vi.fn().mockResolvedValue("chat"),
+    sender: { firstName: "Alice" },
+  });
+
+  const getMessages = vi.fn().mockImplementation((chat: unknown, options?: { ids?: number[] }) => {
+    if (options?.ids) {
+      return Promise.resolve([secondMessage]);
+    }
+    return Promise.resolve([secondMessage, firstMessage]);
+  });
+
+  ensureTelegramConnectedMock.mockResolvedValue({
+    getMessages,
+  });
+
+  renderThread(
+    <ChatThread
+      item={{
+        id: "group-1-71",
+        type: "group",
+        channelKey: "group:1",
+        chatName: "Team",
+        timestamp: "now",
+        text: "Newest message",
+        isFocused: true,
+      }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(screen.getByText("Older message")).toBeInTheDocument();
+  });
+  expect(getMessages).toHaveBeenCalledWith("1", { ids: [71] });
+  expect(screen.getByText("Newest message")).toBeInTheDocument();
+});
+
 test("keeps media visible for mixed text and media messages in the thread", () => {
   renderThread(
     <ChatThread

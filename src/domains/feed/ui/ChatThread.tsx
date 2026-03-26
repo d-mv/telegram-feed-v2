@@ -15,6 +15,7 @@ import {
   mergeAlbumFeedItems,
   toRelativeTime,
 } from "../infra/telegramFeed";
+import { resolveFeedItemSourceMessage } from "../infra/resolveFeedItemSourceMessage";
 import { groupConsecutiveMediaOnlyItems } from "./groupConsecutiveMediaOnlyItems";
 import { ForwardedBadge } from "./ForwardedBadge";
 import { getForwardedMessageMeta } from "./getForwardedMessageMeta";
@@ -95,8 +96,6 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
   const [commentsLoading, setCommentsLoading] = useState<Record<string, boolean>>({});
   const focusedRef = useRef<HTMLDivElement | null>(null);
   const threadRef = useRef<HTMLDivElement | null>(null);
-  const sourceMessage = item.sourceMessage instanceof Api.Message ? item.sourceMessage : undefined;
-  const focusId = sourceMessage?.id;
 
   const fallbackMessage = useMemo<FeedItem[]>(() => {
     const message = {
@@ -125,15 +124,27 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
   }, [item]);
 
   useEffect(() => {
-    if (!sourceMessage) {
+    if (!(item.sourceMessage instanceof Api.Message) && !item.channelKey) {
       setMessages(fallbackMessage);
+      setIsLoading(false);
+      setError("");
       return;
     }
+
     let active = true;
-    setIsLoading(true);
     setError("");
+    setIsLoading(true);
     ensureTelegramConnected()
       .then(async (client) => {
+        const sourceMessage = await resolveFeedItemSourceMessage(item, client);
+        if (!active) {
+          return;
+        }
+        if (!sourceMessage) {
+          setMessages(fallbackMessage);
+          return;
+        }
+
         const inputChat = sourceMessage.getInputChat
           ? await sourceMessage.getInputChat()
           : (sourceMessage as Api.Message & { inputChat?: unknown }).inputChat;
@@ -160,7 +171,7 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
                 typeof (message as Api.Message & { groupedId?: unknown }).groupedId === "string"
                   ? String((message as Api.Message & { groupedId?: unknown }).groupedId)
                   : undefined,
-              isFocused: focusId ? message.id === focusId : false,
+              isFocused: message.id === sourceMessage.id,
               reactions: path(["reactions"], message),
               type: message.toId instanceof Api.PeerUser ? "dm" : "group",
               chatName: message.toId instanceof Api.PeerUser ? senderName : item.chatName,
@@ -186,7 +197,7 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
     return () => {
       active = false;
     };
-  }, [fallbackMessage, focusId, item.chatName, sourceMessage]);
+  }, [ensureTelegramConnected, fallbackMessage, item, item.chatName]);
 
   useEffect(() => {
     if (!focusedRef.current) return;
