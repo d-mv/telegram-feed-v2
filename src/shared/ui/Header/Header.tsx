@@ -30,9 +30,7 @@ export function Header({
     };
   }, []);
 
-  const sourceDate = (message.sourceMessage as { date?: unknown } | undefined)?.date;
-  const timestamp =
-    typeof sourceDate === "number" ? toRelativeTime(sourceDate) : message.timestamp;
+  const timestamp = toRelativeTime(message.date);
 
   return (
     <div className={clsx(styles.container, isThread && styles.threadContainer, className)}>

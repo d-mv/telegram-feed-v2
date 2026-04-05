@@ -11,6 +11,7 @@ test("shows comments icon only when message has comments", () => {
     type: "group" as const,
     chatName: "Team",
     timestamp: "now",
+    date: 0,
     text: "With comments",
     commentsCount: 3,
     isFocused: false,
@@ -20,6 +21,7 @@ test("shows comments icon only when message has comments", () => {
     type: "group" as const,
     chatName: "Team",
     timestamp: "now",
+    date: 0,
     text: "Without comments",
     isFocused: false,
   };
@@ -39,6 +41,7 @@ test("keeps media visible for mixed text and media messages in the feed", () => 
         type: "group",
         chatName: "Team",
         timestamp: "now",
+        date: 0,
         text: "Look at this",
         media: {
           meta: {
@@ -69,6 +72,7 @@ test("renders grouped images in a tiled row layout", () => {
       chatName: "Alice",
       senderName: "Alice",
       timestamp: "now",
+      date: 0,
       text: "",
       reactions: [],
       media: {
@@ -90,6 +94,7 @@ test("renders grouped images in a tiled row layout", () => {
       chatName: "Alice",
       senderName: "Alice",
       timestamp: "now",
+      date: 0,
       text: "",
       reactions: [],
       media: {
@@ -111,6 +116,7 @@ test("renders grouped images in a tiled row layout", () => {
       chatName: "Alice",
       senderName: "Alice",
       timestamp: "now",
+      date: 0,
       text: "",
       reactions: [],
       media: {
@@ -178,6 +184,7 @@ test("renders a single message with multiple images as a gallery", () => {
     chatName: "Team",
     senderName: "Alice",
     timestamp: "now",
+    date: 0,
     text: "Album caption",
     media: {
       meta: {
@@ -248,6 +255,7 @@ test("renders forwarded source metadata and opens resolvable forwarded targets i
         chatName: "Team",
         senderName: "Alice",
         timestamp: "now",
+        date: 0,
         text: "Forwarded text",
         sourceMessage: {
           fwdFrom: {
@@ -287,6 +295,7 @@ test("renders Telegram message entities in feed text and routes Telegram links i
         chatName: "Team",
         senderName: "Alice",
         timestamp: "now",
+        date: 0,
         text: "Bold Telegram",
         sourceMessage: {
           entities: [

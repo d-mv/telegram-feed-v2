@@ -75,8 +75,10 @@ test("sends typed message and clears composer", async () => {
           chatName: "Alice",
           senderName: "Alice",
           timestamp: "now",
+          date: 0,
           text: "Hello",
           reactions: [],
+          isFocused: false,
         }}
         onClose={vi.fn()}
       />
@@ -131,8 +133,10 @@ test("shows sent message immediately in the open thread", async () => {
           chatName: "Alice",
           senderName: "Alice",
           timestamp: "now",
+          date: 0,
           text: "Hello",
           reactions: [],
+          isFocused: false,
         }}
         onClose={vi.fn()}
       />
@@ -153,6 +157,7 @@ test("shows sent message immediately in the open thread", async () => {
     chatName: "Alice",
     senderName: "Alice",
     timestamp: "1 min ago",
+    date: Math.floor(Date.now() / 1000) - 60,
     text: "Ships immediately",
     reactions: [],
     isFocused: false,
@@ -195,6 +200,7 @@ test("renders close icon button and leave action in the overflow menu", async ()
           chatName: "Group",
           senderName: "Group",
           timestamp: "now",
+          date: 0,
           text: "Hello",
           commentsCount: 0,
           isFocused: false,
@@ -254,6 +260,7 @@ test("leaves the current chat, clears channel state, refreshes, and closes", asy
           chatName: "Group",
           senderName: "Group",
           timestamp: "now",
+          date: 0,
           text: "Hello",
           commentsCount: 0,
           isFocused: false,

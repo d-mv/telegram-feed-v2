@@ -26,6 +26,7 @@ interface Message {
   channelKey?: string;
   chatName: string;
   timestamp: string;
+  date: number;
   text: string;
   commentsCount?: number;
   media?: MediaPreview;

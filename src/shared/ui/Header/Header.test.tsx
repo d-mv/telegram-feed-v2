@@ -13,6 +13,7 @@ function createMessage(overrides: Partial<FeedItem> = {}): FeedItem {
     type: "group",
     chatName: "Team",
     timestamp: "fallback",
+    date: Math.floor(Date.now() / 1000) - 60,
     text: "Update",
     isFocused: false,
     ...overrides,
@@ -30,8 +31,7 @@ afterEach(() => {
 
 test("updates relative timestamp while the feed card stays mounted", () => {
   const message = createMessage({
-    timestamp: "1 min ago",
-    sourceMessage: { date: Math.floor(Date.now() / 1000) - 90 },
+    date: Math.floor(Date.now() / 1000) - 90,
   });
 
   render(<Header message={message}>Team</Header>);
@@ -46,17 +46,12 @@ test("updates relative timestamp while the feed card stays mounted", () => {
   expect(screen.getByText("1 hr ago")).toBeInTheDocument();
 });
 
-test("keeps provided timestamp when source message has no date", () => {
+test("renders timestamp from message date", () => {
   const message = createMessage({
-    timestamp: "2 min ago",
-    sourceMessage: {},
+    date: Math.floor(Date.now() / 1000) - 120,
   });
 
   render(<Header message={message}>Team</Header>);
-
-  act(() => {
-    vi.advanceTimersByTime(30_000);
-  });
 
   expect(screen.getByText("2 min ago")).toBeInTheDocument();
 });

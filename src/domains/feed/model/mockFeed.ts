@@ -7,6 +7,7 @@ const baseMockFeed: FeedItem[] = [
     chatName: "Elena",
     senderName: "Elena",
     timestamp: "2 min ago",
+    date: Date.now() / 1000 - 120,
     text: "Did you see the layout draft? I added a tighter card stack.",
     reactions: [
       { emoji: "👍", count: 2 },
@@ -29,6 +30,7 @@ const baseMockFeed: FeedItem[] = [
     type: "group",
     chatName: "Design Sync",
     timestamp: "12 min ago",
+    date: Date.now() / 1000 - 720,
     text: "New build is up. Please verify the dark theme contrast.",
     isFocused: false,
   },
@@ -38,6 +40,7 @@ const baseMockFeed: FeedItem[] = [
     chatName: "Vlad",
     senderName: "Vlad",
     timestamp: "25 min ago",
+    date: Date.now() / 1000 - 1500,
     text: "Let’s keep the feed minimal. I love the new typography.",
     reactions: [{ emoji: "✅", count: 3 }],
     isFocused: false,
@@ -47,6 +50,7 @@ const baseMockFeed: FeedItem[] = [
     type: "group",
     chatName: "Product Updates",
     timestamp: "1 hr ago",
+    date: Date.now() / 1000 - 3600,
     text: "Shipping status: onboarding, login, and session persistence are done.",
     isFocused: false,
     media: {
@@ -77,6 +81,7 @@ export function getMockFeedBatch(count: number): FeedItem[] {
         ...seed,
         id: `${seed.id}-${suffix}`,
         timestamp: `${suffix * 3} min ago`,
+        date: Date.now() / 1000 - suffix * 180,
         text: `${seed.text} (#${suffix})`,
       });
     } else {
@@ -84,6 +89,7 @@ export function getMockFeedBatch(count: number): FeedItem[] {
         ...seed,
         id: `${seed.id}-${suffix}`,
         timestamp: `${suffix * 4} min ago`,
+        date: Date.now() / 1000 - suffix * 240,
         text: `${seed.text} (#${suffix})`,
       });
     }
@@ -101,6 +107,7 @@ export function getMockLiveItem(): FeedItem {
       ...seed,
       id: `live-dm-${liveCounter}`,
       timestamp: "Just now",
+      date: Date.now() / 1000,
       text: `${seed.text} (live #${liveCounter})`,
     };
   }
@@ -108,6 +115,7 @@ export function getMockLiveItem(): FeedItem {
     ...seed,
     id: `live-group-${liveCounter}`,
     timestamp: "Just now",
+    date: Date.now() / 1000,
     text: `${seed.text} (live #${liveCounter})`,
   };
 }

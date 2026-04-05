@@ -75,6 +75,7 @@ test("mounts live message processing when authenticated", () => {
       chatName: "Test",
       senderName: "Test",
       timestamp: "Just now",
+      date: 0,
       text: "Hello",
       reactions: [],
       isFocused: false,
