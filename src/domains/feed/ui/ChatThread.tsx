@@ -156,12 +156,13 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
           .reverse()
           .map((message) => {
             const senderName = getSenderLabel(message, item.chatName);
-            const timestamp = message.date ? toRelativeTime(message.date) : "";
+            const timestamp = toRelativeTime(message.date);
             return {
               id: String(message.id),
               senderName,
               text: message.message ?? "",
               timestamp,
+              date: message.date,
               media: getMediaPreview(message),
               commentsCount: getMessageCommentsCount(message),
               sourceMessage: message,
@@ -261,7 +262,8 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
           id: String(comment.id),
           senderName: getSenderLabel(comment, message.chatName),
           text: comment.message ?? "",
-          timestamp: comment.date ? toRelativeTime(comment.date) : "",
+          timestamp: toRelativeTime(comment.date),
+          date: comment.date,
         }));
       setCommentsByMessage((current) => ({ ...current, [message.id]: normalized }));
     } catch {

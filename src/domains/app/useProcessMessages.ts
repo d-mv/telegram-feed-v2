@@ -64,7 +64,7 @@ export function useProcessMessages({ dal }: { dal: Dal }) {
           const chatName = formatSender(chatEntity, fallbackChatName);
           const senderEntity = await message.getSender();
           const senderName = formatSender(senderEntity, chatName);
-          const timestamp = message.date ? toRelativeTime(message.date) : "";
+          const timestamp = toRelativeTime(message.date);
           const media = getMediaPreview(message);
           const groupedId = (message as Api.Message & { groupedId?: unknown }).groupedId;
           const mediaGroupKey =
@@ -88,6 +88,7 @@ export function useProcessMessages({ dal }: { dal: Dal }) {
               chatName,
               senderName,
               timestamp,
+              date: message.date,
               text: message.message ?? "",
               commentsCount: getMessageCommentsCount(message),
               media,
@@ -104,6 +105,7 @@ export function useProcessMessages({ dal }: { dal: Dal }) {
               chatName,
               senderName,
               timestamp,
+              date: message.date,
               text: message.message ?? "",
               commentsCount: getMessageCommentsCount(message),
               media,

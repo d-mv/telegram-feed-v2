@@ -30,7 +30,8 @@ export function Header({
     };
   }, []);
 
-  const timestamp = toRelativeTime(message.date);
+  const dynamicTimestamp = toRelativeTime(message.date);
+  const timestamp = dynamicTimestamp || message.timestamp;
 
   return (
     <div className={clsx(styles.container, isThread && styles.threadContainer, className)}>

@@ -2,6 +2,9 @@ import { Api } from "telegram";
 import type { FeedItem } from "../../../types";
 
 export function toRelativeTime(unixSeconds: number): string {
+  if (typeof unixSeconds !== "number" || Number.isNaN(unixSeconds)) {
+    return "";
+  }
   const now = Date.now() / 1000;
   const diff = Math.max(0, Math.floor(now - unixSeconds));
   if (diff < 60) {
