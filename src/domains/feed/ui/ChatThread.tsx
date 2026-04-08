@@ -12,6 +12,7 @@ import { AppContext } from "../../app/AppContext";
 import {
   getMediaPreview,
   getMessageCommentsCount,
+  getReplyToId,
   mergeAlbumFeedItems,
   toRelativeTime,
 } from "../infra/telegramFeed";
@@ -208,6 +209,13 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
     node.focus({ preventScroll: true });
   }, [messages]);
 
+  useEffect(() => {
+    const focused = messages.find((m) => m.isFocused);
+    if (focused && (focused.commentsCount ?? 0) > 0) {
+      void loadComments(focused);
+    }
+  }, [messages, commentsByMessage, commentsLoading]);
+
   const handleScroll = useCallback(() => {
     const container = threadRef.current;
 
@@ -281,6 +289,7 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
     return (
       <details
         className={styles.commentsAccordion}
+        open={message.isFocused}
         onToggle={(event) => {
           if (event.currentTarget.open) {
             void loadComments(message);
@@ -332,16 +341,42 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
           const isFocusedGroup = group.some((message) => message.isFocused);
           const forwardedMeta = getForwardedMessageMeta(representative.sourceMessage);
 
+          const replyToId =
+            representative.sourceMessage instanceof Api.Message
+              ? getReplyToId(representative.sourceMessage)
+              : undefined;
+          const repliedMessage = replyToId
+            ? messages.find((m) => {
+                const source = m.sourceMessage;
+                return source instanceof Api.Message && source.id === replyToId;
+              })
+            : undefined;
+
           return (
             <div
               key={representative.id}
               className={`${styles.message} ${isFocusedGroup ? styles.messageFocused : ""} ${forwardedMeta ? styles.forwardedMessage : ""}`}
               ref={isFocusedGroup ? focusedRef : null}
+              data-feed-item-id={representative.id}
             >
               <Header isThread message={representative} className={styles.header}>
                 {representative.senderName}
               </Header>
               <ForwardedBadge sourceMessage={representative.sourceMessage} />
+              {repliedMessage && (
+                <button
+                  type="button"
+                  className={styles.reply}
+                  onClick={() => {
+                    const selector = `[data-feed-item-id="${repliedMessage.id}"]`;
+                    const node = threadRef.current?.querySelector(selector) as HTMLElement | null;
+                    node?.scrollIntoView({ block: "center", behavior: "smooth" });
+                  }}
+                >
+                  <span className={styles.replyAuthor}>{repliedMessage.senderName}</span>
+                  <span className={styles.replyText}>{repliedMessage.text || "Media"}</span>
+                </button>
+              )}
               {(!isGroupedRun || representative.text !== "") && (
                 <Text className={styles.text} sourceMessage={representative.sourceMessage}>
                   {representative.text}

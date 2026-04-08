@@ -6,21 +6,29 @@
 }
 
 .empty {
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   height: 100%;
+  width: 100%;
 }
 
 .loading {
   margin: 0;
-  padding: 8px 12px;
+  padding: 12px 20px;
   border-radius: 999px;
-  background: rgba(162, 74, 35, 0.1);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
   color: var(--accent-strong);
-  font-size: 0.75rem;
-  letter-spacing: 0.2em;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  justify-self: center;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 .error {
@@ -88,6 +96,45 @@
 .messageFocused {
   border-left: 3px solid color-mix(in srgb, var(--accent) 70%, transparent);
   padding-left: 6px;
+}
+
+.reply {
+  margin-left: 38px;
+  padding: 6px 12px;
+  border-left: 3px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--surface-2);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  cursor: pointer;
+  text-align: left;
+  max-width: fit-content;
+  transition: background 0.2s ease;
+  margin-bottom: 4px;
+}
+
+.reply:hover {
+  background: color-mix(in srgb, var(--surface-2) 90%, var(--accent) 10%);
+}
+
+.replyAuthor {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent-strong);
+  display: block;
+}
+
+.replyText {
+  font-size: 0.85rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
 }
 
 .header {

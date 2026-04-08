@@ -12,7 +12,7 @@ type ChatProps = {
 };
 
 export function Chat({ item, onClose }: ChatProps) {
-  const title = item.type === "dm" ? item.chatName : item.chatName;
+  const title = item.chatName;
   const { ensureTelegramConnected, onClearChannelState, onManualRefresh, onSendMessage } = useContext(AppContext);
   const [draft, setDraft] = useState("");
   const [isSending, setIsSending] = useState(false);

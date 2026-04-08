@@ -17,15 +17,15 @@
 .panel {
   position: relative;
   z-index: 1;
-  width: 100%;
-  max-height: 100%;
+  width: min(100%, 1100px);
+  max-height: min(100%, 940px);
   height: 100%;
   display: grid;
   grid-template-rows: auto 1fr auto;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 22px;
-  box-shadow: var(--shadow);
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05);
   overflow: hidden;
 }
 
@@ -35,11 +35,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 14px 16px 12px;
+  gap: 12px;
+  padding: 16px 24px;
   border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, white 8%), var(--surface));
+  background: var(--surface);
   width: 100%;
   max-width: 100%;
   overflow: visible;
@@ -48,19 +47,21 @@
 .title {
   margin: 0;
   font-family: var(--font-display);
+  font-weight: 600;
   flex: 1;
   min-width: 0;
-  font-size: clamp(1.02rem, 3vw, 1.18rem);
-  line-height: 1.15;
+  font-size: 1.15rem;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--ink);
 }
 
 .headerActions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .menuWrap {
@@ -73,13 +74,19 @@
   align-items: center;
   justify-content: center;
   gap: 3px;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border: none;
-  border-radius: var(--border-radius);
+  border-radius: 10px;
   background: transparent;
-  color: var(--ink);
+  color: var(--muted);
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.iconButton:hover {
+  background: var(--surface-2);
+  color: var(--ink);
 }
 
 .dot {
@@ -93,26 +100,28 @@
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  min-width: 140px;
-  padding: 8px;
+  min-width: 160px;
+  padding: 6px;
   display: grid;
-  gap: 4px;
+  gap: 2px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow);
-  z-index: 4;
+  border-radius: 12px;
+  box-shadow: var(--shadow-deep);
+  z-index: 10;
 }
 
 .menuItem {
   width: 100%;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border: none;
-  border-radius: calc(var(--border-radius) - 4px);
+  border-radius: 8px;
   background: transparent;
   color: var(--ink);
   text-align: left;
   cursor: pointer;
+  font-size: 0.95rem;
+  transition: background 0.2s ease;
 }
 
 .menuItem:hover {
@@ -128,57 +137,58 @@
 }
 
 .body {
-  padding: 12px 12px 8px;
+  padding: 0;
   display: grid;
-  gap: 16px;
   overflow: auto;
-  background: color-mix(in srgb, var(--surface) 94%, white 6%);
+  background: var(--surface);
 }
 
 .composer {
   display: flex;
   flex-wrap: nowrap;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 16px 24px 20px;
   border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-  background: color-mix(in srgb, var(--surface) 97%, white 3%);
+  background: var(--surface);
 }
 
 .error {
   margin: 0;
   width: 100%;
   color: var(--accent-strong);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  padding: 0 0 8px 12px;
 }
 
 .composerInput {
   flex: 1;
-  min-height: 42px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
-  background: color-mix(in srgb, var(--surface-2) 72%, white 28%);
-  padding: 10px 14px;
+  min-height: 44px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  padding: 11px 16px;
   color: var(--ink);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  font-size: 1rem;
+  transition: all 0.2s ease;
 }
 
 .composerInput::placeholder {
-  color: color-mix(in srgb, var(--muted) 82%, white 18%);
+  color: var(--muted);
 }
 
 .composerInput:focus {
   outline: none;
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--border) 45%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .sendButton {
-  min-height: 42px;
-  padding-inline: 16px;
+  height: 44px;
+  padding-inline: 20px;
   flex: 0 0 auto;
+  font-weight: 500;
 }
 
 @media (max-width: 720px) {
@@ -186,37 +196,40 @@
     border-radius: 0;
     border-inline: none;
     border-block: none;
+    max-height: 100%;
+    width: 100%;
   }
 
   .header {
-    padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 9px;
+    padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
   }
 
   .headerActions {
-    gap: 4px;
-    flex-shrink: 0;
+    gap: 8px;
   }
 
   .title {
-    font-size: 0.98rem;
+    font-size: 1.05rem;
   }
 
   .body {
-    padding: 8px 8px 4px;
+    padding: 0;
   }
 
   .composer {
     position: sticky;
     bottom: 0;
-    gap: 6px;
-    padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+    gap: 10px;
+    padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .composerInput {
+    border-radius: 22px;
   }
 
   .sendButton {
-    width: auto;
-    min-width: 72px;
-    justify-content: center;
-    padding-inline: 14px;
+    min-width: 64px;
+    padding-inline: 16px;
   }
 }
 

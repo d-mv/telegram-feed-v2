@@ -36,6 +36,7 @@ export function useRefresh({ dal }: { dal: Dal }) {
 
       if (cachedItems.length > 0) {
         setFeedItems(cachedItems);
+        setIsLoadingFeed(false);
       }
 
       const shouldShowLoading = !isBackground && cachedItems.length === 0 && feedItems.length === 0;
@@ -76,9 +77,7 @@ export function useRefresh({ dal }: { dal: Dal }) {
           error: message,
         });
       } finally {
-        if (shouldShowLoading) {
-          setIsLoadingFeed(false);
-        }
+        setIsLoadingFeed(false);
         inFlightRefreshRef.current = null;
       }
     })();

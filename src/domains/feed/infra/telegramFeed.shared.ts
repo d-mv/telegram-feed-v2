@@ -63,6 +63,14 @@ export function getMediaGroupKey(message: Api.Message): string | undefined {
   return undefined;
 }
 
+export function getReplyToId(message: Api.Message): number | undefined {
+  const replyTo = message.replyTo;
+  if (replyTo && typeof replyTo === "object" && "replyToMsgId" in replyTo) {
+    return (replyTo as { replyToMsgId: number }).replyToMsgId;
+  }
+  return undefined;
+}
+
 function canMergeAlbumItem(item: FeedItem): boolean {
   return Boolean(item.mediaGroupKey) && Boolean(item.media) && item.media?.meta.type === "image";
 }

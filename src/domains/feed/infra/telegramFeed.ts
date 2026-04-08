@@ -11,6 +11,7 @@ export {
   getMediaGroupKey,
   getMediaPreview,
   getMessageCommentsCount,
+  getReplyToId,
   mergeAlbumFeedItems,
   toRelativeTime,
 } from "./telegramFeed.shared";
