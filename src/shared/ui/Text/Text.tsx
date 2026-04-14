@@ -1,9 +1,7 @@
-import clsx from 'clsx'
 import type { PropsWithChildren } from 'react'
 import type { FeedItem } from '../../../types'
 import { linkifyText } from './linkify'
 import { renderTelegramText } from './renderTelegramText'
-import styles from './Text.module.css'
 
 type Props = {
   className?: string
@@ -14,7 +12,7 @@ export function Text({ children, className, sourceMessage }: PropsWithChildren<P
   if (!children) return null
 
   if (typeof children !== 'string') {
-    return <p className={clsx(styles.container, className)}>{children}</p>
+    return <p className={className} style={{ margin: 0 }}>{children}</p>
   }
 
   const telegramEntities =
@@ -30,15 +28,15 @@ export function Text({ children, className, sourceMessage }: PropsWithChildren<P
         (entity) => entity && typeof entity === 'object' && 'className' in entity && entity.className === 'MessageEntityPre',
       )
     if (hasPreBlock) {
-      return <div className={clsx(styles.container, className)}>{renderedTelegramText}</div>
+      return <div className={className} style={{ margin: 0 }}>{renderedTelegramText}</div>
     }
-    return <p className={clsx(styles.container, className)}>{renderedTelegramText}</p>
+    return <p className={className} style={{ margin: 0 }}>{renderedTelegramText}</p>
   }
 
   const segments = linkifyText(children)
 
   return (
-    <p className={clsx(styles.container, className)}>
+    <p className={className} style={{ margin: 0 }}>
       {segments.map((segment, index) => {
         if (segment.type === 'text') {
           return <span key={`text-${index}`}>{segment.value}</span>

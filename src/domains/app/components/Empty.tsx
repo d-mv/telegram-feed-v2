@@ -1,10 +1,10 @@
-import styles from "./Empty.module.css";
+import { Empty as AntEmpty } from "antd";
 
 export default function Empty() {
   return (
-    <div className={styles.container}>
-      <p className={styles.title}>No recent messages.</p>
-      <p className={styles.subtitle}>This feed only shows messages from the last 7 days.</p>
-    </div>
+    <AntEmpty
+      description="No recent messages. This feed only shows messages from the last 7 days."
+      style={{ padding: "48px 24px" }}
+    />
   );
 }

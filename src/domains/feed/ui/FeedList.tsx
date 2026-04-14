@@ -1,7 +1,7 @@
+import { Spin } from "antd";
 import type { RefObject } from "react";
 import type { FeedItem } from "../../../types";
 import { FeedCard } from "./FeedCard";
-import styles from "./FeedList.module.css";
 
 type FeedListProps = {
   items: FeedItem[];
@@ -12,12 +12,13 @@ type FeedListProps = {
 
 export function FeedList({ items, isLoadingOlder, topSentinelRef, onFocus }: FeedListProps) {
   return (
-    <div className={styles.list}>
-      <div ref={topSentinelRef} className={styles.sentinel} />
+    <div>
+      <div ref={topSentinelRef} style={{ height: 1 }} />
       {isLoadingOlder && (
-        <p className={styles.loading} aria-live="polite">
-          Loading older...
-        </p>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "16px 0" }} aria-live="polite">
+          <Spin size="small" />
+          <span>Loading older...</span>
+        </div>
       )}
       {items.map((item) => (
         <FeedCard key={item.id} item={item} onFocus={onFocus} />

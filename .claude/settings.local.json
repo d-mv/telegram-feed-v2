@@ -2,7 +2,18 @@
   "permissions": {
     "allow": [
       "mcp__todoist__get_tasks",
-      "mcp__todoist__close_task"
+      "mcp__todoist__close_task",
+      "Bash(npm install:*)",
+      "Bash(npm ls:*)",
+      "Bash(find /Users/dmelnikov/code/telegram-feed/src -name \"*.module.css\" -type f -delete)",
+      "Bash(npx tsc:*)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(npm run:*)",
+      "Bash(npm test:*)",
+      "Bash(npx vitest:*)",
+      "Bash(ls *.toml *.json)",
+      "Bash(fly deploy:*)"
     ]
   }
 }

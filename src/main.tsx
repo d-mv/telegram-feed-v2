@@ -1,10 +1,46 @@
+import { ConfigProvider, theme } from "antd";
 import { Provider } from "jotai/react";
-import { StrictMode } from "react";
+import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./domains/app/App.tsx";
 import "./index.css";
 import { runtimeLogger } from "./shared/infra/runtimeLogger";
 import { attachServiceWorkerAutoUpdate } from "./serviceWorkerAutoUpdate";
+
+function GlobalStyles() {
+  const { token } = theme.useToken();
+
+  useEffect(() => {
+    document.body.style.background = token.colorBgLayout;
+    document.body.style.color = token.colorText;
+  }, [token.colorBgLayout, token.colorText]);
+
+  return null;
+}
+
+function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [isDark, setIsDark] = useState(() =>
+    window.matchMedia("(prefers-color-scheme: dark)").matches,
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  return (
+    <ConfigProvider
+      theme={{
+        algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
+      }}
+    >
+      <GlobalStyles />
+      {children}
+    </ConfigProvider>
+  );
+}
 
 const rootElement = document.getElementById("root");
 
@@ -14,9 +50,11 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <Provider>
-      <App />
-    </Provider>
+    <ThemeProvider>
+      <Provider>
+        <App />
+      </Provider>
+    </ThemeProvider>
   </StrictMode>,
 );
 

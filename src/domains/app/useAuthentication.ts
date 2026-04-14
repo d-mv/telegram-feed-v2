@@ -1,11 +1,12 @@
 import { useSetAtom } from "jotai";
 import { useCallback, useEffect } from "react";
-import { authClientAtom, isAuthLoadingAtom } from "../../atoms/auth.atom";
+import { authClientAtom, isAuthenticatedAtom, isAuthLoadingAtom } from "../../atoms/auth.atom";
 import type { Dal } from "../dal/types";
 
 export function useAuthentication({ dal }: { dal: Dal }) {
   const setAuthClient = useSetAtom(authClientAtom);
   const setIsAuthLoading = useSetAtom(isAuthLoadingAtom);
+  const setIsAuthenticated = useSetAtom(isAuthenticatedAtom);
 
   const authenticate = useCallback(async () => {
     try {
@@ -19,6 +20,10 @@ export function useAuthentication({ dal }: { dal: Dal }) {
         },
       });
       setAuthClient(client);
+      if (sessionValue) {
+        const authorized = await client.checkSession();
+        if (authorized) setIsAuthenticated(true);
+      }
     } catch {
       const { createAuthFromEnv } = await import("../auth/infra/authFactory");
       const client = createAuthFromEnv(import.meta.env, {
@@ -30,7 +35,7 @@ export function useAuthentication({ dal }: { dal: Dal }) {
     } finally {
       setIsAuthLoading(false);
     }
-  }, [dal, setIsAuthLoading, setAuthClient]);
+  }, [dal, setIsAuthLoading, setAuthClient, setIsAuthenticated]);
 
   useEffect(() => {
     authenticate();

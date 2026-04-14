@@ -1,3 +1,4 @@
+import { theme, Typography } from "antd";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AppContext } from "../../../domains/app/AppContext";
 import {
@@ -7,7 +8,6 @@ import {
 } from "../../../domains/feed/infra/telegramFeed";
 import type { FeedItem } from "../../../types";
 import { Controls } from "./Controls";
-import styles from "./Media.module.css";
 import { runtimeLogger } from "../../infra/runtimeLogger";
 
 type Props = {
@@ -25,7 +25,7 @@ function DocumentTextIcon() {
       viewBox="0 0 24 24"
       strokeWidth="1.5"
       stroke="currentColor"
-      className={styles.attachmentIconSvg}
+      style={{ width: 32, height: 32 }}
       aria-hidden="true"
     >
       <path
@@ -38,6 +38,7 @@ function DocumentTextIcon() {
 }
 
 export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride }: Props) {
+  const { token } = theme.useToken();
   const { ensureTelegramConnected } = useContext(AppContext);
   const media = item.media;
 
@@ -68,57 +69,38 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
 
   const shouldOfferFullDownload = useMemo(() => {
     if (!media) return false;
-
     return media.meta.type === "video" || media.meta.sizeBytes >= 524288;
   }, [media]);
 
   const shouldRenderAsDocument = useMemo(() => {
-    if (!media) {
-      return false;
-    }
+    if (!media) return false;
     return media.meta.type !== "image" && media.meta.type !== "video";
   }, [media]);
 
   function formatBytes(bytes: number) {
-    if (!Number.isFinite(bytes) || bytes <= 0) {
-      return "";
-    }
+    if (!Number.isFinite(bytes) || bytes <= 0) return "";
     const kb = 1024;
     const mb = kb * 1024;
     const gb = mb * 1024;
-    if (bytes >= gb) {
-      return `${(bytes / gb).toFixed(1)} GB`;
-    }
-    if (bytes >= mb) {
-      return `${(bytes / mb).toFixed(1)} MB`;
-    }
-    if (bytes >= kb) {
-      return `${Math.round(bytes / kb)} KB`;
-    }
+    if (bytes >= gb) return `${(bytes / gb).toFixed(1)} GB`;
+    if (bytes >= mb) return `${(bytes / mb).toFixed(1)} MB`;
+    if (bytes >= kb) return `${Math.round(bytes / kb)} KB`;
     return `${bytes} B`;
   }
 
   function getDownloadLabel() {
-    if (isDownloading) {
-      return "Downloading...";
-    }
-    if (media && media.meta.sizeBytes > 0) {
-      return `Download (${formatBytes(media.meta.sizeBytes)})`;
-    }
+    if (isDownloading) return "Downloading...";
+    if (media && media.meta.sizeBytes > 0) return `Download (${formatBytes(media.meta.sizeBytes)})`;
     return "Download media";
   }
 
   function getProgressLabel() {
-    if (downloadProgress === null) {
-      return "Downloading...";
-    }
+    if (downloadProgress === null) return "Downloading...";
     return `${Math.round(downloadProgress * 100)}%`;
   }
 
   function formatTime(seconds: number) {
-    if (!Number.isFinite(seconds) || seconds < 0) {
-      return "0:00";
-    }
+    if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
     const totalSeconds = Math.floor(seconds);
     const minutes = Math.floor(totalSeconds / 60);
     const remaining = totalSeconds % 60;
@@ -127,44 +109,24 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
   }
 
   function getTimeLeftLabel() {
-    if (!duration) {
-      return "0:00";
-    }
+    if (!duration) return "0:00";
     const remaining = Math.max(0, duration - currentTime);
     return `-${formatTime(remaining)}`;
   }
 
-  function getPlayLabel() {
-    if (isPlaying) {
-      return "Pause";
-    }
-    return "Play";
-  }
-
-  function getMuteLabel() {
-    if (isMuted) {
-      return "Unmute";
-    }
-    return "Mute";
-  }
+  function getPlayLabel() { return isPlaying ? "Pause" : "Play"; }
+  function getMuteLabel() { return isMuted ? "Unmute" : "Mute"; }
 
   function handleTogglePlay() {
     const player = videoRef.current;
-    if (!player) {
-      return;
-    }
-    if (player.paused) {
-      player.play().catch(() => {});
-      return;
-    }
+    if (!player) return;
+    if (player.paused) { player.play().catch(() => {}); return; }
     player.pause();
   }
 
   function handleToggleMute() {
     const player = videoRef.current;
-    if (!player) {
-      return;
-    }
+    if (!player) return;
     const nextMuted = !player.muted;
     player.muted = nextMuted;
     setIsMuted(nextMuted);
@@ -172,17 +134,13 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
 
   function handleScrub(value: number) {
     const player = videoRef.current;
-    if (!player) {
-      return;
-    }
+    if (!player) return;
     player.currentTime = value;
     setCurrentTime(value);
   }
 
   async function handleDownload() {
-    if (!item.media) {
-      return;
-    }
+    if (!item.media) return;
     setIsDownloading(true);
     setDownloadProgress(0);
     setDownloadError("");
@@ -196,14 +154,8 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
         nextUrl = await downloadMediaForItem(item, ensureTelegramConnected);
       }
       const url = nextUrl;
-      if (!url) {
-        setDownloadError("Download failed");
-        return;
-      }
-      if (item.media.meta.type === "video") {
-        setVideoUrl(url);
-        return;
-      }
+      if (!url) { setDownloadError("Download failed"); return; }
+      if (item.media.meta.type === "video") { setVideoUrl(url); return; }
       setPreviewUrl(url);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Download failed";
@@ -216,41 +168,21 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
 
   useEffect(() => {
     if (!media || media.url || previewUrl || previewFailed) return;
-
     let active = true;
     downloadThumbnailForItem(item, 480, ensureTelegramConnected)
-      .then((url) => {
-        if (active && url) {
-          setPreviewUrl(url);
-        }
-      })
-      .catch((error) => {
-        runtimeLogger.error("Failed to load media preview", error);
-      });
-
-    return () => {
-      active = false;
-    };
+      .then((url) => { if (active && url) setPreviewUrl(url); })
+      .catch((error) => { runtimeLogger.error("Failed to load media preview", error); });
+    return () => { active = false; };
   }, [ensureTelegramConnected, item, media, previewUrl, previewFailed]);
 
   useEffect(() => {
-    if (!media || media.meta.type !== "video") {
-      return;
-    }
-    if (videoUrl) {
-      return;
-    }
+    if (!media || media.meta.type !== "video") return;
+    if (videoUrl) return;
     let active = true;
     getCachedMediaUrl(item)
-      .then((url) => {
-        if (active && url) {
-          setVideoUrl(url);
-        }
-      })
+      .then((url) => { if (active && url) setVideoUrl(url); })
       .catch(() => {});
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [item, media, videoUrl]);
 
   if (!media) return null;
@@ -265,7 +197,12 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
           src={previewUrl}
           alt={media.alt}
           loading="lazy"
-          className={styles.image}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: "block",
+          }}
           onError={() => {
             setPreviewUrl(undefined);
             setPreviewFailed(true);
@@ -275,7 +212,7 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
 
     if (media.meta.type === "video" && !shouldRenderAsDocument) {
       return (
-        <div className={styles["container-video"]}>
+        <div style={{ position: "relative", width: "100%", height: "100%" }}>
           <video
             ref={videoRef}
             src={videoUrl}
@@ -283,7 +220,7 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
             autoPlay={false}
             muted={isMuted}
             playsInline
-            className={styles.video}
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
             aria-label="Video media"
             onClick={(event) => event.stopPropagation()}
             onLoadedMetadata={(event) => {
@@ -294,10 +231,7 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
               const target = event.currentTarget;
               setCurrentTime(target.currentTime || 0);
             }}
-            onPlay={() => {
-              setIsPlaying(true);
-              onVideoPlay?.();
-            }}
+            onPlay={() => { setIsPlaying(true); onVideoPlay?.(); }}
             onPause={() => setIsPlaying(false)}
             onEnded={() => setIsPlaying(false)}
           />
@@ -323,18 +257,20 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
   }
 
   function renderAttachment() {
-    if (!media || !shouldRenderAsDocument) {
-      return null;
-    }
+    if (!media || !shouldRenderAsDocument) return null;
     const fileLabel = media.meta.fileName || media.meta.mimeType || "Attachment";
     return (
-      <div className={styles.attachment}>
-        <span className={styles.attachmentIcon}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: token.colorBgContainer, border: `1px solid ${token.colorBorder}`, borderRadius: token.borderRadius }}>
+        <span style={{ color: token.colorTextSecondary }}>
           <DocumentTextIcon />
         </span>
-        <div className={styles.attachmentMeta}>
-          <p className={styles.attachmentName}>{fileLabel}</p>
-          <p className={styles.attachmentType}>{formatBytes(media.meta.sizeBytes)}</p>
+        <div style={{ minWidth: 0 }}>
+          <Typography.Text strong style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {fileLabel}
+          </Typography.Text>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {formatBytes(media.meta.sizeBytes)}
+          </Typography.Text>
         </div>
       </div>
     );
@@ -342,32 +278,54 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
 
   return (
     <div
-      className={`${styles.container} ${grayscale ? styles.grayscale : ""}`.trim()}
       data-media-type={media.meta.type}
-      style={{ aspectRatio: ratio }}
+      style={{
+        position: "relative",
+        width: "100%",
+        aspectRatio: ratio,
+        overflow: "hidden",
+        borderRadius: token.borderRadius,
+        background: token.colorBgLayout,
+        filter: grayscale ? "grayscale(100%)" : undefined,
+      }}
     >
       {renderMedia()}
       {renderAttachment()}
       {isDownloading && media.meta.type === "video" && (
-        <div className={styles.progress}>
-          <div className={styles["progress-label"]}>{getProgressLabel()}</div>
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)" }}>
+          <Typography.Text style={{ color: "#fff", fontSize: 14 }}>{getProgressLabel()}</Typography.Text>
         </div>
       )}
       {(shouldOfferFullDownload || downloadError) && !videoUrl && (
         <button
           type="button"
-          className={styles["download-button"]}
           aria-label={getDownloadLabel()}
           onClick={(event) => {
             event.stopPropagation();
             handleDownload();
           }}
           disabled={isDownloading}
+          style={{
+            position: "absolute",
+            bottom: 8,
+            right: 8,
+            background: "rgba(0,0,0,0.6)",
+            border: "none",
+            borderRadius: token.borderRadius,
+            color: "#fff",
+            padding: "6px 10px",
+            cursor: "pointer",
+            fontSize: 12,
+          }}
         >
-          <span className={styles.downloadIcon} aria-hidden="true" />
+          {isDownloading ? "⏳" : "⬇"}
         </button>
       )}
-      {downloadError && <span className={styles["download-error"]}>{downloadError}</span>}
+      {downloadError && (
+        <Typography.Text type="danger" style={{ position: "absolute", bottom: 8, left: 8, fontSize: 11 }}>
+          {downloadError}
+        </Typography.Text>
+      )}
     </div>
   );
 }

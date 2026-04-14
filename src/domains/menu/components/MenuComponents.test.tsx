@@ -101,7 +101,10 @@ test("menu dialog closes by escape and backdrop", async () => {
   );
 
   await user.keyboard("{Escape}");
-  await user.click(screen.getByText("Dialog").closest("main")!.previousElementSibling as HTMLElement);
+  const mask = document.querySelector(".ant-drawer-mask") as HTMLElement | null;
+  if (mask) {
+    await user.click(mask);
+  }
 
   expect(onClose).toHaveBeenCalledTimes(2);
 });

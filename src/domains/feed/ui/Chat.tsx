@@ -1,9 +1,8 @@
+import { Alert, Button, Drawer, Dropdown, Flex, Input, theme, Typography } from "antd";
 import { useContext, useEffect, useState } from "react";
-import { Button } from "../../../shared/ui/Button/Button";
 import type { FeedItem } from "../../../types";
 import { AppContext } from "../../app/AppContext";
 import { leaveFeedChannel } from "../../search/infra/telegramMembership";
-import styles from "./Chat.module.css";
 import { ChatThread } from "./ChatThread";
 
 type ChatProps = {
@@ -12,31 +11,27 @@ type ChatProps = {
 };
 
 export function Chat({ item, onClose }: ChatProps) {
+  const { token } = theme.useToken();
   const title = item.chatName;
   const { ensureTelegramConnected, onClearChannelState, onManualRefresh, onSendMessage } = useContext(AppContext);
   const [draft, setDraft] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [error, setError] = useState("");
   const [sentMessages, setSentMessages] = useState<FeedItem[]>([]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onClose();
-      }
+      if (event.key === "Escape") onClose();
     }
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
   async function handleSend() {
     const next = draft.trim();
-    if (next === "" || isSending) {
-      return;
-    }
+    if (next === "" || isSending) return;
+    const now = Math.floor(Date.now() / 1000);
     const optimisticMessage: FeedItem =
       item.type === "dm"
         ? {
@@ -46,6 +41,7 @@ export function Chat({ item, onClose }: ChatProps) {
             chatName: item.chatName,
             senderName: "You",
             timestamp: "Just now",
+            date: now,
             text: next,
             commentsCount: 0,
             reactions: [],
@@ -58,6 +54,7 @@ export function Chat({ item, onClose }: ChatProps) {
             chatName: item.chatName,
             senderName: "You",
             timestamp: "Just now",
+            date: now,
             text: next,
             commentsCount: 0,
             isFocused: false,
@@ -82,12 +79,8 @@ export function Chat({ item, onClose }: ChatProps) {
   }
 
   async function handleLeave() {
-    if (isLeaving || !window.confirm(`Leave ${title}?`)) {
-      return;
-    }
-
+    if (isLeaving || !window.confirm(`Leave ${title}?`)) return;
     setIsLeaving(true);
-    setIsMenuOpen(false);
     setError("");
     try {
       await leaveFeedChannel(item, ensureTelegramConnected);
@@ -101,83 +94,79 @@ export function Chat({ item, onClose }: ChatProps) {
     }
   }
 
+  const menuItems = [
+    {
+      key: "leave",
+      label: isLeaving ? "Leaving..." : "Leave",
+      danger: true,
+      disabled: isLeaving,
+      onClick: () => { void handleLeave(); },
+    },
+  ];
+
   return (
-    <div className={styles.overlay} role="dialog" aria-modal="true">
-      <button className={styles.backdrop} type="button" onClick={onClose}>
-        <span className={styles.srOnly}>Close</span>
-      </button>
-      <section className={styles.panel}>
-        <header className={styles.header}>
-          <h2 className={styles.title}>{title}</h2>
-          <div className={styles.headerActions}>
-            <div className={styles.menuWrap}>
-              <button
-                type="button"
-                className={styles.iconButton}
-                aria-label="More actions"
-                style={{ border: "none", background: "transparent" }}
-                onClick={() => setIsMenuOpen((current) => !current)}
-              >
-                <span className={styles.dot} />
-                <span className={styles.dot} />
-                <span className={styles.dot} />
-              </button>
-              {isMenuOpen && (
-                <div className={styles.menu} role="menu" style={{ zIndex: 4 }}>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={styles.menuItem}
-                    onClick={() => {
-                      void handleLeave();
-                    }}
-                    disabled={isLeaving}
-                  >
-                    {isLeaving ? "Leaving..." : "Leave"}
-                  </button>
-                </div>
-              )}
-            </div>
+    <Drawer
+      open
+      onClose={onClose}
+      placement="right"
+      width={Math.min(560, window.innerWidth)}
+      title={
+        <Flex align="center" justify="space-between">
+          <Typography.Text strong style={{ fontSize: 16 }}>{title}</Typography.Text>
+          <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
             <Button
-              variant="image"
-              type="button"
-              onClick={onClose}
-              imgSrc="/icons/close_dark.svg"
-              imgAlt="Close"
-            />
-          </div>
-        </header>
-        <div className={styles.body}>
-          <ChatThread item={item} sentMessages={sentMessages} />
-        </div>
-        <footer className={styles.composer}>
-          {error !== "" && <p className={styles.error}>{error}</p>}
-          <input
-            className={styles.composerInput}
-            type="text"
-            placeholder="Write a reply..."
-            aria-label="Write a reply"
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                void handleSend();
+              type="text"
+              icon={
+                <Flex gap={3} align="center">
+                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: token.colorText, display: "block" }} />
+                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: token.colorText, display: "block" }} />
+                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: token.colorText, display: "block" }} />
+                </Flex>
               }
-            }}
-            disabled={isSending}
-          />
-          <Button
-            variant="primary"
-            type="button"
-            className={styles.sendButton}
-            onClick={() => void handleSend()}
-            disabled={isSending || draft.trim() === ""}
-          >
-            {isSending ? "Sending..." : "Send"}
-          </Button>
-        </footer>
-      </section>
-    </div>
+              aria-label="More actions"
+            />
+          </Dropdown>
+        </Flex>
+      }
+      closable
+      styles={{
+        body: { padding: 0, display: "flex", flexDirection: "column" },
+        header: { borderBottom: `1px solid ${token.colorBorder}` },
+      }}
+      footer={
+        <Flex vertical gap={8}>
+          {error !== "" && <Alert message={error} type="error" showIcon />}
+          <Flex gap={8}>
+            <Input
+              placeholder="Write a reply..."
+              aria-label="Write a reply"
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void handleSend();
+                }
+              }}
+              disabled={isSending}
+              size="large"
+            />
+            <Button
+              type="primary"
+              onClick={() => void handleSend()}
+              disabled={isSending || draft.trim() === ""}
+              loading={isSending}
+              size="large"
+            >
+              {isSending ? "Sending..." : "Send"}
+            </Button>
+          </Flex>
+        </Flex>
+      }
+    >
+      <div style={{ flex: 1, overflow: "hidden", height: "100%" }}>
+        <ChatThread item={item} sentMessages={sentMessages} />
+      </div>
+    </Drawer>
   );
 }

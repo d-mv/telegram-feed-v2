@@ -1,5 +1,5 @@
-import { Button, type ButtonVariant } from "../../../shared/ui/Button/Button";
-import styles from "./SettingButtonRow.module.css";
+import { Button, Flex, Typography } from "antd";
+import type { ButtonVariant } from "../../../shared/ui/Button/Button";
 
 type Props = {
   title: string;
@@ -18,19 +18,21 @@ export function SettingButtonRow({
   disabled,
   variant = "primary",
 }: Props) {
+  const antType = variant === "primary" ? "primary" : variant === "ghost" ? "text" : "default";
+
   return (
-    <div className={styles.container}>
-      <p className={styles.title}>{title}</p>
-      {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
-      <Button
-        type="button"
-        variant={variant}
-        onClick={onClick}
-        disabled={disabled}
-        className={styles.button}
-      >
+    <Flex align="center" justify="space-between" gap={12} style={{ padding: "12px 0", borderBottom: "1px solid var(--ant-color-border-secondary, #f0f0f0)" }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <Typography.Text strong style={{ display: "block" }}>{title}</Typography.Text>
+        {subtitle && (
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {subtitle}
+          </Typography.Text>
+        )}
+      </div>
+      <Button type={antType} onClick={onClick} disabled={disabled}>
         {buttonText}
       </Button>
-    </div>
+    </Flex>
   );
 }

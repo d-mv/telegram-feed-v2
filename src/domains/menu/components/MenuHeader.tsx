@@ -1,6 +1,5 @@
+import { Button, Flex, Typography } from "antd";
 import type { PropsWithChildren } from "react";
-import { Button } from "../../../shared/ui/Button/Button";
-import styles from "./MenuHeader.module.css";
 
 type Props = {
   onClose: () => void;
@@ -9,17 +8,13 @@ type Props = {
 
 export function MenuHeader({ onClose, children, titleId }: PropsWithChildren<Props>) {
   return (
-    <header className={styles.container}>
-      <h3 id={titleId} className={styles.title}>
+    <Flex align="center" justify="space-between" style={{ padding: "12px 16px", borderBottom: "1px solid var(--ant-color-border)" }}>
+      <Typography.Title id={titleId} level={5} style={{ margin: 0 }}>
         {children}
-      </h3>
-      <Button
-        variant="image"
-        type="button"
-        onClick={onClose}
-        imgSrc="/icons/close_dark.svg"
-        imgAlt="Close"
-      />
-    </header>
+      </Typography.Title>
+      <Button type="text" onClick={onClose} aria-label="Close">
+        ✕
+      </Button>
+    </Flex>
   );
 }

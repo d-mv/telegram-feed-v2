@@ -1,256 +1,257 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Alert, Card, Flex, theme, Typography } from "antd";
+import { useEffect, useMemo, useState } from "react";
 import type {
   AuthClient,
   QrLoginResult,
   QrLoginToken,
-} from '../model/authTypes'
-import { createMockAuth } from '../model/mockAuth'
-import { LoginToggle } from './LoginToggle'
-import styles from './LoginView.module.css'
-import { PhoneLoginFields } from './PhoneLoginFields'
-import { QrLoginPanel } from './QrLoginPanel'
-import { TwoFactorForm } from './TwoFactorForm'
+} from "../model/authTypes";
+import { createMockAuth } from "../model/mockAuth";
+import { LoginToggle } from "./LoginToggle";
+import { PhoneLoginFields } from "./PhoneLoginFields";
+import { QrLoginPanel } from "./QrLoginPanel";
+import { TwoFactorForm } from "./TwoFactorForm";
 
-type LoginMode = 'phone' | 'qr'
+type LoginMode = "phone" | "qr";
 
 type LoginViewProps = {
-  auth?: AuthClient
-  onAuthenticated?: () => void
-}
+  auth?: AuthClient;
+  onAuthenticated?: () => void;
+};
 
 export function LoginView({ auth, onAuthenticated }: LoginViewProps) {
-  const [loginMode, setLoginMode] = useState<LoginMode>('phone')
-  const [codeSent, setCodeSent] = useState(false)
-  const [needsTwoFactor, setNeedsTwoFactor] = useState(false)
-  const [phone, setPhone] = useState('')
-  const [code, setCode] = useState('')
-  const [password, setPassword] = useState('')
-  const [passwordHint, setPasswordHint] = useState('')
-  const [isSending, setIsSending] = useState(false)
-  const [isSubmittingCode, setIsSubmittingCode] = useState(false)
-  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false)
-  const [error, setError] = useState('')
-  const [qrToken, setQrToken] = useState<QrLoginToken | null>(null)
-  const [qrStatus, setQrStatus] = useState<'idle' | 'loading' | 'waiting'>(
-    'idle',
-  )
-  const [qrError, setQrError] = useState('')
+  const { token } = theme.useToken();
+  const [loginMode, setLoginMode] = useState<LoginMode>("phone");
+  const [codeSent, setCodeSent] = useState(false);
+  const [needsTwoFactor, setNeedsTwoFactor] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordHint, setPasswordHint] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [isSubmittingCode, setIsSubmittingCode] = useState(false);
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [qrToken, setQrToken] = useState<QrLoginToken | null>(null);
+  const [qrStatus, setQrStatus] = useState<"idle" | "loading" | "waiting">("idle");
+  const [qrError, setQrError] = useState("");
 
-  const fallbackAuth = useMemo(() => createMockAuth(), [])
-  const authClient = auth ?? fallbackAuth
+  const fallbackAuth = useMemo(() => createMockAuth(), []);
+  const authClient = auth ?? fallbackAuth;
 
   function resetFlow() {
-    setCodeSent(false)
-    setNeedsTwoFactor(false)
-    setCode('')
-    setPassword('')
-    setPasswordHint('')
-    setError('')
-    setIsSending(false)
-    setIsSubmittingCode(false)
-    setIsSubmittingPassword(false)
-    setQrToken(null)
-    setQrStatus('idle')
-    setQrError('')
+    setCodeSent(false);
+    setNeedsTwoFactor(false);
+    setCode("");
+    setPassword("");
+    setPasswordHint("");
+    setError("");
+    setIsSending(false);
+    setIsSubmittingCode(false);
+    setIsSubmittingPassword(false);
+    setQrToken(null);
+    setQrStatus("idle");
+    setQrError("");
   }
 
   function handleModeChange(mode: LoginMode) {
-    if (mode === loginMode) {
-      return
-    }
-    setLoginMode(mode)
-    resetFlow()
+    if (mode === loginMode) return;
+    setLoginMode(mode);
+    resetFlow();
   }
 
   function handleQrResult(result: QrLoginResult) {
-    if (result.status === 'logged_in') {
-      onAuthenticated?.()
-      return
+    if (result.status === "logged_in") { onAuthenticated?.(); return; }
+    if (result.status === "needs_2fa") {
+      setNeedsTwoFactor(true);
+      setPasswordHint(result.hint ?? "");
+      setQrToken(null);
+      setQrStatus("idle");
+      return;
     }
-    if (result.status === 'needs_2fa') {
-      setNeedsTwoFactor(true)
-      setPasswordHint(result.hint ?? '')
-      setQrToken(null)
-      setQrStatus('idle')
-      return
+    if (result.status === "token") {
+      setQrToken(result.token);
+      setQrStatus("waiting");
+      return;
     }
-    if (result.status === 'token') {
-      setQrToken(result.token)
-      setQrStatus('waiting')
-      return
-    }
-    if (result.status === 'pending') {
-      setQrStatus('waiting')
-    }
+    if (result.status === "pending") setQrStatus("waiting");
   }
 
   async function startQrLogin(showError = true) {
-    setQrError('')
-    setQrStatus('loading')
-    setQrToken(null)
+    setQrError("");
+    setQrStatus("loading");
+    setQrToken(null);
     try {
-      const result = await authClient.requestQrLogin()
-      handleQrResult(result)
+      const result = await authClient.requestQrLogin();
+      handleQrResult(result);
     } catch {
-      if (showError) {
-        setQrError('Could not start QR login. Please try again.')
-      }
-      setQrStatus('idle')
+      if (showError) setQrError("Could not start QR login. Please try again.");
+      setQrStatus("idle");
     }
   }
 
   async function handleRefreshQr() {
-    setNeedsTwoFactor(false)
-    setPassword('')
-    setPasswordHint('')
-    await startQrLogin()
+    setNeedsTwoFactor(false);
+    setPassword("");
+    setPasswordHint("");
+    await startQrLogin();
   }
 
   useEffect(() => {
-    if (loginMode !== 'qr') {
-      return
-    }
+    if (loginMode !== "qr") return;
 
-    let isActive = true
-    let pollId: number | null = null
+    let isActive = true;
+    let pollId: number | null = null;
 
-    startQrLogin(false)
+    startQrLogin(false);
 
     pollId = window.setInterval(async () => {
       try {
-        const result = await authClient.checkQrLogin()
-        if (isActive) {
-          handleQrResult(result)
-        }
+        const result = await authClient.checkQrLogin();
+        if (isActive) handleQrResult(result);
       } catch {
-        if (isActive) {
-          setQrError('QR login failed. Please try again.')
-        }
+        if (isActive) setQrError("QR login failed. Please try again.");
       }
-    }, 3000)
+    }, 3000);
 
     return () => {
-      isActive = false
-      if (pollId) {
-        window.clearInterval(pollId)
-      }
-    }
-  }, [authClient, loginMode])
+      isActive = false;
+      if (pollId) window.clearInterval(pollId);
+    };
+  }, [authClient, loginMode]);
 
   async function handleSendCode() {
-    setError('')
-    setIsSending(true)
+    setError("");
+    setIsSending(true);
     try {
-      await authClient.sendCode(phone)
-      setCodeSent(true)
+      await authClient.sendCode(phone);
+      setCodeSent(true);
     } catch {
-      setError('Could not send code. Please try again.')
+      setError("Could not send code. Please try again.");
     } finally {
-      setIsSending(false)
+      setIsSending(false);
     }
   }
 
   async function handleSubmitCode() {
-    setError('')
-    setIsSubmittingCode(true)
+    setError("");
+    setIsSubmittingCode(true);
     try {
-      const result = await authClient.submitCode(code)
-      if (result.status === 'needs_2fa') {
-        setNeedsTwoFactor(true)
-        setPasswordHint(result.hint ?? '')
-        return
+      const result = await authClient.submitCode(code);
+      if (result.status === "needs_2fa") {
+        setNeedsTwoFactor(true);
+        setPasswordHint(result.hint ?? "");
+        return;
       }
-      onAuthenticated?.()
+      onAuthenticated?.();
     } catch {
-      setError('Could not submit code. Please try again.')
+      setError("Could not submit code. Please try again.");
     } finally {
-      setIsSubmittingCode(false)
+      setIsSubmittingCode(false);
     }
   }
 
   async function handleSubmitPassword() {
-    setError('')
-    setIsSubmittingPassword(true)
+    setError("");
+    setIsSubmittingPassword(true);
     try {
-      await authClient.submitPassword(password)
-      onAuthenticated?.()
+      await authClient.submitPassword(password);
+      onAuthenticated?.();
     } catch {
-      setError('Could not submit password. Please try again.')
+      setError("Could not submit password. Please try again.");
     } finally {
-      setIsSubmittingPassword(false)
+      setIsSubmittingPassword(false);
     }
   }
 
-  const expiresAt = qrToken ? qrToken.expires * 1000 : null
-  const isQrExpired = Boolean(expiresAt && Date.now() > expiresAt)
+  const expiresAt = qrToken ? qrToken.expires * 1000 : null;
+  const isQrExpired = Boolean(expiresAt && Date.now() > expiresAt);
 
   return (
-    <div className={styles.loginShell}>
-      <div className={styles.loginCard}>
-        <header className={styles.loginHeader}>
-          <p className={styles.loginEyebrow}>Telegram Feed</p>
-          <h1 className={styles.loginTitle}>
-            Sign in to keep the river moving.
-          </h1>
-          <p className={styles.loginSubtitle}>
-            Phone or QR login. We never auto-load media or autoplay video.
-          </p>
-        </header>
-        <form
-          className={styles.loginForm}
-          onSubmit={(event) => event.preventDefault()}
-        >
-          <LoginToggle mode={loginMode} onChange={handleModeChange} />
-          {loginMode === 'phone' && (
-            <PhoneLoginFields
-              phone={phone}
-              code={code}
-              codeSent={codeSent}
-              isSending={isSending}
-              isSubmittingCode={isSubmittingCode}
-              onPhoneChange={setPhone}
-              onCodeChange={setCode}
-              onSendCode={handleSendCode}
-              onSubmitCode={handleSubmitCode}
-              onReset={resetFlow}
-            />
-          )}
-          {loginMode === 'qr' && (
-            <QrLoginPanel
-              status={qrStatus}
-              token={qrToken}
-              error={qrError}
-              isExpired={isQrExpired}
-              onRefresh={handleRefreshQr}
-              onReset={resetFlow}
-            />
-          )}
-          {needsTwoFactor && (
-            <TwoFactorForm
-              password={password}
-              hint={passwordHint}
-              isSubmitting={isSubmittingPassword}
-              onPasswordChange={setPassword}
-              onSubmit={handleSubmitPassword}
-            />
-          )}
-          {error !== '' && <p className={styles.loginError}>{error}</p>}
-        </form>
-      </div>
-      <div className={styles.loginPanel}>
-        <div>
-          <h2 className={styles.loginPanelTitle}>One feed, every channel.</h2>
-          <p className={styles.loginPanelText}>
-            The login is the only gate. Once you are in, the feed stays fast,
-            chronological, and intentionally quiet.
-          </p>
-        </div>
-        <div className={styles.loginPanelFooter}>
-          <span>Client-side only</span>
-          <span>System theme</span>
-          <span>Greyscale media</span>
-        </div>
-      </div>
-    </div>
-  )
+    <Flex
+      align="center"
+      justify="center"
+      style={{ minHeight: "100vh", padding: 24, background: token.colorBgLayout }}
+    >
+      <Flex gap={24} align="stretch" style={{ width: "100%", maxWidth: 900 }} wrap="wrap">
+        <Card style={{ flex: "1 1 320px", minWidth: 280 }}>
+          <Flex vertical gap={16}>
+            <div>
+              <Typography.Text type="secondary" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 1 }}>
+                Telegram Feed
+              </Typography.Text>
+              <Typography.Title level={3} style={{ margin: 0 }}>
+                Sign in to keep the river moving.
+              </Typography.Title>
+              <Typography.Text type="secondary">
+                Phone or QR login. We never auto-load media or autoplay video.
+              </Typography.Text>
+            </div>
+            <form onSubmit={(e) => e.preventDefault()}>
+              <LoginToggle mode={loginMode} onChange={handleModeChange} />
+              <div style={{ marginTop: 16 }}>
+                {loginMode === "phone" && (
+                  <PhoneLoginFields
+                    phone={phone}
+                    code={code}
+                    codeSent={codeSent}
+                    isSending={isSending}
+                    isSubmittingCode={isSubmittingCode}
+                    onPhoneChange={setPhone}
+                    onCodeChange={setCode}
+                    onSendCode={handleSendCode}
+                    onSubmitCode={handleSubmitCode}
+                    onReset={resetFlow}
+                  />
+                )}
+                {loginMode === "qr" && (
+                  <QrLoginPanel
+                    status={qrStatus}
+                    token={qrToken}
+                    error={qrError}
+                    isExpired={isQrExpired}
+                    onRefresh={handleRefreshQr}
+                    onReset={resetFlow}
+                  />
+                )}
+                {needsTwoFactor && (
+                  <div style={{ marginTop: 16 }}>
+                    <TwoFactorForm
+                      password={password}
+                      hint={passwordHint}
+                      isSubmitting={isSubmittingPassword}
+                      onPasswordChange={setPassword}
+                      onSubmit={handleSubmitPassword}
+                    />
+                  </div>
+                )}
+              </div>
+              {error !== "" && (
+                <Alert message={error} type="error" showIcon style={{ marginTop: 12 }} />
+              )}
+            </form>
+          </Flex>
+        </Card>
+
+        <Card style={{ flex: "1 1 240px", minWidth: 200, background: token.colorPrimary, borderColor: token.colorPrimary }}>
+          <Flex vertical justify="space-between" style={{ height: "100%", minHeight: 200 }}>
+            <div>
+              <Typography.Title level={4} style={{ color: "#fff", margin: 0 }}>
+                One feed, every channel.
+              </Typography.Title>
+              <Typography.Text style={{ color: "rgba(255,255,255,0.85)" }}>
+                The login is the only gate. Once you are in, the feed stays fast, chronological, and intentionally quiet.
+              </Typography.Text>
+            </div>
+            <Flex gap={16} style={{ marginTop: 24 }}>
+              {["Client-side only", "System theme", "Greyscale media"].map((label) => (
+                <Typography.Text key={label} style={{ color: "rgba(255,255,255,0.7)", fontSize: 12 }}>
+                  {label}
+                </Typography.Text>
+              ))}
+            </Flex>
+          </Flex>
+        </Card>
+      </Flex>
+    </Flex>
+  );
 }

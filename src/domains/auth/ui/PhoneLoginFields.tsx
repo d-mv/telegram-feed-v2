@@ -1,18 +1,17 @@
-import { Button } from '../../../shared/ui/Button/Button'
-import styles from './LoginView.module.css'
+import { Button, Flex, Input, Typography } from "antd";
 
 type PhoneLoginFieldsProps = {
-  phone: string
-  code: string
-  codeSent: boolean
-  isSending: boolean
-  isSubmittingCode: boolean
-  onPhoneChange: (value: string) => void
-  onCodeChange: (value: string) => void
-  onSendCode: () => void
-  onSubmitCode: () => void
-  onReset: () => void
-}
+  phone: string;
+  code: string;
+  codeSent: boolean;
+  isSending: boolean;
+  isSubmittingCode: boolean;
+  onPhoneChange: (value: string) => void;
+  onCodeChange: (value: string) => void;
+  onSendCode: () => void;
+  onSubmitCode: () => void;
+  onReset: () => void;
+};
 
 export function PhoneLoginFields({
   phone,
@@ -28,35 +27,37 @@ export function PhoneLoginFields({
 }: PhoneLoginFieldsProps) {
   return (
     <>
-      <div className={styles.loginField}>
-        <label className={styles.loginLabel} htmlFor="login-phone">
-          Phone
+      <div style={{ marginBottom: 12 }}>
+        <label htmlFor="login-phone">
+          <Typography.Text strong style={{ display: "block", marginBottom: 4 }}>Phone</Typography.Text>
         </label>
-        <input
+        <Input
           id="login-phone"
           name="phone"
           type="tel"
           placeholder="+1 202 555 0118"
           value={phone}
           onChange={(event) => onPhoneChange(event.target.value)}
-          className={styles.loginInput}
+          size="large"
         />
       </div>
       <Button
-        type="button"
-        variant="primary"
+        type="primary"
+        block
         onClick={onSendCode}
-        disabled={phone.trim() === '' || isSending}
+        disabled={phone.trim() === "" || isSending}
+        loading={isSending}
+        size="large"
       >
-        {isSending ? 'Sending...' : 'Send code'}
+        {isSending ? "Sending..." : "Send code"}
       </Button>
       {codeSent && (
         <>
-          <div className={styles.loginField}>
-            <label className={styles.loginLabel} htmlFor="login-code">
-              Code
+          <div style={{ marginBottom: 12, marginTop: 16 }}>
+            <label htmlFor="login-code">
+              <Typography.Text strong style={{ display: "block", marginBottom: 4 }}>Code</Typography.Text>
             </label>
-            <input
+            <Input
               id="login-code"
               name="code"
               type="text"
@@ -64,23 +65,26 @@ export function PhoneLoginFields({
               placeholder="12345"
               value={code}
               onChange={(event) => onCodeChange(event.target.value)}
-              className={styles.loginInput}
+              size="large"
             />
           </div>
-          <div className={styles.loginActions}>
+          <Flex gap={8}>
             <Button
-              type="button"
+              type="primary"
+              style={{ flex: 1 }}
               onClick={onSubmitCode}
-              disabled={isSubmittingCode || code.trim() === ''}
+              disabled={isSubmittingCode || code.trim() === ""}
+              loading={isSubmittingCode}
+              size="large"
             >
-              {isSubmittingCode ? 'Submitting...' : 'Submit code'}
+              {isSubmittingCode ? "Submitting..." : "Submit code"}
             </Button>
-            <Button type="button" variant="ghost" onClick={onReset}>
+            <Button type="text" onClick={onReset} size="large">
               Reset
             </Button>
-          </div>
+          </Flex>
         </>
       )}
     </>
-  )
+  );
 }

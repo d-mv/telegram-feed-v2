@@ -1,30 +1,29 @@
-import { Button } from '../../../shared/ui/Button/Button'
-import styles from './LoginView.module.css'
+import { Button, Flex } from "antd";
 
-type LoginMode = 'phone' | 'qr'
+type LoginMode = "phone" | "qr";
 
 type LoginToggleProps = {
-  mode: LoginMode
-  onChange: (mode: LoginMode) => void
-}
+  mode: LoginMode;
+  onChange: (mode: LoginMode) => void;
+};
 
 export function LoginToggle({ mode, onChange }: LoginToggleProps) {
   return (
-    <div className={styles.loginToggle}>
+    <Flex gap={8} style={{ marginBottom: 16 }}>
       <Button
-        type="button"
-        variant={mode === 'phone' ? 'primary' : 'ghost'}
-        onClick={() => onChange('phone')}
+        type={mode === "phone" ? "primary" : "default"}
+        onClick={() => onChange("phone")}
+        style={{ flex: 1 }}
       >
         Phone
       </Button>
       <Button
-        type="button"
-        variant={mode === 'qr' ? 'primary' : 'ghost'}
-        onClick={() => onChange('qr')}
+        type={mode === "qr" ? "primary" : "default"}
+        onClick={() => onChange("qr")}
+        style={{ flex: 1 }}
       >
-        QR Code
+        QR
       </Button>
-    </div>
-  )
+    </Flex>
+  );
 }

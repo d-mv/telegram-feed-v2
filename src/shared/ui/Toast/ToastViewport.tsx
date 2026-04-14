@@ -1,6 +1,6 @@
+import { Alert } from "antd";
 import { useAtomValue } from "jotai/react";
 import { toastsAtom } from "../../../atoms/toasts.atom";
-import styles from "./ToastViewport.module.css";
 
 export function ToastViewport() {
   const toasts = useAtomValue(toastsAtom);
@@ -10,10 +10,23 @@ export function ToastViewport() {
   }
 
   return (
-    <div className={styles.viewport} aria-live="polite" aria-atomic="true">
+    <div
+      aria-live="polite"
+      aria-atomic="true"
+      style={{
+        position: "fixed",
+        bottom: 24,
+        right: 24,
+        zIndex: 9999,
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        maxWidth: 360,
+      }}
+    >
       {toasts.map((toast) => (
-        <div key={toast.id} className={styles.toast} role="status">
-          {toast.message}
+        <div key={toast.id} role="status">
+          <Alert message={toast.message} type="info" showIcon banner />
         </div>
       ))}
     </div>

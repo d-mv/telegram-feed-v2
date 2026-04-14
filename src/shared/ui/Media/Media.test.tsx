@@ -41,7 +41,7 @@ describe('Media video controls', () => {
 
     expect(mediaContainer).toBeTruthy()
     expect(controlsContainer).toBeTruthy()
-    expect(controlsContainer?.className).not.toBe(mediaContainer?.className)
+    expect(controlsContainer).not.toBe(mediaContainer)
   })
 
   it('updates video download progress when total is provided', async () => {
@@ -132,10 +132,10 @@ describe('Media video controls', () => {
     }
 
     const { container, rerender } = render(<Media item={item} />)
-    expect((container.firstChild as HTMLElement).className).toMatch(/grayscale/)
+    expect((container.firstChild as HTMLElement).style.filter).toMatch(/grayscale/)
 
     rerender(<Media item={item} grayscale={false} />)
-    expect((container.firstChild as HTMLElement).className).not.toMatch(/grayscale/)
+    expect((container.firstChild as HTMLElement).style.filter).not.toMatch(/grayscale/)
   })
 
   it('allows overriding the media aspect ratio for grouped galleries', () => {

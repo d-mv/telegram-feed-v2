@@ -1,3 +1,4 @@
+import { Button, Dropdown } from "antd";
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react";
 import { lazy, Suspense, useContext } from "react";
 import { menuIsOpenAtom, menuItemAtom, toggleMenuAtom } from "../../atoms/menu.atom";
@@ -6,35 +7,16 @@ import AvatarsSettings from "./components/AvatarsSettings";
 import FiltersSettings from "./components/FiltersSettings";
 import Maintenance from "./components/Maintenance";
 import NotificationsSettings from "./components/NotificationsSettings";
-import styles from "./Menu.module.css";
 
 const SearchDialog = lazy(() => import("./components/SearchDialog"));
 
 const MENU_ITEMS = [
-  {
-    label: "Refresh",
-    action: "refresh",
-  },
-  {
-    label: "Search",
-    module: SearchDialog,
-  },
-  {
-    label: "Notifications",
-    module: NotificationsSettings,
-  },
-  {
-    label: "Filters",
-    module: FiltersSettings,
-  },
-  {
-    label: "Avatars",
-    module: AvatarsSettings,
-  },
-  {
-    label: "Maintenance",
-    module: Maintenance,
-  },
+  { label: "Refresh", action: "refresh" },
+  { label: "Search", module: SearchDialog },
+  { label: "Notifications", module: NotificationsSettings },
+  { label: "Filters", module: FiltersSettings },
+  { label: "Avatars", module: AvatarsSettings },
+  { label: "Maintenance", module: Maintenance },
 ];
 
 export function Menu() {
@@ -44,62 +26,40 @@ export function Menu() {
   const { onManualRefresh } = useContext(AppContext);
 
   function renderModule() {
-    if (module === null) {
-      return null;
-    }
+    if (module === null) return null;
     const menuItem = MENU_ITEMS[module];
-    if (!("module" in menuItem)) {
-      return null;
-    }
+    if (!("module" in menuItem)) return null;
     const Module = menuItem.module;
-
     if (Module) return <Module />;
-
     return null;
   }
 
-  function handleClick(index: number) {
-    return function call() {
-      if ("action" in MENU_ITEMS[index] && MENU_ITEMS[index].action === "refresh") {
+  const dropdownItems = MENU_ITEMS.map((item, index) => ({
+    key: String(index),
+    label: item.label,
+    onClick: () => {
+      if ("action" in item && item.action === "refresh") {
         onManualRefresh();
-        toggleMenu();
+        if (isMenuOpen) toggleMenu();
         return;
       }
       setModule(index);
-      toggleMenu();
-    };
-  }
-
-  function renderMenuItem(item: { label: string }, index: number) {
-    return (
-      <button
-        type="button"
-        key={item.label}
-        className={styles["menu-item"]}
-        role="menuitem"
-        onClick={handleClick(index)}
-      >
-        <p className={styles["menu-item-text"]}>{item.label}</p>
-      </button>
-    );
-  }
-
-  function renderMenu() {
-    if (!isMenuOpen) return null;
-
-    return (
-      <div className={styles.dropdown} role="menu">
-        {MENU_ITEMS.map(renderMenuItem)}
-      </div>
-    );
-  }
+      if (!isMenuOpen) toggleMenu();
+    },
+  }));
 
   return (
     <>
-      <button type="button" className={styles.trigger} onClick={toggleMenu}>
-        Menu
-      </button>
-      {renderMenu()}
+      <Dropdown
+        menu={{ items: dropdownItems }}
+        trigger={["click"]}
+        open={isMenuOpen}
+        onOpenChange={(open) => {
+          if (open !== isMenuOpen) toggleMenu();
+        }}
+      >
+        <Button onClick={(e) => e.preventDefault()}>Menu</Button>
+      </Dropdown>
       <Suspense fallback={null}>{renderModule()}</Suspense>
     </>
   );

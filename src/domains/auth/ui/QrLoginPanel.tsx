@@ -1,15 +1,14 @@
-import { Button } from '../../../shared/ui/Button/Button'
-import type { QrLoginToken } from '../model/authTypes'
-import styles from './LoginView.module.css'
+import { Button, Flex, Typography } from "antd";
+import type { QrLoginToken } from "../model/authTypes";
 
 type QrLoginPanelProps = {
-  status: 'idle' | 'loading' | 'waiting'
-  token: QrLoginToken | null
-  error: string
-  isExpired: boolean
-  onRefresh: () => void
-  onReset: () => void
-}
+  status: "idle" | "loading" | "waiting";
+  token: QrLoginToken | null;
+  error: string;
+  isExpired: boolean;
+  onRefresh: () => void;
+  onReset: () => void;
+};
 
 export function QrLoginPanel({
   status,
@@ -20,36 +19,34 @@ export function QrLoginPanel({
   onReset,
 }: QrLoginPanelProps) {
   return (
-    <div className={styles.loginQr}>
-      {status === 'loading' && <p>Preparing QR code...</p>}
+    <Flex vertical gap={12} align="center">
+      {status === "loading" && (
+        <Typography.Text type="secondary">Preparing QR code...</Typography.Text>
+      )}
       {token && (
         <>
-          <div className={styles.loginQrImage}>
-            <img src={token.qrImageUrl} alt="Telegram QR login" />
+          <div style={{ border: "4px solid", borderColor: "var(--ant-color-border, #d9d9d9)", borderRadius: 8, padding: 4 }}>
+            <img src={token.qrImageUrl} alt="Telegram QR login" style={{ width: 160, height: 160, display: "block" }} />
           </div>
-          <div className={styles.loginQrMeta}>
-            <p>
-              Scan with Telegram mobile. Keep the app open while it logs in.
-            </p>
-            {isExpired && (
-              <p className={styles.loginHint}>QR expired. Refresh.</p>
-            )}
-          </div>
+          <Typography.Text type="secondary" style={{ textAlign: "center", fontSize: 13 }}>
+            Scan with Telegram mobile. Keep the app open while it logs in.
+          </Typography.Text>
+          {isExpired && (
+            <Typography.Text type="warning">QR expired. Refresh.</Typography.Text>
+          )}
         </>
       )}
-      <div className={styles.loginActions}>
-        <Button
-          type="button"
-          onClick={onRefresh}
-          disabled={status === 'loading'}
-        >
+      <Flex gap={8}>
+        <Button onClick={onRefresh} disabled={status === "loading"}>
           Refresh QR
         </Button>
-        <Button type="button" variant="ghost" onClick={onReset}>
+        <Button type="text" onClick={onReset}>
           Reset
         </Button>
-      </div>
-      {error !== '' && <p className={styles.loginError}>{error}</p>}
-    </div>
-  )
+      </Flex>
+      {error !== "" && (
+        <Typography.Text type="danger">{error}</Typography.Text>
+      )}
+    </Flex>
+  );
 }

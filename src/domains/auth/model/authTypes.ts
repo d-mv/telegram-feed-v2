@@ -29,6 +29,7 @@ export type SubmitPasswordResult = {
 }
 
 export type AuthClient = {
+  checkSession: () => Promise<boolean>
   sendCode: (phone: string) => Promise<SendCodeResult>
   submitCode: (code: string) => Promise<SubmitCodeResult>
   submitPassword: (password: string) => Promise<SubmitPasswordResult>

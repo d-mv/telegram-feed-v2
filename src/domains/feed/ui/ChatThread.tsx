@@ -1,4 +1,4 @@
-import clsx from "clsx";
+import { Spin, theme, Typography } from "antd";
 import { path } from "ramda";
 import type { CSSProperties } from "react";
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -20,7 +20,6 @@ import { resolveFeedItemSourceMessage } from "../infra/resolveFeedItemSourceMess
 import { groupConsecutiveMediaOnlyItems } from "./groupConsecutiveMediaOnlyItems";
 import { ForwardedBadge } from "./ForwardedBadge";
 import { getForwardedMessageMeta } from "./getForwardedMessageMeta";
-import styles from "./ChatThread.module.css";
 
 type ChatThreadProps = {
   item: FeedItem;
@@ -88,6 +87,7 @@ function getSenderLabel(message: Api.Message, fallback: string) {
 }
 
 export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
+  const { token } = theme.useToken();
   const { ensureTelegramConnected } = useContext(AppContext);
   const [messages, setMessages] = useState<FeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -151,6 +151,8 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
           : (sourceMessage as Api.Message & { inputChat?: unknown }).inputChat;
         const history = await client.getMessages(inputChat ?? undefined, {
           limit: 40,
+          offsetId: sourceMessage.id + 1,
+          addOffset: -20,
         });
         const normalized = history
           .filter((message): message is Api.Message => message instanceof Api.Message)
@@ -288,30 +290,33 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 
     return (
       <details
-        className={styles.commentsAccordion}
         open={message.isFocused}
+        style={{ marginTop: 6 }}
         onToggle={(event) => {
           if (event.currentTarget.open) {
             void loadComments(message);
           }
         }}
       >
-        <summary className={styles.commentsSummary} aria-label="Comments">
+        <summary style={{ cursor: "pointer", listStyle: "none", display: "flex", alignItems: "center", gap: 4, opacity: 0.6 }} aria-label="Comments">
           <CommentsIcon />
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {message.commentsCount}
+          </Typography.Text>
         </summary>
-        <div className={styles.commentsPanel}>
-          {commentsLoading[message.id] && <p className={styles.commentsLoading}>Loading comments...</p>}
+        <div style={{ marginTop: 8, paddingLeft: 8, borderLeft: `2px solid ${token.colorBorder}` }}>
+          {commentsLoading[message.id] && <Typography.Text type="secondary" style={{ fontSize: 12 }}>Loading comments...</Typography.Text>}
           {!commentsLoading[message.id] && (commentsByMessage[message.id]?.length ?? 0) === 0 && (
-            <p className={styles.commentsEmpty}>No comments.</p>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>No comments.</Typography.Text>
           )}
           {!commentsLoading[message.id] &&
             (commentsByMessage[message.id] ?? []).map((comment) => (
-              <div key={comment.id} className={styles.comment}>
-                <p className={styles.commentHeader}>
-                  <span>{comment.senderName}</span>
-                  <span>{comment.timestamp}</span>
-                </p>
-                <p className={styles.commentText}>{comment.text || "…"}</p>
+              <div key={comment.id} style={{ marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                  <Typography.Text strong style={{ fontSize: 12 }}>{comment.senderName}</Typography.Text>
+                  <Typography.Text type="secondary" style={{ fontSize: 11 }}>{comment.timestamp}</Typography.Text>
+                </div>
+                <Typography.Text style={{ fontSize: 13 }}>{comment.text || "…"}</Typography.Text>
               </div>
             ))}
         </div>
@@ -326,10 +331,35 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
   );
 
   return (
-    <div className={clsx(styles.thread, (messages.length === 0 || isLoading) && styles.empty)}>
-      {isLoading && <p className={styles.loading}>Loading thread...</p>}
-      {error !== "" && <p className={styles.error}>{error}</p>}
-      <div className={styles.threadList} ref={threadRef}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        minHeight: messages.length === 0 || isLoading ? 200 : undefined,
+      }}
+    >
+      {isLoading && (
+        <div style={{ display: "flex", justifyContent: "center", padding: 16 }}>
+          <Spin size="small" />
+        </div>
+      )}
+      {error !== "" && (
+        <Typography.Text type="danger" style={{ padding: "8px 16px", fontSize: 13 }}>
+          {error}
+        </Typography.Text>
+      )}
+      <div
+        ref={threadRef}
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "8px 16px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+        }}
+      >
         {messageGroups.map((group) => {
           const representative = group[0];
           const galleryItems = group.length > 1 ? getGroupedGalleryItems(group) : getGalleryItems(representative);
@@ -355,50 +385,72 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
           return (
             <div
               key={representative.id}
-              className={`${styles.message} ${isFocusedGroup ? styles.messageFocused : ""} ${forwardedMeta ? styles.forwardedMessage : ""}`}
               ref={isFocusedGroup ? focusedRef : null}
               data-feed-item-id={representative.id}
+              style={{
+                padding: "10px 12px",
+                borderRadius: token.borderRadius,
+                background: isFocusedGroup ? token.colorPrimaryBg : token.colorBgContainer,
+                border: `1px solid ${forwardedMeta ? token.colorPrimary : token.colorBorder}`,
+                outline: "none",
+              }}
             >
-              <Header isThread message={representative} className={styles.header}>
+              <Header isThread message={representative}>
                 {representative.senderName}
               </Header>
               <ForwardedBadge sourceMessage={representative.sourceMessage} />
               {repliedMessage && (
                 <button
                   type="button"
-                  className={styles.reply}
                   onClick={() => {
                     const selector = `[data-feed-item-id="${repliedMessage.id}"]`;
                     const node = threadRef.current?.querySelector(selector) as HTMLElement | null;
                     node?.scrollIntoView({ block: "center", behavior: "smooth" });
                   }}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    textAlign: "left",
+                    background: token.colorBgLayout,
+                    border: `1px solid ${token.colorBorder}`,
+                    borderLeft: `3px solid ${token.colorPrimary}`,
+                    borderRadius: token.borderRadius,
+                    padding: "4px 8px",
+                    marginBottom: 6,
+                    cursor: "pointer",
+                  }}
                 >
-                  <span className={styles.replyAuthor}>{repliedMessage.senderName}</span>
-                  <span className={styles.replyText}>{repliedMessage.text || "Media"}</span>
+                  <Typography.Text strong style={{ display: "block", fontSize: 12 }}>
+                    {repliedMessage.senderName}
+                  </Typography.Text>
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                    {repliedMessage.text || "Media"}
+                  </Typography.Text>
                 </button>
               )}
               {(!isGroupedRun || representative.text !== "") && (
-                <Text className={styles.text} sourceMessage={representative.sourceMessage}>
+                <Text sourceMessage={representative.sourceMessage}>
                   {representative.text}
                 </Text>
               )}
               {isGrouped ? (
                 <div
-                  className={hasGroupedImages ? styles.messageMediaGrid : styles.messageMediaStack}
                   data-media-group-layout={hasGroupedImages ? "image-grid" : "stack"}
                   style={
                     hasGroupedImages
-                      ? ({ "--media-group-columns": String(imageGridColumns) } as CSSProperties)
-                      : undefined
+                      ? ({
+                          display: "grid",
+                          gridTemplateColumns: `repeat(${imageGridColumns}, 1fr)`,
+                          gap: 4,
+                          marginTop: 8,
+                          "--media-group-columns": String(imageGridColumns),
+                        } as CSSProperties)
+                      : { display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }
                   }
                 >
                   {galleryItems.map((message) => {
                     return (
-                      <div
-                        key={message.id}
-                        className={hasGroupedImages ? styles.messageMediaGridTile : styles.messageMediaItem}
-                        data-media-group-tile="true"
-                      >
+                      <div key={message.id} data-media-group-tile="true">
                         {message.media && (
                           <Media
                             item={{
@@ -407,6 +459,7 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
                               chatName: item.chatName,
                               senderName: message.senderName || "",
                               timestamp: message.timestamp,
+                              date: message.date ?? 0,
                               text: message.text,
                               media: message.media,
                               reactions: [],
@@ -425,21 +478,24 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
               ) : (
                 <>
                   {representative.media && (
-                    <Media
-                      item={{
-                        id: representative.id,
-                        type: item.type,
-                        chatName: item.chatName,
-                        senderName: representative.senderName || "",
-                        timestamp: representative.timestamp,
-                        text: representative.text,
-                        media: representative.media,
-                        reactions: [],
-                        sourceMessage: representative.sourceMessage,
-                        isFocused: representative.isFocused,
-                      }}
-                      grayscale={false}
-                    />
+                    <div style={{ marginTop: 8 }}>
+                      <Media
+                        item={{
+                          id: representative.id,
+                          type: item.type,
+                          chatName: item.chatName,
+                          senderName: representative.senderName || "",
+                          timestamp: representative.timestamp,
+                          date: representative.date ?? 0,
+                          text: representative.text,
+                          media: representative.media,
+                          reactions: [],
+                          sourceMessage: representative.sourceMessage,
+                          isFocused: representative.isFocused,
+                        }}
+                        grayscale={false}
+                      />
+                    </div>
                   )}
                   {renderComments(representative)}
                 </>
@@ -450,9 +506,22 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
         {showJump && (
           <button
             type="button"
-            className={styles.jumpButton}
             onClick={handleJumpToLatest}
             aria-label="Jump to latest"
+            style={{
+              position: "sticky",
+              bottom: 8,
+              alignSelf: "center",
+              background: token.colorBgContainer,
+              border: `1px solid ${token.colorBorder}`,
+              borderRadius: token.borderRadiusLG,
+              padding: "6px 12px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              color: token.colorText,
+            }}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -463,7 +532,7 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
-              className={styles.jumpIcon}
+              style={{ width: 16, height: 16 }}
             >
               <path d="M12 5v14" />
               <path d="m19 12-7 7-7-7" />

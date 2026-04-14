@@ -15,6 +15,10 @@ export function createTelegramAuth(config: TelegramAuthConfig): AuthClient {
   return {
     ...phoneAuth,
     ...qrAuth,
+    async checkSession() {
+      await ensureConnected()
+      return client.isUserAuthorized()
+    },
     ensureTelegramConnected: async () => {
       await ensureConnected()
       return client

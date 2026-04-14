@@ -1,23 +1,31 @@
+import { theme, Typography } from "antd";
 import { requestOpenTarget } from "../../app/openTarget";
 import { getForwardedMessageMeta } from "./getForwardedMessageMeta";
-import styles from "./ForwardedBadge.module.css";
 
 type ForwardedBadgeProps = {
   sourceMessage: unknown;
 };
 
 export function ForwardedBadge({ sourceMessage }: ForwardedBadgeProps) {
+  const { token } = theme.useToken();
   const meta = getForwardedMessageMeta(sourceMessage);
 
-  if (!meta) {
-    return null;
-  }
+  if (!meta) return null;
+
+  const baseStyle: React.CSSProperties = {
+    display: "inline-block",
+    fontSize: 12,
+    color: token.colorTextSecondary,
+    borderLeft: `3px solid ${token.colorPrimary}`,
+    paddingLeft: 6,
+    marginBottom: 6,
+  };
 
   if (meta.href) {
     return (
       <button
         type="button"
-        className={styles.button}
+        style={{ ...baseStyle, background: "none", border: "none", borderLeft: `3px solid ${token.colorPrimary}`, cursor: "pointer" }}
         onClick={(event) => {
           event.stopPropagation();
           requestOpenTarget(meta.href!);
@@ -28,5 +36,9 @@ export function ForwardedBadge({ sourceMessage }: ForwardedBadgeProps) {
     );
   }
 
-  return <p className={styles.text}>{meta.label}</p>;
+  return (
+    <Typography.Text type="secondary" style={baseStyle}>
+      {meta.label}
+    </Typography.Text>
+  );
 }

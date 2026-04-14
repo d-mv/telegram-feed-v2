@@ -1,13 +1,12 @@
-import { Button } from '../../../shared/ui/Button/Button'
-import styles from './LoginView.module.css'
+import { Button, Input, Typography } from "antd";
 
 type TwoFactorFormProps = {
-  password: string
-  hint: string
-  isSubmitting: boolean
-  onPasswordChange: (value: string) => void
-  onSubmit: () => void
-}
+  password: string;
+  hint: string;
+  isSubmitting: boolean;
+  onPasswordChange: (value: string) => void;
+  onSubmit: () => void;
+};
 
 export function TwoFactorForm({
   password,
@@ -18,28 +17,34 @@ export function TwoFactorForm({
 }: TwoFactorFormProps) {
   return (
     <>
-      <div className={styles.loginField}>
-        <label className={styles.loginLabel} htmlFor="login-password">
-          Password
+      <div style={{ marginBottom: 12 }}>
+        <label htmlFor="login-password">
+          <Typography.Text strong style={{ display: "block", marginBottom: 4 }}>Password</Typography.Text>
         </label>
-        <input
+        <Input.Password
           id="login-password"
           name="password"
-          type="password"
           placeholder="2FA password"
           value={password}
           onChange={(event) => onPasswordChange(event.target.value)}
-          className={styles.loginInput}
+          size="large"
         />
-        {hint !== '' && <p className={styles.loginHint}>Hint: {hint}</p>}
+        {hint !== "" && (
+          <Typography.Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: "block" }}>
+            Hint: {hint}
+          </Typography.Text>
+        )}
       </div>
       <Button
-        type="button"
+        type="primary"
+        block
         onClick={onSubmit}
-        disabled={isSubmitting || password.trim() === ''}
+        disabled={isSubmitting || password.trim() === ""}
+        loading={isSubmitting}
+        size="large"
       >
-        {isSubmitting ? 'Submitting...' : 'Submit password'}
+        {isSubmitting ? "Submitting..." : "Submit password"}
       </Button>
     </>
-  )
+  );
 }

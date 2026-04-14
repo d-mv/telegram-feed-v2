@@ -1,6 +1,4 @@
-import clsx from "clsx";
 import type { HTMLAttributes } from "react";
-import styles from "./Spacer.module.css";
 
 type Props = {
   direction?: "vertical" | "horizontal";
@@ -9,15 +7,17 @@ type Props = {
 export function Spacer({
   className,
   direction = "vertical",
+  style,
   ...props
 }: HTMLAttributes<HTMLDivElement> & Props) {
   return (
     <div
-      className={clsx(
-        styles.container,
-        direction === "vertical" ? styles.vertical : styles.horizontal,
-        className,
-      )}
+      className={className}
+      style={{
+        ...(direction === "vertical" ? { height: 16 } : { width: 16 }),
+        flexShrink: 0,
+        ...style,
+      }}
       {...props}
     />
   );

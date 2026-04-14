@@ -10,7 +10,6 @@ import { Chat } from "./Chat";
 import { FeedCard } from "./FeedCard";
 import { FeedHeader } from "./FeedHeader";
 import { groupConsecutiveMediaOnlyItems } from "./groupConsecutiveMediaOnlyItems";
-import styles from "./FeedView.module.css";
 import { ScrollTopButton } from "./ScrollTopButton";
 
 const PAGE_SIZE = 10;
@@ -163,7 +162,7 @@ export function FeedView() {
       setCursor(items.findIndex((item) => item.id === focusedItem.id));
       body.style.overflow = "hidden";
     } else {
-      body.style.overflow = "unset";
+      body.style.overflow = "";
     }
   }, [focusedItem, items]);
 
@@ -230,12 +229,13 @@ export function FeedView() {
   );
 
   return (
-    <section className={styles.feedShell}>
+    <>
       <FeedHeader />
-      <div className={styles.list}>
-        <div ref={topSentinelRef} className={styles.sentinel} />
+      <section style={{ width: "100%", maxWidth: 640, margin: "0 auto", padding: "0 16px" }}>
+      <div>
+        <div ref={topSentinelRef} style={{ height: 1 }} />
         {isLoadingOlder && (
-          <p className={styles.loading} aria-live="polite">
+          <p style={{ textAlign: "center", opacity: 0.5, fontSize: 13 }} aria-live="polite">
             Loading older...
           </p>
         )}
@@ -251,5 +251,6 @@ export function FeedView() {
         <ScrollTopButton onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
       )}
     </section>
+    </>
   );
 }

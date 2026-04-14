@@ -1,5 +1,5 @@
+import { Button as AntButton } from "antd";
 import type { ButtonHTMLAttributes } from "react";
-import styles from "./Button.module.css";
 
 export type ButtonVariant = "default" | "primary" | "ghost" | "image";
 
@@ -9,33 +9,34 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   imgAlt?: string;
 };
 
-export function Button({ variant = "default", className, imgSrc, imgAlt, ...props }: ButtonProps) {
-  const type = props.type ?? "button";
-  const classNames = [styles.button];
-
-  if (variant === "primary") {
-    classNames.push(styles.primary);
-  }
-
-  if (variant === "ghost") {
-    classNames.push(styles.ghost);
-  }
-
-  if (variant === "image") {
-    classNames.push(styles.image);
-  }
-
-  if (className) {
-    classNames.push(className);
-  }
-
+export function Button({ variant = "default", className, imgSrc, imgAlt, children, disabled, onClick, type, ...props }: ButtonProps) {
   if (variant === "image") {
     return (
-      <button {...props} type={type} className={classNames.join(" ")}>
-        <img src={imgSrc} alt={imgAlt} />
+      <button
+        type={type ?? "button"}
+        className={className}
+        disabled={disabled}
+        onClick={onClick}
+        style={{ border: "none", background: "transparent", padding: 0, cursor: "pointer", display: "inline-flex", alignItems: "center" }}
+        {...props}
+      >
+        <img src={imgSrc} alt={imgAlt} style={{ width: 24, height: 24 }} />
       </button>
     );
   }
 
-  return <button {...props} type={type} className={classNames.join(" ")} />;
+  const antType = variant === "primary" ? "primary" : variant === "ghost" ? "text" : "default";
+
+  return (
+    <AntButton
+      type={antType}
+      className={className}
+      disabled={disabled}
+      onClick={onClick as React.MouseEventHandler<HTMLButtonElement>}
+      htmlType={type === "submit" ? "submit" : "button"}
+      {...(props as object)}
+    >
+      {children}
+    </AntButton>
+  );
 }

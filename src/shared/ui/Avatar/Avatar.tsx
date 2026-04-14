@@ -1,6 +1,5 @@
-// import type { ThreadMessage } from "../../../domains/feed/model/feed";
+import { theme } from "antd";
 import type { FeedItem } from "../../../types";
-import styles from "./Avatar.module.css";
 import { AvatarCarousel } from "./AvatarCarousel";
 import { useAvatar } from "./useAvatar";
 import { getAvatarColor, getAvatarInitials } from "./utils";
@@ -12,6 +11,7 @@ type Props = {
 };
 
 export function Avatar({ message, noPreview, isThread }: Props) {
+  const { token } = theme.useToken();
   const {
     handleOpenAvatar,
     avatarPhotoMap,
@@ -24,24 +24,37 @@ export function Avatar({ message, noPreview, isThread }: Props) {
 
   if (!isAvatarVisible) return null;
 
+  const size = isThread ? 28 : 32;
   const background = avatarPhotoMap[`thread:${message.id}`]
     ? undefined
     : getAvatarColor(message.senderName || "unknown");
   const backgroundImage = avatarPhotoMap[`thread:${message.id}`]
     ? `url(${avatarPhotoMap[`thread:${message.id}`]})`
     : undefined;
-  const backgroundSize = avatarPhotoMap[`thread:${message.id}`] ? "cover" : undefined;
-  const backgroundPosition = avatarPhotoMap[`thread:${message.id}`] ? "center" : undefined;
 
   return (
     <>
       <button
-        className={styles.image}
         style={{
+          width: size,
+          height: size,
+          borderRadius: "50%",
           background,
           backgroundImage,
-          backgroundSize,
-          backgroundPosition,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          border: "none",
+          cursor: "pointer",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: size * 0.35,
+          color: "#fff",
+          fontWeight: 600,
+          flexShrink: 0,
+          padding: 0,
+          outline: "none",
+          boxShadow: `0 0 0 1px ${token.colorBorder}`,
         }}
         aria-label={`Avatar for ${message.senderName}`}
         title={message.senderName}
