@@ -105,102 +105,164 @@ export function mergeAlbumFeedItems(items: FeedItem[]): FeedItem[] {
   return merged;
 }
 
-export function getMediaPreview(message: Api.Message): FeedItem["media"] | undefined {
-  const media = message.media;
-  if (!media || !("className" in media)) {
+function getYoutubeId(url: string): string | undefined {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === "youtu.be") {
+      return parsed.pathname.slice(1);
+    }
+    if (parsed.hostname.includes("youtube.com")) {
+      return parsed.searchParams.get("v") || undefined;
+    }
+  } catch {
     return undefined;
-  }
-  if (media.className === "MessageMediaPhoto") {
-    const photo = media.photo instanceof Api.Photo ? media.photo : undefined;
-    const sizes = photo?.sizes ?? [];
-    const size = sizes.reduce<{
-      w: number;
-      h: number;
-      sizeBytes: number;
-    } | null>((acc, current) => {
-      const w = "w" in current ? current.w : 0;
-      const h = "h" in current ? current.h : 0;
-      const sizeBytesRaw = "size" in current ? current.size : 0;
-      const sizeBytes =
-        typeof sizeBytesRaw === "bigint" ? Number(sizeBytesRaw) : Number(sizeBytesRaw);
-      if (!acc || w * h > acc.w * acc.h) {
-        return { w, h, sizeBytes };
-      }
-      return acc;
-    }, null);
-    if (!size) {
-      return undefined;
-    }
-    return {
-      meta: {
-        type: "image",
-        width: size.w,
-        height: size.h,
-        sizeBytes: size.sizeBytes,
-        mimeType: "image/jpeg",
-      },
-      alt: "Photo",
-      key: `photo-${photo?.id?.toString() ?? message.id}`,
-    };
-  }
-  if (media.className === "MessageMediaDocument") {
-    const document = media.document instanceof Api.Document ? media.document : undefined;
-    if (!document) {
-      return undefined;
-    }
-    const mimeType = document.mimeType ? String(document.mimeType) : "";
-    const sizeBytesRaw = document.size ?? 0;
-    const sizeBytes =
-      typeof sizeBytesRaw === "bigint" ? Number(sizeBytesRaw) : Number(sizeBytesRaw);
-    let width = 0;
-    let height = 0;
-    let fileName = "";
-    let hasAudioAttribute = false;
-    for (const attribute of document.attributes ?? []) {
-      if (attribute instanceof Api.DocumentAttributeVideo) {
-        width = attribute.w;
-        height = attribute.h;
-      }
-      if (attribute instanceof Api.DocumentAttributeImageSize) {
-        width = attribute.w;
-        height = attribute.h;
-      }
-      if (
-        attribute instanceof Api.DocumentAttributeFilename &&
-        typeof attribute.fileName === "string"
-      ) {
-        fileName = attribute.fileName;
-      }
-      if (attribute instanceof Api.DocumentAttributeAudio) {
-        hasAudioAttribute = true;
-      }
-    }
-    const type = mimeType.startsWith("video")
-      ? "video"
-      : mimeType.startsWith("image")
-        ? "image"
-        : mimeType.startsWith("audio") || hasAudioAttribute
-          ? "audio"
-          : "file";
-    if (!width || !height) {
-      if (type === "video" || type === "image") {
-        width = 640;
-        height = 360;
-      }
-    }
-    return {
-      meta: {
-        type,
-        width,
-        height,
-        sizeBytes,
-        mimeType,
-        fileName,
-      },
-      alt: "Media",
-      key: `doc-${document.id?.toString() ?? message.id}`,
-    };
   }
   return undefined;
 }
 
+export function getMediaPreview(message: Api.Message): FeedItem["media"] | undefined {
+  const media = message.media;
+  if (media && "className" in media) {
+    if (media.className === "MessageMediaWebPage") {
+      const webpage = (media as Api.MessageMediaWebPage).webpage;
+      if (webpage instanceof Api.WebPage) {
+        const youtubeId = getYoutubeId(webpage.url);
+        if (youtubeId) {
+          return {
+            meta: {
+              type: "youtube",
+              width: 1280,
+              height: 720,
+              sizeBytes: 0,
+              title: webpage.title || "YouTube Video",
+            },
+            url: `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`,
+            alt: webpage.title || "YouTube Video",
+            key: `youtube-${youtubeId}`,
+          };
+        }
+      }
+    }
+
+    if (media.className === "MessageMediaPhoto") {
+      const photo = media.photo instanceof Api.Photo ? media.photo : undefined;
+      const sizes = photo?.sizes ?? [];
+      const size = sizes.reduce<{
+        w: number;
+        h: number;
+        sizeBytes: number;
+      } | null>((acc, current) => {
+        const w = "w" in current ? current.w : 0;
+        const h = "h" in current ? current.h : 0;
+        const sizeBytesRaw = "size" in current ? current.size : 0;
+        const sizeBytes =
+          typeof sizeBytesRaw === "bigint" ? Number(sizeBytesRaw) : Number(sizeBytesRaw);
+        if (!acc || w * h > acc.w * acc.h) {
+          return { w, h, sizeBytes };
+        }
+        return acc;
+      }, null);
+      if (size) {
+        return {
+          meta: {
+            type: "image",
+            width: size.w,
+            height: size.h,
+            sizeBytes: size.sizeBytes,
+            mimeType: "image/jpeg",
+          },
+          alt: "Photo",
+          key: `photo-${photo?.id?.toString() ?? message.id}`,
+        };
+      }
+    }
+
+    if (media.className === "MessageMediaDocument") {
+      const document = media.document instanceof Api.Document ? media.document : undefined;
+      if (document) {
+        const mimeType = document.mimeType ? String(document.mimeType) : "";
+        const sizeBytesRaw = document.size ?? 0;
+        const sizeBytes =
+          typeof sizeBytesRaw === "bigint" ? Number(sizeBytesRaw) : Number(sizeBytesRaw);
+        let width = 0;
+        let height = 0;
+        let fileName = "";
+        let hasAudioAttribute = false;
+        for (const attribute of document.attributes ?? []) {
+          if (attribute instanceof Api.DocumentAttributeVideo) {
+            width = attribute.w;
+            height = attribute.h;
+          }
+          if (attribute instanceof Api.DocumentAttributeImageSize) {
+            width = attribute.w;
+            height = attribute.h;
+          }
+          if (
+            attribute instanceof Api.DocumentAttributeFilename &&
+            typeof attribute.fileName === "string"
+          ) {
+            fileName = attribute.fileName;
+          }
+          if (attribute instanceof Api.DocumentAttributeAudio) {
+            hasAudioAttribute = true;
+          }
+        }
+        const type = mimeType.startsWith("video")
+          ? "video"
+          : mimeType.startsWith("image")
+            ? "image"
+            : mimeType.startsWith("audio") || hasAudioAttribute
+              ? "audio"
+              : "file";
+        if (!width || !height) {
+          if (type === "video" || type === "image") {
+            width = 640;
+            height = 360;
+          }
+        }
+        return {
+          meta: {
+            type,
+            width,
+            height,
+            sizeBytes,
+            mimeType,
+            fileName,
+          },
+          alt: "Media",
+          key: `doc-${document.id?.toString() ?? message.id}`,
+        };
+      }
+    }
+  }
+
+  const text = message.message || "";
+  for (const entity of message.entities || []) {
+    let url: string | undefined;
+    if (entity instanceof Api.MessageEntityUrl) {
+      url = text.slice(entity.offset, entity.offset + entity.length);
+    } else if (entity instanceof Api.MessageEntityTextUrl) {
+      url = entity.url;
+    }
+
+    if (url) {
+      const youtubeId = getYoutubeId(url);
+      if (youtubeId) {
+        return {
+          meta: {
+            type: "youtube",
+            width: 1280,
+            height: 720,
+            sizeBytes: 0,
+            title: "YouTube Video",
+          },
+          url: `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`,
+          alt: "YouTube Video",
+          key: `youtube-${youtubeId}`,
+        };
+      }
+    }
+  }
+
+  return undefined;
+}

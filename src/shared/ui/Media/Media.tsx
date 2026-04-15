@@ -253,6 +253,56 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
       );
     }
 
+    if (media.meta.type === "youtube") {
+      const videoUrl = `https://www.youtube.com/watch?v=${item.media?.key?.split("-")[1]}`;
+      return (
+        <div
+          style={{ position: "relative", width: "100%", height: "100%", cursor: "pointer" }}
+          onClick={(event) => {
+            event.stopPropagation();
+            window.open(videoUrl, "_blank", "noopener,noreferrer");
+          }}
+        >
+          <img
+            src={previewUrl}
+            alt={media.alt}
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-end",
+              background: "linear-gradient(transparent, rgba(0,0,0,0.7))",
+              padding: 12,
+            }}
+          >
+            <Typography.Text style={{ color: "#fff", fontWeight: 600 }}>{media.meta.title}</Typography.Text>
+            <Typography.Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 12 }}>YouTube</Typography.Text>
+          </div>
+          <div
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: 64,
+              height: 64,
+              background: "rgba(255,0,0,0.9)",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <div style={{ width: 0, height: 0, borderTop: "12px solid transparent", borderBottom: "12px solid transparent", borderLeft: "20px solid white", marginLeft: 4 }} />
+          </div>
+        </div>
+      );
+    }
+
     return null;
   }
 

@@ -1,12 +1,13 @@
 import type { AnyValue } from "@mv-d/toolbelt";
 
 type MediaMeta = {
-  type: "image" | "video" | "audio" | "file";
+  type: "image" | "video" | "audio" | "file" | "youtube";
   width: number;
   height: number;
   sizeBytes: number;
   mimeType?: string;
   fileName?: string;
+  title?: string;
 };
 
 export type MediaPreview = {

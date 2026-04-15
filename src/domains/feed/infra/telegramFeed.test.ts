@@ -71,6 +71,39 @@ const telegramMock = vi.hoisted(() => {
     }
   }
 
+  class MessageMediaWebPage {
+    className = 'MessageMediaWebPage'
+    webpage?: WebPage
+    constructor(data: Record<string, unknown> = {}) {
+      Object.assign(this, data)
+    }
+  }
+
+  class WebPage {
+    url = ''
+    title = ''
+    constructor(data: Record<string, unknown> = {}) {
+      Object.assign(this, data)
+    }
+  }
+
+  class MessageEntityUrl {
+    offset = 0
+    length = 0
+    constructor(data: Record<string, unknown> = {}) {
+      Object.assign(this, data)
+    }
+  }
+
+  class MessageEntityTextUrl {
+    offset = 0
+    length = 0
+    url = ''
+    constructor(data: Record<string, unknown> = {}) {
+      Object.assign(this, data)
+    }
+  }
+
   class GetUserPhotos {
     constructor(public data: Record<string, unknown> = {}) {}
   }
@@ -85,6 +118,10 @@ const telegramMock = vi.hoisted(() => {
     DocumentAttributeAudio,
     MessageMediaPhoto,
     MessageMediaDocument,
+    MessageMediaWebPage,
+    WebPage,
+    MessageEntityUrl,
+    MessageEntityTextUrl,
     photos: {
       GetUserPhotos,
     },
@@ -241,6 +278,57 @@ describe('getMediaPreview', () => {
       },
       alt: 'Media',
       key: 'doc-8',
+    })
+  })
+
+  test('builds preview metadata for YouTube links in WebPage media', () => {
+    const webpage = new Api.WebPage({
+      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      title: 'Never Gonna Give You Up',
+    })
+    const message = new Api.Message({
+      id: 13,
+      media: new Api.MessageMediaWebPage({ webpage }),
+    })
+
+    const preview = getMediaPreview(message)
+
+    expect(preview).toEqual({
+      meta: {
+        type: 'youtube',
+        width: 1280,
+        height: 720,
+        sizeBytes: 0,
+        title: 'Never Gonna Give You Up',
+      },
+      url: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+      alt: 'Never Gonna Give You Up',
+      key: 'youtube-dQw4w9WgXcQ',
+    })
+  })
+
+  test('builds YouTube preview from text entities when no media exists', () => {
+    const message = new Api.Message({
+      id: 14,
+      message: 'Check this out: https://youtu.be/dQw4w9WgXcQ',
+      entities: [
+        new Api.MessageEntityUrl({ offset: 16, length: 28 }),
+      ],
+    })
+
+    const preview = getMediaPreview(message)
+
+    expect(preview).toEqual({
+      meta: {
+        type: 'youtube',
+        width: 1280,
+        height: 720,
+        sizeBytes: 0,
+        title: 'YouTube Video',
+      },
+      url: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+      alt: 'YouTube Video',
+      key: 'youtube-dQw4w9WgXcQ',
     })
   })
 })
