@@ -34,6 +34,7 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
     <ConfigProvider
       theme={{
         algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
+        token: { fontSize: 16 },
       }}
     >
       <GlobalStyles />
