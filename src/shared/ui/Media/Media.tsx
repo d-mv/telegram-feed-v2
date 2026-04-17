@@ -343,7 +343,7 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
       {renderAttachment()}
       {isDownloading && media.meta.type === "video" && (
         <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)" }}>
-          <Typography.Text style={{ color: "#fff", fontSize: 14 }}>{getProgressLabel()}</Typography.Text>
+          <Typography.Text style={{ color: "#fff" }}>{getProgressLabel()}</Typography.Text>
         </div>
       )}
       {(shouldOfferFullDownload || downloadError) && !videoUrl && (

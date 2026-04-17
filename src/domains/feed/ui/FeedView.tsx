@@ -235,7 +235,7 @@ export function FeedView() {
       <div>
         <div ref={topSentinelRef} style={{ height: 1 }} />
         {isLoadingOlder && (
-          <p style={{ textAlign: "center", opacity: 0.5, fontSize: 13 }} aria-live="polite">
+          <p style={{ textAlign: "center", opacity: 0.5 }} aria-live="polite">
             Loading older...
           </p>
         )}

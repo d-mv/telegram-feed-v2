@@ -129,7 +129,6 @@ export function AvatarCarousel({ photos, initialIndex = 0, onClose }: Props) {
             width: 32,
             height: 32,
             cursor: "pointer",
-            fontSize: 16,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

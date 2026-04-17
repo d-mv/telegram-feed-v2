@@ -112,7 +112,7 @@ export function Chat({ item, onClose }: ChatProps) {
       width={Math.min(560, window.innerWidth)}
       title={
         <Flex align="center" justify="space-between">
-          <Typography.Text strong style={{ fontSize: 16 }}>{title}</Typography.Text>
+          <Typography.Text strong>{title}</Typography.Text>
           <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
             <Button
               type="text"

@@ -51,7 +51,6 @@ export function Header({
         <Typography.Text
           strong
           style={{
-            fontSize: isThread ? 13 : 14,
             lineHeight: 1.3,
             overflow: "hidden",
             textOverflow: "ellipsis",
