@@ -13,7 +13,13 @@
       "Bash(npm test:*)",
       "Bash(npx vitest:*)",
       "Bash(ls *.toml *.json)",
-      "Bash(fly deploy:*)"
+      "Bash(fly deploy:*)",
+      "Bash(curl -s \"https://app.kairos.id/api/tasks?projectId=19dbd1d3-0ab3-4a39-be7c-1888cc7c088d&status=pending\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(fly status *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://telegram-feed.fly.dev/)",
+      "Bash(git push *)"
     ]
   }
 }

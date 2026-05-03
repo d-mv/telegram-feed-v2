@@ -1,10 +1,15 @@
 # ![logo](public/favicon-32.png) Telegram Feed v2
 
-This a second effort to entertain idea of having a chat application presenting messages as a "river of news", rather than traditional chats abstraction. First being [Telegram Feed v1](https://github.com/d-mv/telegram-feed).
+A specialized Telegram client presenting messages as a "river of news", rather than traditional chat lists.
 
-Implemented were: feed of messages from all chats, ability to view threads, realtime updates from Telegram.
+[**Read Detailed Architecture & Documentation (with diagrams) →**](docs/ARCHITECTURE.md)
 
-Further development is paused in favour of other projects.
+## Key Features
+
+- **River of News:** Consolidated feed from all your subscribed channels and groups.
+- **Thread Support:** View full conversation threads directly in the feed.
+- **Realtime Updates:** Direct connection to Telegram MTProto servers via the browser.
+- **Cross-Platform:** Responsive web design optimized for desktop and mobile reading.
 
 ## Screenshots
 
@@ -15,16 +20,24 @@ Further development is paused in favour of other projects.
 
 ## Requirements
 
-`.env` file with:
+The app requires a Telegram API ID and Hash from [my.telegram.org](https://my.telegram.org).
+
+Create a `.env` file in the root directory:
 
 ```sh
-VITE_TELEGRAM_API_ID=...
-VITE_TELEGRAM_API_HASH=...
+VITE_TELEGRAM_API_ID=your_api_id
+VITE_TELEGRAM_API_HASH=your_api_hash
 ```
 
-## Running the app
+## Local Development
 
 ```sh
 npm install
 npm run dev
 ```
+
+Run tests with `npm test`.
+
+## Deployment
+
+This application is configured for deployment to **Fly.io** via GitHub Actions. See [Fly Deploy Workflow](.github/workflows/fly-deploy.yml) and [fly.toml](fly.toml).
