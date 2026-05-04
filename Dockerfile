@@ -5,8 +5,9 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
-RUN npx vite build
+ENV VITE_BASE_URL=/apps/telegram-feed/
+RUN npx vite build --base=/apps/telegram-feed/
 
 FROM pierrezemb/gostatic:latest
 COPY --from=build /app/dist/ /srv/http/
-CMD ["-port","8080","-https-promote","-enable-logging"]
+CMD ["-port","8080","-enable-logging"]

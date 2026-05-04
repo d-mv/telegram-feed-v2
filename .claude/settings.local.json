@@ -19,7 +19,18 @@
       "Bash(git commit -m ' *)",
       "Bash(fly status *)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://telegram-feed.fly.dev/)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "mcp__kairos__list_tasks",
+      "Bash(sshpass -V)",
+      "Bash(sshpass *)",
+      "Read(//Users/dmelnikov/.claude/skills/**)",
+      "Read(//Users/dmelnikov/.claude/**)",
+      "Read(//Users/dmelnikov/.gemini/**)",
+      "Read(//Users/dmelnikov/.config/**)",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -sv https://apps.mlnkv.net/apps/telegram-feed/)",
+      "Bash(curl -s https://apps.mlnkv.net/apps/telegram-feed/)",
+      "Bash(curl *)"
     ]
   }
 }

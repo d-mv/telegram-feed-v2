@@ -2,13 +2,15 @@ const CACHE_VERSION = 'v1'
 const SHELL_CACHE = `shell-${CACHE_VERSION}`
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`
 
+const BASE = new URL(self.registration.scope).pathname.replace(/\/$/, '')
+
 const SHELL_FILES = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/favicon.ico',
-  '/favicon-192.png',
-  '/favicon-180-precomposed.png',
+  BASE + '/',
+  BASE + '/index.html',
+  BASE + '/manifest.json',
+  BASE + '/favicon.ico',
+  BASE + '/favicon-192.png',
+  BASE + '/favicon-180-precomposed.png',
 ]
 
 self.addEventListener('install', (event) => {
@@ -60,7 +62,7 @@ self.addEventListener('fetch', (event) => {
     request.destination === 'style' ||
     request.destination === 'image' ||
     request.destination === 'font' ||
-    url.pathname.startsWith('/assets/')
+    url.pathname.startsWith(BASE + '/assets/')
 
   if (!isStatic) return
 
@@ -105,7 +107,7 @@ self.addEventListener('notificationclick', (event) => {
         return
       }
 
-      const nextUrl = new URL('/', self.location.origin)
+      const nextUrl = new URL(BASE + '/', self.location.origin)
       if (itemId) {
         nextUrl.searchParams.set('focusItemId', itemId)
       }
