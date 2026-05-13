@@ -2,8 +2,8 @@
   "name": "Telegram Feed",
   "short_name": "Telegram Feed",
   "description": "Telegram messages as a feed",
-  "start_url": ".",
-  "scope": ".",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "icons": [
     {

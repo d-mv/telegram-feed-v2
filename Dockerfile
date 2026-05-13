@@ -5,8 +5,7 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
-ENV VITE_BASE_URL=/apps/telegram-feed/
-RUN npx vite build --base=/apps/telegram-feed/
+RUN npx vite build
 
 FROM pierrezemb/gostatic:latest
 COPY --from=build /app/dist/ /srv/http/

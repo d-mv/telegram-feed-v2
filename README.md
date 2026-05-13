@@ -9,6 +9,9 @@ A specialized Telegram client presenting messages as a "river of news", rather t
 - **River of News:** Consolidated feed from all your subscribed channels and groups.
 - **Thread Support:** View full conversation threads directly in the feed.
 - **Realtime Updates:** Direct connection to Telegram MTProto servers via the browser.
+- **Dark / Light Theme:** Automatically follows your system preference.
+- **YouTube Previews:** Inline video previews for YouTube links in messages.
+- **PWA:** Installable as a Progressive Web App with automatic update via Service Worker.
 - **Cross-Platform:** Responsive web design optimized for desktop and mobile reading.
 
 ## Screenshots
@@ -40,4 +43,4 @@ Run tests with `npm test`.
 
 ## Deployment
 
-This application is configured for deployment to **Fly.io** via GitHub Actions. See [Fly Deploy Workflow](.github/workflows/fly-deploy.yml) and [fly.toml](fly.toml).
+The application is deployed to a **Contabo VPS** (`167.86.70.240`) and served at `telegram-feed.mlnkv.net`. Deployment is done manually over SSH using a multi-stage Docker build.

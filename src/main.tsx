@@ -63,7 +63,7 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     if (import.meta.env.PROD) {
       navigator.serviceWorker
-        .register("/sw.js")
+        .register(`${import.meta.env.BASE_URL}sw.js`)
         .then((registration) => {
           attachServiceWorkerAutoUpdate(registration);
         })
