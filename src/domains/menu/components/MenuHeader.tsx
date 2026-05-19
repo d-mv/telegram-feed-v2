@@ -1,5 +1,6 @@
 import { Button, Flex, Typography } from "antd";
 import type { PropsWithChildren } from "react";
+import { XMarkIcon } from "../../../assets/XMarkIcon";
 
 type Props = {
   onClose: () => void;
@@ -12,9 +13,7 @@ export function MenuHeader({ onClose, children, titleId }: PropsWithChildren<Pro
       <Typography.Title id={titleId} level={5} style={{ margin: 0 }}>
         {children}
       </Typography.Title>
-      <Button type="text" onClick={onClose} aria-label="Close">
-        ✕
-      </Button>
+      <Button type="text" onClick={onClose} aria-label="Close" icon={<XMarkIcon style={{ width: 16, height: 16 }} />} />
     </Flex>
   );
 }

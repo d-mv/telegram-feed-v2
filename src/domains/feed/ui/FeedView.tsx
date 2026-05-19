@@ -1,5 +1,6 @@
 import { useAtomValue, useSetAtom } from "jotai/react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { WindowVirtualizer } from "virtua";
 import { channelsAtom } from "../../../atoms/channels.atom";
 import { feedFilterSettingsAtom } from "../../../atoms/feedFilters.atom";
 import { feedItemsAtom } from "../../../atoms/feedItems.atom";
@@ -13,7 +14,7 @@ import { groupConsecutiveMediaOnlyItems } from "./groupConsecutiveMediaOnlyItems
 import { ScrollTopButton } from "./ScrollTopButton";
 
 const PAGE_SIZE = 10;
-const TOTAL_ITEMS = 60;
+const TOTAL_ITEMS = 1000;
 
 function getItemChannelKey(item: FeedItem): string {
   if (item.channelKey) {
@@ -26,203 +27,150 @@ function getItemChannelKey(item: FeedItem): string {
   return `${item.type}:${item.chatName}`;
 }
 
-// type FeedViewProps = {
-//   items?: FeedItem[];
-//   notificationSettings: Record<string, boolean>;
-//   hasEnabledNotifications: boolean;
-//   notificationPermission: NotificationPermission | "unsupported";
-//   onToggleChannelNotification: (channelKey: string, enabled: boolean) => void;
-//   onRequestNotificationPermission: () => void;
-//   onDisableNotifications: () => void;
-// };
-
 export function FeedView() {
   const providedItems = useAtomValue(feedItemsAtom);
   const feedFilterSettings = useAtomValue(feedFilterSettingsAtom);
   const notificationFocus = useAtomValue(notificationFocusAtom);
   const setNotificationFocus = useSetAtom(notificationFocusAtom);
   const setChannels = useSetAtom(channelsAtom);
+
   const allItems = useMemo(() => getMockFeedBatch(TOTAL_ITEMS), []);
-  const initialStart = Math.max(0, allItems.length - PAGE_SIZE);
-  const [items, setItems] = useState<FeedItem[]>(
-    () => (providedItems ?? allItems.slice(initialStart)),
-  );
-  const [cursor, setCursor] = useState(providedItems ? 0 : initialStart);
+
+  const [items, setItems] = useState<FeedItem[]>(() => providedItems ?? allItems.slice(0, PAGE_SIZE));
+  const [cursor, setCursor] = useState(PAGE_SIZE);
   const [focusedItem, setFocusedItem] = useState<FeedItem | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
 
-  const topSentinelRef = useRef<HTMLDivElement | null>(null);
+  const bottomSentinelRef = useRef<HTMLDivElement | null>(null);
   const pendingPrependRef = useRef<{ height: number; adjust: boolean } | null>(null);
 
-  useEffect(() => {
-    if (!providedItems) return;
-
-    setItems(providedItems);
-  }, [providedItems]);
+  const effectiveItems = providedItems ?? items;
 
   function prependItems(nextItems: FeedItem[], adjustScroll: boolean) {
     if (nextItems.length === 0) return;
-
     const prevHeight = document.documentElement.scrollHeight;
     pendingPrependRef.current = { height: prevHeight, adjust: adjustScroll };
     setItems((current) => [...nextItems, ...current]);
   }
 
-  function prependMore() {
-    if (cursor <= 0) return;
+  function appendMore() {
+    if (providedItems || cursor >= allItems.length || isLoadingOlder) return;
 
-    const nextCursor = Math.max(0, cursor - PAGE_SIZE);
     setIsLoadingOlder(true);
-    prependItems(allItems.slice(nextCursor, cursor), true);
-    setCursor(nextCursor);
+    setTimeout(() => {
+      const nextCursor = cursor + PAGE_SIZE;
+      const nextItems = allItems.slice(cursor, nextCursor);
+      setItems((current) => [...current, ...nextItems]);
+      setCursor(nextCursor);
+      setIsLoadingOlder(false);
+    }, 400);
   }
 
   function updateChannels() {
     const entries = new Map<string, { key: string; label: string }>();
-
-    for (const item of items) {
-      const parsedChannelKey = getItemChannelKey(item);
-      const key = parsedChannelKey;
+    for (const item of effectiveItems) {
+      const key = getItemChannelKey(item);
       if (!entries.has(key)) {
-        entries.set(key, {
-          key,
-          label: item.chatName,
-        });
+        entries.set(key, { key, label: item.chatName });
       }
     }
-
     setChannels(() => [...entries.values()].sort((a, b) => a.label.localeCompare(b.label)));
   }
 
   useEffect(() => {
     updateChannels();
-  }, [items]);
+  }, [effectiveItems]);
 
   useLayoutEffect(() => {
     if (!pendingPrependRef.current) return;
-
     const { height, adjust } = pendingPrependRef.current;
     pendingPrependRef.current = null;
     if (adjust) {
-      const newHeight = document.documentElement.scrollHeight;
-      const delta = newHeight - height;
-      if (delta > 0) {
-        window.scrollBy({ top: delta, behavior: "auto" });
-      }
+      const delta = document.documentElement.scrollHeight - height;
+      if (delta > 0) window.scrollBy({ top: delta, behavior: "auto" });
     }
-    setIsLoadingOlder(false);
-  }, [items]);
+  }, [effectiveItems]);
 
   useEffect(() => {
-    function handleScroll() {
-      setShowScrollTop(window.scrollY > 400);
-    }
-
-    handleScroll();
+    const handleScroll = () => setShowScrollTop(window.scrollY > 400);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   useEffect(() => {
     if (providedItems) return;
+    const target = bottomSentinelRef.current;
+    if (!target) return;
 
-    const target = topSentinelRef.current;
-    if (!target) {
-      return;
-    }
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) {
-          prependMore();
-        }
+        if (entries[0]?.isIntersecting) appendMore();
       },
-      { rootMargin: "120px 0px 0px 0px" },
+      { rootMargin: "200px" },
     );
     observer.observe(target);
     return () => observer.disconnect();
-  }, [cursor, allItems, providedItems]);
+  }, [cursor, providedItems, isLoadingOlder]);
 
   useEffect(() => {
     if (providedItems) return;
-
     const interval = window.setInterval(() => {
-      const shouldKeepScroll = window.scrollY > 80;
       const nextItem = getMockLiveItem();
-      prependItems([nextItem], shouldKeepScroll);
+      prependItems([nextItem], window.scrollY > 80);
     }, 12000);
-
     return () => window.clearInterval(interval);
   }, [providedItems]);
 
-  const body = document.body;
-
   useEffect(() => {
     if (focusedItem) {
-      setCursor(items.findIndex((item) => item.id === focusedItem.id));
-      body.style.overflow = "hidden";
+      document.body.style.overflow = "hidden";
     } else {
-      body.style.overflow = "";
+      document.body.style.overflow = "";
     }
-  }, [focusedItem, items]);
+  }, [focusedItem]);
 
   useEffect(() => {
-    if (!notificationFocus) {
-      return;
-    }
+    if (!notificationFocus) return;
     const targetItem =
       (notificationFocus.itemId
-        ? items.find((item) => item.id === notificationFocus.itemId)
+        ? effectiveItems.find((item) => item.id === notificationFocus.itemId)
         : undefined) ??
       (notificationFocus.channelKey
-        ? items.find((item) => getItemChannelKey(item) === notificationFocus.channelKey)
+        ? effectiveItems.find((item) => getItemChannelKey(item) === notificationFocus.channelKey)
         : undefined);
-    if (!targetItem) {
-      return;
-    }
 
-    const targetChannelKey = getItemChannelKey(targetItem);
+    if (!targetItem) return;
+
     if (notificationFocus.view === "thread") {
       setFocusedItem(targetItem);
       setNotificationFocus(null);
       return;
     }
 
+    const targetChannelKey = getItemChannelKey(targetItem);
     if (focusedItem && getItemChannelKey(focusedItem) === targetChannelKey) {
       setFocusedItem(targetItem);
       setNotificationFocus(null);
       return;
     }
 
-    if (focusedItem) {
-      setFocusedItem(null);
-    }
-
+    setFocusedItem(null);
     window.setTimeout(() => {
-      const selector = `[data-feed-item-id="${targetItem.id.replaceAll('"', '\\"')}"]`;
-      const node = document.querySelector(selector) as HTMLElement | null;
-      if (!node) {
-        return;
+      const node = document.querySelector(`[data-feed-item-id="${targetItem.id.replaceAll('"', '\\"')}"]`) as HTMLElement | null;
+      if (node) {
+        node.scrollIntoView({ block: "center" });
+        node.focus({ preventScroll: true });
       }
-      node.scrollIntoView({ block: "center" });
-      node.focus({ preventScroll: true });
     }, 0);
     setNotificationFocus(null);
-  }, [focusedItem, items, notificationFocus, setNotificationFocus]);
-
-  const renderItem = (item: FeedItem, groupedItems?: FeedItem[]) => (
-    <FeedCard
-      key={item.id}
-      item={item}
-      groupedItems={groupedItems}
-      onFocus={setFocusedItem}
-    />
-  );
+  }, [effectiveItems, notificationFocus, setNotificationFocus]);
 
   const visibleItems = useMemo(
-    () => items.filter((item) => feedFilterSettings[getItemChannelKey(item)] !== false),
-    [feedFilterSettings, items],
+    () => effectiveItems.filter((item) => feedFilterSettings[getItemChannelKey(item)] !== false),
+    [feedFilterSettings, effectiveItems],
   );
+
   const visibleItemGroups = useMemo(
     () => groupConsecutiveMediaOnlyItems(visibleItems),
     [visibleItems],
@@ -232,25 +180,33 @@ export function FeedView() {
     <>
       <FeedHeader />
       <section style={{ width: "100%", maxWidth: 640, margin: "0 auto", padding: "0 16px" }}>
-      <div>
-        <div ref={topSentinelRef} style={{ height: 1 }} />
-        {isLoadingOlder && (
-          <p style={{ textAlign: "center", opacity: 0.5 }} aria-live="polite">
-            Loading older...
-          </p>
+        <WindowVirtualizer>
+          {visibleItemGroups.map((group) => (
+            <FeedCard
+              key={group[0].id}
+              item={group[0]}
+              groupedItems={group.length > 1 ? group : undefined}
+              onFocus={setFocusedItem}
+            />
+          ))}
+        </WindowVirtualizer>
+        <div ref={bottomSentinelRef} style={{ height: 40, display: "flex", alignItems: "center", justifyItems: "center" }}>
+          {isLoadingOlder && (
+            <p style={{ textAlign: "center", opacity: 0.5, width: "100%" }} aria-live="polite">
+              Loading older...
+            </p>
+          )}
+        </div>
+        {focusedItem && (
+          <Chat
+            item={focusedItem}
+            onClose={() => setFocusedItem(null)}
+          />
         )}
-        {visibleItemGroups.map((group) => renderItem(group[0], group.length > 1 ? group : undefined))}
-      </div>
-      {focusedItem && (
-        <Chat
-          item={focusedItem}
-          onClose={() => setFocusedItem(null)}
-        />
-      )}
-      {showScrollTop && (
-        <ScrollTopButton onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
-      )}
-    </section>
+        {showScrollTop && (
+          <ScrollTopButton onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
+        )}
+      </section>
     </>
   );
 }

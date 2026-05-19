@@ -9,6 +9,9 @@ import {
 import type { FeedItem } from "../../../types";
 import { Controls } from "./Controls";
 import { runtimeLogger } from "../../infra/runtimeLogger";
+import { DocumentTextIcon } from "../../../assets/DocumentTextIcon";
+import { ArrowDownTrayIcon as DownloadIcon } from "../../../assets/ArrowDownTrayIcon";
+import { ArrowPathIcon as LoadingIcon } from "../../../assets/ArrowPathIcon";
 
 type Props = {
   item: FeedItem;
@@ -17,24 +20,16 @@ type Props = {
   aspectRatioOverride?: string;
 };
 
-function DocumentTextIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth="1.5"
-      stroke="currentColor"
-      style={{ width: 32, height: 32 }}
-      aria-hidden="true"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12h6m-6 3h6m2.25 2.25H6.375a1.125 1.125 0 0 1-1.125-1.125V5.25A2.25 2.25 0 0 1 7.5 3h5.379a2.25 2.25 0 0 1 1.591.659l4.371 4.371a2.25 2.25 0 0 1 .659 1.591v8.754a1.125 1.125 0 0 1-1.125 1.125Z"
-      />
-    </svg>
-  );
+function DocumentTextIconLocal() {
+  return <DocumentTextIcon style={{ width: 32, height: 32 }} />;
+}
+
+function DownloadIconLocal() {
+  return <DownloadIcon style={{ width: 16, height: 16 }} />;
+}
+
+function LoadingIconLocal() {
+  return <LoadingIcon style={{ width: 16, height: 16, animation: "spin 2s linear infinite" }} />;
 }
 
 export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride }: Props) {
@@ -254,51 +249,23 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
     }
 
     if (media.meta.type === "youtube") {
-      const videoUrl = `https://www.youtube.com/watch?v=${item.media?.key?.split("-")[1]}`;
+      const youtubeId = item.media?.key?.split("-")[1];
+      const embedUrl = `https://www.youtube.com/embed/${youtubeId}?rel=0`;
       return (
-        <div
-          style={{ position: "relative", width: "100%", height: "100%", cursor: "pointer" }}
-          onClick={(event) => {
-            event.stopPropagation();
-            window.open(videoUrl, "_blank", "noopener,noreferrer");
-          }}
-        >
-          <img
-            src={previewUrl}
-            alt={media.alt}
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        <div style={{ position: "relative", width: "100%", height: "100%" }}>
+          <iframe
+            src={embedUrl}
+            title={media.meta.title || "YouTube video player"}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "block",
+            }}
+            onClick={(event) => event.stopPropagation()}
           />
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "flex-end",
-              background: "linear-gradient(transparent, rgba(0,0,0,0.7))",
-              padding: 12,
-            }}
-          >
-            <Typography.Text style={{ color: "#fff", fontWeight: 600 }}>{media.meta.title}</Typography.Text>
-            <Typography.Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 12 }}>YouTube</Typography.Text>
-          </div>
-          <div
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: 64,
-              height: 64,
-              background: "rgba(255,0,0,0.9)",
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <div style={{ width: 0, height: 0, borderTop: "12px solid transparent", borderBottom: "12px solid transparent", borderLeft: "20px solid white", marginLeft: 4 }} />
-          </div>
         </div>
       );
     }
@@ -312,7 +279,7 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
     return (
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: token.colorBgContainer, border: `1px solid ${token.colorBorder}`, borderRadius: token.borderRadius }}>
         <span style={{ color: token.colorTextSecondary }}>
-          <DocumentTextIcon />
+          <DocumentTextIconLocal />
         </span>
         <div style={{ minWidth: 0 }}>
           <Typography.Text strong style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -363,12 +330,14 @@ export function Media({ item, onVideoPlay, grayscale = true, aspectRatioOverride
             border: "none",
             borderRadius: token.borderRadius,
             color: "#fff",
-            padding: "6px 10px",
+            padding: "6px 8px",
             cursor: "pointer",
-            fontSize: 12,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          {isDownloading ? "⏳" : "⬇"}
+          {isDownloading ? <LoadingIconLocal /> : <DownloadIconLocal />}
         </button>
       )}
       {downloadError && (

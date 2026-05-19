@@ -15,6 +15,7 @@ import {
 import { searchTelegram } from "../../search/infra/telegramSearch";
 import type { SearchChatTarget, SearchResult } from "../../search/model/searchTypes";
 import { MenuDialog } from "./MenuDialog";
+import { MagnifyingGlassIcon } from "../../../assets/MagnifyingGlassIcon";
 
 function getResultKindLabel(result: SearchResult) {
   switch (result.kind) {
@@ -127,7 +128,7 @@ export default function SearchDialog() {
   return (
     <MenuDialog title="Search" onClose={closeMenu}>
       <Flex vertical gap={12}>
-        <Input.Search
+        <Input
           id="menu-search-query"
           aria-label="Search Telegram"
           placeholder="Search channels and messages"
@@ -135,7 +136,12 @@ export default function SearchDialog() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           allowClear
-          loading={isLoading}
+          prefix={
+            <MagnifyingGlassIcon
+              style={{ width: 16, height: 16, color: "var(--ant-color-text-description)", marginRight: 4 }}
+            />
+          }
+          style={{ padding: "8px 12px" }}
         />
         {isLoading && (
           <Flex justify="center" style={{ padding: 16 }}>

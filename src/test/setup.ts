@@ -40,3 +40,8 @@ class MockIntersectionObserver implements IntersectionObserver {
 
 globalThis.IntersectionObserver =
   MockIntersectionObserver as unknown as typeof IntersectionObserver
+
+vi.mock("virtua", () => ({
+  VList: ({ children }: { children: React.ReactNode }) => children,
+  WindowVirtualizer: ({ children }: { children: React.ReactNode }) => children,
+}));

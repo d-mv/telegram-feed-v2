@@ -34,7 +34,10 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
     <ConfigProvider
       theme={{
         algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
-        token: { fontSize: 16 },
+        token: {
+          fontSize: 16,
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+        },
       }}
     >
       <GlobalStyles />

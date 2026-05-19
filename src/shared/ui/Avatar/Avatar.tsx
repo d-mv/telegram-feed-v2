@@ -25,11 +25,12 @@ export function Avatar({ message, noPreview, isThread }: Props) {
   if (!isAvatarVisible) return null;
 
   const size = isThread ? 28 : 32;
-  const background = avatarPhotoMap[`thread:${message.id}`]
+  const cacheKey = isThread ? `thread:${message.id}` : `feed:${message.id}`;
+  const background = avatarPhotoMap[cacheKey]
     ? undefined
     : getAvatarColor(message.senderName || "unknown");
-  const backgroundImage = avatarPhotoMap[`thread:${message.id}`]
-    ? `url(${avatarPhotoMap[`thread:${message.id}`]})`
+  const backgroundImage = avatarPhotoMap[cacheKey]
+    ? `url(${avatarPhotoMap[cacheKey]})`
     : undefined;
 
   return (
@@ -61,7 +62,7 @@ export function Avatar({ message, noPreview, isThread }: Props) {
         role="button"
         onClick={handleOpenAvatar}
       >
-        {avatarPhotoMap[`thread:${message.id}`]
+        {avatarPhotoMap[cacheKey]
           ? ""
           : getAvatarInitials(message.senderName || "unknown")}
       </button>

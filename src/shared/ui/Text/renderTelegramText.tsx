@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, CSSProperties } from "react";
 import { requestOpenTarget } from "../../../domains/app/openTarget";
 
 type TelegramEntity = {
@@ -43,11 +43,31 @@ function normalizeUrl(url: string) {
 }
 
 function renderLink(key: string, value: string, href: string) {
+  const commonStyle: CSSProperties = {
+    display: "inline-block",
+    maxWidth: "100%",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    verticalAlign: "bottom",
+    textDecoration: "underline",
+  };
+
   if (isTelegramLink(href)) {
     return (
       <button
         key={key}
         type="button"
+        style={{
+          ...commonStyle,
+          background: "none",
+          border: "none",
+          padding: 0,
+          color: "inherit",
+          font: "inherit",
+          cursor: "pointer",
+          textAlign: "left",
+        }}
         onClick={(event) => {
           event.stopPropagation();
           requestOpenTarget(href);
@@ -67,6 +87,7 @@ function renderLink(key: string, value: string, href: string) {
       rel="noopener noreferrer"
       onClick={(event) => event.stopPropagation()}
       onKeyDown={(event) => event.stopPropagation()}
+      style={commonStyle}
     >
       {value}
     </a>

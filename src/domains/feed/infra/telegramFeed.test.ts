@@ -331,6 +331,25 @@ describe('getMediaPreview', () => {
       key: 'youtube-dQw4w9WgXcQ',
     })
   })
+
+  test('builds YouTube preview for shorts and mobile links', () => {
+    const shortsMessage = new Api.Message({
+      id: 15,
+      message: 'Short: https://youtube.com/shorts/dQw4w9WgXcQ',
+      entities: [new Api.MessageEntityUrl({ offset: 7, length: 38 })],
+    })
+    const mobileMessage = new Api.Message({
+      id: 16,
+      message: 'Mobile: https://m.youtube.com/watch?v=dQw4w9WgXcQ',
+      entities: [new Api.MessageEntityUrl({ offset: 8, length: 42 })],
+    })
+
+    const shortsPreview = getMediaPreview(shortsMessage)
+    const mobilePreview = getMediaPreview(mobileMessage)
+
+    expect(shortsPreview?.key).toBe('youtube-dQw4w9WgXcQ')
+    expect(mobilePreview?.key).toBe('youtube-dQw4w9WgXcQ')
+  })
 })
 
 describe('fetchRecentFeed', () => {

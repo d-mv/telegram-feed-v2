@@ -1,5 +1,6 @@
 import { Button, Flex, Typography } from "antd";
 import type { QrLoginToken } from "../model/authTypes";
+import { ArrowPathIcon } from "../../../assets/ArrowPathIcon";
 
 type QrLoginPanelProps = {
   status: "idle" | "loading" | "waiting";
@@ -37,7 +38,11 @@ export function QrLoginPanel({
         </>
       )}
       <Flex gap={8}>
-        <Button onClick={onRefresh} disabled={status === "loading"}>
+        <Button
+          onClick={onRefresh}
+          disabled={status === "loading"}
+          icon={<ArrowPathIcon style={{ width: 16, height: 16 }} />}
+        >
           Refresh QR
         </Button>
         <Button type="text" onClick={onReset}>

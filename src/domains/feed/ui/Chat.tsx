@@ -4,6 +4,8 @@ import type { FeedItem } from "../../../types";
 import { AppContext } from "../../app/AppContext";
 import { leaveFeedChannel } from "../../search/infra/telegramMembership";
 import { ChatThread } from "./ChatThread";
+import { EllipsisHorizontalIcon } from "../../../assets/EllipsisHorizontalIcon";
+import { PaperAirplaneIcon } from "../../../assets/PaperAirplaneIcon";
 
 type ChatProps = {
   item: FeedItem;
@@ -116,13 +118,7 @@ export function Chat({ item, onClose }: ChatProps) {
           <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
             <Button
               type="text"
-              icon={
-                <Flex gap={3} align="center">
-                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: token.colorText, display: "block" }} />
-                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: token.colorText, display: "block" }} />
-                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: token.colorText, display: "block" }} />
-                </Flex>
-              }
+              icon={<EllipsisHorizontalIcon style={{ width: 16, height: 16 }} />}
               aria-label="More actions"
             />
           </Dropdown>
@@ -157,6 +153,9 @@ export function Chat({ item, onClose }: ChatProps) {
               disabled={isSending || draft.trim() === ""}
               loading={isSending}
               size="large"
+              icon={
+                !isSending && <PaperAirplaneIcon style={{ width: 18, height: 18 }} />
+              }
             >
               {isSending ? "Sending..." : "Send"}
             </Button>

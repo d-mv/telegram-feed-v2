@@ -3,6 +3,7 @@ import { path } from "ramda";
 import type { CSSProperties } from "react";
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Api } from "telegram";
+import { ChevronDoubleDownIcon } from "../../../assets/ChevronDoubleDownIcon";
 import { CommentsIcon } from "../../../shared/ui/CommentsIcon/CommentsIcon";
 import { Header } from "../../../shared/ui/Header/Header";
 import { Media } from "../../../shared/ui/Media/Media";
@@ -523,21 +524,7 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
               color: token.colorText,
             }}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              style={{ width: 16, height: 16 }}
-            >
-              <path d="M12 5v14" />
-              <path d="m19 12-7 7-7-7" />
-              <path d="M5 5h14" />
-            </svg>
+            <ChevronDoubleDownIcon style={{ width: 16, height: 16 }} />
           </button>
         )}
       </div>

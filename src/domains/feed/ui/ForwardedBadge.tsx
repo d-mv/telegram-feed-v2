@@ -19,6 +19,12 @@ export function ForwardedBadge({ sourceMessage }: ForwardedBadgeProps) {
     borderLeft: `3px solid ${token.colorPrimary}`,
     paddingLeft: 6,
     marginBottom: 6,
+    maxWidth: "100%",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    verticalAlign: "bottom",
+    textDecoration: "underline",
   };
 
   if (meta.href) {

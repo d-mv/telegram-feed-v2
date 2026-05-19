@@ -112,6 +112,9 @@ function getYoutubeId(url: string): string | undefined {
       return parsed.pathname.slice(1);
     }
     if (parsed.hostname.includes("youtube.com")) {
+      if (parsed.pathname.startsWith("/shorts/")) {
+        return parsed.pathname.slice(8);
+      }
       return parsed.searchParams.get("v") || undefined;
     }
   } catch {

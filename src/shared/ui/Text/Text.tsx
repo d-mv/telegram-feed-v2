@@ -50,6 +50,15 @@ export function Text({ children, className, sourceMessage }: PropsWithChildren<P
             rel="noopener noreferrer"
             onClick={(event) => event.stopPropagation()}
             onKeyDown={(event) => event.stopPropagation()}
+            style={{
+              display: 'inline-block',
+              maxWidth: '100%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              verticalAlign: 'bottom',
+              textDecoration: 'underline'
+            }}
           >
             {segment.value}
           </a>

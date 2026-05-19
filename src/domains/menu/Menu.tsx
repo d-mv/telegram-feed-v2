@@ -3,6 +3,7 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai/react";
 import { lazy, Suspense, useContext } from "react";
 import { menuIsOpenAtom, menuItemAtom, toggleMenuAtom } from "../../atoms/menu.atom";
 import { AppContext } from "../app/AppContext";
+import { Bars3Icon } from "../../assets/Bars3Icon";
 import AvatarsSettings from "./components/AvatarsSettings";
 import FiltersSettings from "./components/FiltersSettings";
 import Maintenance from "./components/Maintenance";
@@ -58,7 +59,7 @@ export function Menu() {
           if (open !== isMenuOpen) toggleMenu();
         }}
       >
-        <Button onClick={(e) => e.preventDefault()}>Menu</Button>
+        <Button onClick={(e) => e.preventDefault()} icon={<Bars3Icon style={{ width: 16, height: 16 }} />}>Menu</Button>
       </Dropdown>
       <Suspense fallback={null}>{renderModule()}</Suspense>
     </>

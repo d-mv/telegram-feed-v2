@@ -22,7 +22,8 @@
     "ramda": "^0.32.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "telegram": "npm:telegram@browser"
+    "telegram": "npm:telegram@browser",
+    "virtua": "^0.49.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
