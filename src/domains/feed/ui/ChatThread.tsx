@@ -12,6 +12,7 @@ import type { FeedItem } from "../../../types";
 import { AppContext } from "../../app/AppContext";
 import {
   getMediaPreview,
+  getPollPreview,
   getMessageCommentsCount,
   getReplyToId,
   mergeAlbumFeedItems,

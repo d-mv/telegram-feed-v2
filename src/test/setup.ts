@@ -24,22 +24,25 @@ Object.defineProperty(window, 'matchMedia', {
 })
 
 class MockIntersectionObserver implements IntersectionObserver {
-  readonly root: Element | null = null
-  readonly rootMargin = ''
-  readonly thresholds: ReadonlyArray<number> = []
+  readonly root: Element | null = null;
+  readonly rootMargin = "";
+  readonly scrollMargin = "";
+  readonly thresholds: ReadonlyArray<number> = [];
 
   constructor(_callback: IntersectionObserverCallback) {}
 
   disconnect() {}
   observe(_target: Element) {}
   takeRecords(): IntersectionObserverEntry[] {
-    return []
+    return [];
   }
   unobserve(_target: Element) {}
 }
 
 globalThis.IntersectionObserver =
-  MockIntersectionObserver as unknown as typeof IntersectionObserver
+  MockIntersectionObserver as unknown as typeof IntersectionObserver;
+
+import { vi } from "vitest";
 
 vi.mock("virtua", () => ({
   VList: ({ children }: { children: React.ReactNode }) => children,

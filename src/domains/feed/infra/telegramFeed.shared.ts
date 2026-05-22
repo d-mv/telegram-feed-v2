@@ -92,8 +92,9 @@ export function getPollPreview(message: Api.Message): FeedItem["poll"] | undefin
   const options: PollOption[] = poll.answers.map((answer) => {
     const optionKey = answer.option.toString();
     const result = resultByOption.get(optionKey);
+    const text = typeof answer.text === "string" ? answer.text : (answer.text as any).text || "";
     return {
-      text: answer.text,
+      text,
       option: answer.option,
       votersCount: result?.voters ?? 0,
       chosen: result?.chosen,
@@ -103,7 +104,7 @@ export function getPollPreview(message: Api.Message): FeedItem["poll"] | undefin
 
   return {
     id: poll.id.toString(),
-    question: poll.question,
+    question: typeof poll.question === "string" ? poll.question : (poll.question as any).text || "",
     options,
     totalVoters: results?.totalVoters ?? 0,
     closed: poll.closed,

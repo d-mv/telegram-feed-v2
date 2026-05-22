@@ -1,7 +1,7 @@
 import { Button, Checkbox, Flex, Progress, Radio, Typography, theme } from "antd";
 import { useContext, useState } from "react";
-import type { FeedItem, PollOption } from "../../../types";
-import { AppContext } from "../../app/AppContext";
+import type { FeedItem, PollOption } from "../../../../types";
+import { AppContext } from "../../../app/AppContext";
 
 type PollProps = {
   item: FeedItem;
