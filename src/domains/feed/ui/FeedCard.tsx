@@ -6,6 +6,7 @@ import { Text } from "../../../shared/ui/Text/Text";
 import type { FeedItem } from "../../../types";
 import { ForwardedBadge } from "./ForwardedBadge";
 import { getForwardedMessageMeta } from "./getForwardedMessageMeta";
+import { Poll } from "./components/Poll";
 
 type FeedCardProps = {
   item: FeedItem;
@@ -77,6 +78,11 @@ export function FeedCard({ item, onFocus, groupedItems }: FeedCardProps) {
       </Header>
       <ForwardedBadge sourceMessage={item.sourceMessage} />
       <Text sourceMessage={item.sourceMessage}>{item.text}</Text>
+      {item.poll && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Poll item={item} />
+        </div>
+      )}
       {hasGroupedMedia ? (
         <div
           data-media-group-layout={hasGroupedImages ? "image-grid" : "stack"}
