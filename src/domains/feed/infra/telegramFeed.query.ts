@@ -1,5 +1,6 @@
 import { Api, type TelegramClient } from "telegram";
 import type { FeedItem } from "../../../types";
+import { runtimeLogger } from "../../../shared/infra/runtimeLogger";
 import {
   getEntityLabel,
   getMediaGroupKey,
@@ -94,48 +95,58 @@ export async function fetchRecentFeed(
         return [];
       }
 
-      const latestMessageId = latestMessageIdsByChat?.[getDialogChannelKey(dialog)];
-      const messages = await client.getMessages(
-        dialog.entity as MessagesTarget,
-        latestMessageId === undefined
-          ? { limit: perChat }
-          : {
-              limit: undefined,
-              minId: latestMessageId,
-              maxId: TELEGRAM_MAX_MESSAGE_ID,
-            },
-      );
-      return Promise.all(
-        messages.map(async (message) => {
-          if (!(message instanceof Api.Message)) {
-            return null;
-          }
-          if (message.out) {
-            return null;
-          }
-          if (me && message.fromId && "userId" in message.fromId) {
-            if (message.fromId.userId?.toString() === me.id?.toString()) {
+      try {
+        const latestMessageId = latestMessageIdsByChat?.[getDialogChannelKey(dialog)];
+        const messages = await client.getMessages(
+          dialog.entity as MessagesTarget,
+          latestMessageId === undefined
+            ? { limit: perChat }
+            : {
+                limit: undefined,
+                minId: latestMessageId,
+                maxId: TELEGRAM_MAX_MESSAGE_ID,
+              },
+        );
+        return Promise.all(
+          messages.map(async (message) => {
+            if (!(message instanceof Api.Message)) {
               return null;
             }
-          }
-          if (latestMessageId !== undefined && typeof message.id === "number" && message.id <= latestMessageId) {
-            return null;
-          }
-          if (!message.date || message.date < cutoff) {
-            return null;
-          }
+            if (message.out) {
+              return null;
+            }
+            if (me && message.fromId && "userId" in message.fromId) {
+              if (message.fromId.userId?.toString() === me.id?.toString()) {
+                return null;
+              }
+            }
+            if (latestMessageId !== undefined && typeof message.id === "number" && message.id <= latestMessageId) {
+              return null;
+            }
+            if (!message.date || message.date < cutoff) {
+              return null;
+            }
 
-          const chatName = dialog.name || dialog.title || (dialog.isUser ? "User" : "Group");
-          const senderName = dialog.isUser
-            ? chatName
-            : getEntityLabel(message.getSender ? await message.getSender() : undefined, chatName);
+            const chatName = dialog.name || dialog.title || (dialog.isUser ? "User" : "Group");
+            const senderName = dialog.isUser
+              ? chatName
+              : getEntityLabel(message.getSender ? await message.getSender() : undefined, chatName);
 
-          return {
-            item: toFeedItem(dialog, message, senderName),
-            sortDate: message.date,
-          };
-        }),
-      );
+            return {
+              item: toFeedItem(dialog, message, senderName),
+              sortDate: message.date,
+            };
+          }),
+        );
+      } catch (err) {
+        runtimeLogger.warn("mtproto_entity_skipped", {
+          dialogId: dialog.id?.toString(),
+          dialogName: dialog.name || dialog.title,
+          isUser: dialog.isUser,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        return [];
+      }
     }),
   );
 
