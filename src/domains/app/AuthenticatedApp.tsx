@@ -7,7 +7,7 @@ import { feedItemsAtom } from "../../atoms/feedItems.atom";
 import { Loading } from "../../shared/ui/Loading/Loading";
 import type { FeedItem } from "../../types";
 import type { Dal } from "../dal/types";
-import { sendMessageToFeedItem } from "../feed/infra/telegramFeed";
+import { sendMessageToFeedItem, voteOnPoll } from "../feed/infra/telegramFeed";
 import { FeedView } from "../feed/ui/FeedView";
 import { AppContext } from "./AppContext";
 import { Message } from "./components/Message";
@@ -46,6 +46,12 @@ export default function AuthenticatedApp({ dal }: { dal: Dal }) {
     return sentMessage;
   }
 
+  async function handleVotePoll(item: FeedItem, options: Uint8Array[]) {
+    const updatedItem = await voteOnPoll(item, options, ensureTelegramConnected);
+    void refreshFeed({ background: true });
+    return updatedItem;
+  }
+
   if (isFeedLoading) return <Message>Loading feed...</Message>;
 
   if (feedError) return <Message>Feed error: {feedError}</Message>;
@@ -63,6 +69,7 @@ export default function AuthenticatedApp({ dal }: { dal: Dal }) {
         dal,
         onManualRefresh: refreshFeed,
         onSendMessage: handleSendMessage,
+        onVotePoll: handleVotePoll,
         ensureTelegramConnected,
         avatarVisibility,
         onSetAvatarVisibility: handleSetAvatarVisibility,

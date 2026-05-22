@@ -1,5 +1,5 @@
 export { clearAvatarCaches, getAvatarPhotoGallery, getAvatarPhotoUrl } from "./telegramFeed.avatar";
-export { sendMessageToFeedItem } from "./telegramFeed.actions";
+export { sendMessageToFeedItem, voteOnPoll } from "./telegramFeed.actions";
 export {
   downloadMediaForItem,
   getCachedMediaUrl,
@@ -10,6 +10,7 @@ export {
   getEntityLabel,
   getMediaGroupKey,
   getMediaPreview,
+  getPollPreview,
   getMessageCommentsCount,
   getReplyToId,
   mergeAlbumFeedItems,

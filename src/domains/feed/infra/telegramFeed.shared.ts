@@ -1,5 +1,5 @@
 import { Api } from "telegram";
-import type { FeedItem } from "../../../types";
+import type { FeedItem, PollOption } from "../../../types";
 
 export function toRelativeTime(unixSeconds: number): string {
   if (typeof unixSeconds !== "number" || Number.isNaN(unixSeconds)) {
@@ -69,6 +69,49 @@ export function getReplyToId(message: Api.Message): number | undefined {
     return (replyTo as { replyToMsgId: number }).replyToMsgId;
   }
   return undefined;
+}
+
+export function getPollPreview(message: Api.Message): FeedItem["poll"] | undefined {
+  const media = message.media;
+  if (!media || media.className !== "MessageMediaPoll") {
+    return undefined;
+  }
+
+  const { poll, results } = media as Api.MessageMediaPoll;
+  if (!poll) {
+    return undefined;
+  }
+
+  const resultByOption = new Map<string, Api.PollAnswerVoters>();
+  if (results?.results) {
+    for (const res of results.results) {
+      resultByOption.set(res.option.toString(), res);
+    }
+  }
+
+  const options: PollOption[] = poll.answers.map((answer) => {
+    const optionKey = answer.option.toString();
+    const result = resultByOption.get(optionKey);
+    return {
+      text: answer.text,
+      option: answer.option,
+      votersCount: result?.voters ?? 0,
+      chosen: result?.chosen,
+      correct: result?.correct,
+    };
+  });
+
+  return {
+    id: poll.id.toString(),
+    question: poll.question,
+    options,
+    totalVoters: results?.totalVoters ?? 0,
+    closed: poll.closed,
+    multipleChoice: poll.multipleChoice,
+    quiz: poll.quiz,
+    publicVoters: poll.publicVoters,
+    recentVoters: results?.recentVoters?.map((v) => v.toString()),
+  };
 }
 
 function canMergeAlbumItem(item: FeedItem): boolean {

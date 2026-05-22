@@ -4,8 +4,10 @@ import {
   getMediaGroupKey,
   getMediaPreview,
   getMessageCommentsCount,
+  getPollPreview,
   toRelativeTime,
 } from "./telegramFeed.shared";
+import { resolveFeedItemSourceMessage } from "./resolveFeedItemSourceMessage";
 
 type SendTarget = Parameters<TelegramClient["sendMessage"]>[0];
 type EnsureTelegramConnected = () => Promise<TelegramClient>;
@@ -25,14 +27,18 @@ export async function sendMessageToFeedItem(
   if (trimmed === "") {
     return undefined;
   }
-  const sourceMessage = item.sourceMessage;
-  if (!(sourceMessage instanceof Api.Message)) {
+
+  const client = await ensureTelegramConnected();
+  const sourceMessage = await resolveFeedItemSourceMessage(item, client);
+
+  if (!sourceMessage) {
     throw new Error("Cannot send message for this conversation");
   }
-  const client = await ensureTelegramConnected();
+
   const inputChat = await resolveInputChat(sourceMessage);
   const sentMessage = await client.sendMessage((inputChat ?? undefined) as SendTarget, {
     message: trimmed,
+    replyTo: sourceMessage.id,
   });
   if (!(sentMessage instanceof Api.Message)) {
     return undefined;
@@ -48,9 +54,46 @@ export async function sendMessageToFeedItem(
     text: sentMessage.message ?? trimmed,
     commentsCount: getMessageCommentsCount(sentMessage),
     media: getMediaPreview(sentMessage),
+    poll: getPollPreview(sentMessage),
     mediaGroupKey: getMediaGroupKey(sentMessage),
     reactions: item.type === "dm" ? [] : undefined,
     sourceMessage: sentMessage,
     isFocused: false,
+  } as FeedItem;
+}
+
+export async function voteOnPoll(
+  item: FeedItem,
+  options: Uint8Array[],
+  ensureTelegramConnected: EnsureTelegramConnected,
+): Promise<FeedItem | undefined> {
+  const client = await ensureTelegramConnected();
+  const sourceMessage = await resolveFeedItemSourceMessage(item, client);
+  if (!sourceMessage) {
+    return undefined;
+  }
+
+  const inputChat = await resolveInputChat(sourceMessage);
+  await client.invoke(
+    new Api.messages.SendVote({
+      peer: (inputChat ?? undefined) as SendTarget,
+      msgId: sourceMessage.id,
+      options,
+    }),
+  );
+
+  const messages = await client.getMessages((inputChat ?? undefined) as SendTarget, {
+    ids: [sourceMessage.id],
+  });
+  const updatedMessage = messages[0];
+
+  if (!(updatedMessage instanceof Api.Message)) {
+    return undefined;
+  }
+
+  return {
+    ...item,
+    poll: getPollPreview(updatedMessage),
+    sourceMessage: updatedMessage,
   } as FeedItem;
 }

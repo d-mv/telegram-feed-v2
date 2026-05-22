@@ -6,6 +6,7 @@ import {
   getMediaGroupKey,
   getMediaPreview,
   getMessageCommentsCount,
+  getPollPreview,
   mergeAlbumFeedItems,
   toRelativeTime,
 } from "./telegramFeed.shared";
@@ -51,6 +52,7 @@ function toFeedItem(dialog: TelegramDialog, message: Api.Message, senderName: st
       text: message.message ?? "",
       commentsCount: getMessageCommentsCount(message),
       media: getMediaPreview(message),
+      poll: getPollPreview(message),
       mediaGroupKey: getMediaGroupKey(message),
       reactions: [],
       sourceMessage: message,
@@ -69,6 +71,7 @@ function toFeedItem(dialog: TelegramDialog, message: Api.Message, senderName: st
     text: message.message ?? "",
     commentsCount: getMessageCommentsCount(message),
     media: getMediaPreview(message),
+    poll: getPollPreview(message),
     mediaGroupKey: getMediaGroupKey(message),
     sourceMessage: message,
     isFocused: false,

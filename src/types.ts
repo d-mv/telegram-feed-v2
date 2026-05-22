@@ -22,6 +22,26 @@ type Reaction = {
   count: number;
 };
 
+export type PollOption = {
+  text: string;
+  option: Uint8Array;
+  votersCount: number;
+  chosen?: boolean;
+  correct?: boolean;
+};
+
+export type PollPreview = {
+  id: string;
+  question: string;
+  options: PollOption[];
+  totalVoters: number;
+  closed?: boolean;
+  multipleChoice?: boolean;
+  quiz?: boolean;
+  publicVoters?: boolean;
+  recentVoters?: string[];
+};
+
 interface Message {
   id: string;
   channelKey?: string;
@@ -32,6 +52,7 @@ interface Message {
   commentsCount?: number;
   media?: MediaPreview;
   mediaItems?: MediaPreview[];
+  poll?: PollPreview;
   senderName?: string;
   mediaGroupKey?: string;
   // fix this

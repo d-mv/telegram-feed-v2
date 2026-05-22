@@ -21,6 +21,7 @@ import { resolveFeedItemSourceMessage } from "../infra/resolveFeedItemSourceMess
 import { groupConsecutiveMediaOnlyItems } from "./groupConsecutiveMediaOnlyItems";
 import { ForwardedBadge } from "./ForwardedBadge";
 import { getForwardedMessageMeta } from "./getForwardedMessageMeta";
+import { Poll } from "./components/Poll";
 
 type ChatThreadProps = {
   item: FeedItem;
@@ -110,6 +111,7 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
       commentsCount: item.commentsCount,
       media: item.media,
       mediaItems: item.mediaItems,
+      poll: item.poll,
       sourceMessage: item.sourceMessage,
       isFocused: true,
     };
@@ -168,6 +170,7 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
               timestamp,
               date: message.date,
               media: getMediaPreview(message),
+              poll: getPollPreview(message),
               commentsCount: getMessageCommentsCount(message),
               sourceMessage: message,
               mediaGroupKey:
@@ -275,6 +278,7 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
           text: comment.message ?? "",
           timestamp: toRelativeTime(comment.date),
           date: comment.date,
+          poll: getPollPreview(comment),
         }));
       setCommentsByMessage((current) => ({ ...current, [message.id]: normalized }));
     } catch {
@@ -434,6 +438,7 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
                   {representative.text}
                 </Text>
               )}
+              {representative.poll && <Poll item={representative} />}
               {isGrouped ? (
                 <div
                   data-media-group-layout={hasGroupedImages ? "image-grid" : "stack"}

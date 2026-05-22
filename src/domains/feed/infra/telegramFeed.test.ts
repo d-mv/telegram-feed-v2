@@ -154,6 +154,7 @@ import {
   getCachedMediaUrl,
   getMessageCommentsCount,
   getMediaPreview,
+  getPollPreview,
   sendMessageToFeedItem,
   toRelativeTime,
 } from './telegramFeed'
@@ -730,6 +731,58 @@ describe('message helpers', () => {
     expect(getMessageCommentsCount(new Api.Message({}))).toBe(0)
   })
 
+  test('extracts poll preview data', () => {
+    const poll = {
+      id: 12345n,
+      question: 'Dinner?',
+      answers: [
+        { text: 'Pizza', option: new Uint8Array([48]) },
+        { text: 'Sushi', option: new Uint8Array([49]) },
+      ],
+      closed: false,
+      multipleChoice: true,
+      quiz: false,
+      publicVoters: true,
+    }
+    const results = {
+      results: [
+        { option: new Uint8Array([48]), voters: 10, chosen: true },
+        { option: new Uint8Array([49]), voters: 5, chosen: false },
+      ],
+      totalVoters: 15,
+    }
+    const message = new Api.Message({
+      media: {
+        className: 'MessageMediaPoll',
+        poll,
+        results,
+      },
+    })
+
+    const preview = getPollPreview(message)
+    expect(preview).toEqual({
+      id: '12345',
+      question: 'Dinner?',
+      options: [
+        { text: 'Pizza', option: new Uint8Array([48]), votersCount: 10, chosen: true, correct: undefined },
+        { text: 'Sushi', option: new Uint8Array([49]), votersCount: 5, chosen: false, correct: undefined },
+      ],
+      totalVoters: 15,
+      closed: false,
+      multipleChoice: true,
+      quiz: false,
+      publicVoters: true,
+      recentVoters: undefined,
+    })
+  })
+
+  test('returns undefined for non-poll media', () => {
+    const message = new Api.Message({
+      media: { className: 'MessageMediaPhoto' },
+    })
+    expect(getPollPreview(message)).toBeUndefined()
+  })
+
   test('sends messages with trimmed text and throws for invalid source', async () => {
     const sendMessage = vi.fn().mockResolvedValue(
       new Api.Message({
@@ -741,24 +794,30 @@ describe('message helpers', () => {
     )
     ensureTelegramConnectedMock.mockResolvedValue({ sendMessage })
 
+    const sourceMessage = new Api.Message({
+      getInputChat: vi.fn().mockResolvedValue('chat'),
+    })
+    Object.assign(sourceMessage, { id: 123 })
+
     const result = await sendMessageToFeedItem(
       {
-        id: 'group-1',
+        id: 'group-1-123',
         type: 'group',
         channelKey: 'group:1',
         chatName: 'Team',
         senderName: 'Team',
         timestamp: 'now',
         text: '',
-        sourceMessage: new Api.Message({
-          getInputChat: vi.fn().mockResolvedValue('chat'),
-        }),
+        sourceMessage,
         isFocused: false,
       },
       '  hi  ',
       ensureTelegramConnectedMock,
     )
-    expect(sendMessage).toHaveBeenCalledWith('chat', { message: 'hi' })
+    expect(sendMessage).toHaveBeenCalledWith('chat', expect.objectContaining({
+      message: 'hi',
+      replyTo: 123,
+    }))
     expect(result).toMatchObject({
       id: '99',
       channelKey: 'group:1',
@@ -776,13 +835,44 @@ describe('message helpers', () => {
           chatName: 'Team',
           timestamp: 'now',
           text: '',
-          sourceMessage: {},
+          sourceMessage: null as any,
           isFocused: false,
         },
         'hello',
         ensureTelegramConnectedMock,
       ),
     ).rejects.toThrow('Cannot send message for this conversation')
+  })
+
+  test('re-hydrates cached source message before sending', async () => {
+    const sourceMessage = new Api.Message({ id: 123 })
+    Object.assign(sourceMessage, { id: 123, getInputChat: () => 'chat' })
+    const sendMessage = vi.fn().mockResolvedValue(new Api.Message({ id: 100, date: 1700000000 }))
+    const getMessages = vi.fn().mockResolvedValue([sourceMessage])
+    ensureTelegramConnectedMock.mockResolvedValue({ sendMessage, getMessages })
+
+    const result = await sendMessageToFeedItem(
+      {
+        id: 'group-1-123',
+        channelKey: 'group:1',
+        type: 'group',
+        chatName: 'Team',
+        senderName: 'Team',
+        timestamp: 'now',
+        text: '',
+        sourceMessage: { id: 123 }, // Plain object from cache
+        isFocused: false,
+      },
+      'hi',
+      ensureTelegramConnectedMock,
+    )
+
+    expect(getMessages).toHaveBeenCalledWith('1', { ids: [123] })
+    expect(sendMessage).toHaveBeenCalledWith('chat', expect.objectContaining({
+      message: 'hi',
+      replyTo: 123,
+    }))
+    expect(result).toBeDefined()
   })
 
 })

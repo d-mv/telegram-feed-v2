@@ -6,6 +6,7 @@ import type { Dal } from "../dal/types";
 type AppContextType = {
   onManualRefresh: () => void | Promise<void>;
   onSendMessage: (item: FeedItem, text: string) => Promise<FeedItem | undefined>;
+  onVotePoll: (item: FeedItem, options: Uint8Array[]) => Promise<FeedItem | undefined>;
   ensureTelegramConnected: EnsureTelegramConnected;
   avatarVisibility: AvatarVisibilitySettings;
   onSetAvatarVisibility: (next: AvatarVisibilitySettings) => void;
