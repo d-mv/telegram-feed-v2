@@ -469,3 +469,35 @@ test("renders forwarded metadata inside the thread and routes clicks internally"
   expect(handler).toHaveBeenCalledTimes(1);
   window.removeEventListener(APP_OPEN_TARGET_EVENT, handler as EventListener);
 });
+
+test("renders poll data inside the thread", () => {
+  renderThread(
+    <ChatThread
+      item={{
+        id: "group-poll-1",
+        type: "group",
+        chatName: "Team",
+        timestamp: "now",
+        text: "Poll question?",
+        poll: {
+          id: "123",
+          question: "What is your favorite color?",
+          options: [
+            { text: "Red", option: new Uint8Array([0]), votersCount: 10, chosen: true },
+            { text: "Blue", option: new Uint8Array([1]), votersCount: 5, chosen: false },
+          ],
+          totalVoters: 15,
+        },
+        isFocused: true,
+      }}
+    />,
+  );
+
+  expect(screen.getByText("What is your favorite color?")).toBeInTheDocument();
+  expect(screen.getByText(/Red/)).toBeInTheDocument();
+  expect(screen.getByText("Blue")).toBeInTheDocument();
+  expect(screen.getByText(/67%/)).toBeInTheDocument();
+  expect(screen.getByText(/\(10\)/)).toBeInTheDocument();
+  expect(screen.getByText(/33%/)).toBeInTheDocument();
+  expect(screen.getByText(/\(5\)/)).toBeInTheDocument();
+});
