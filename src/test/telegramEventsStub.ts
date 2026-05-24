@@ -1,3 +1,3 @@
 export class NewMessage {
-  constructor(_options?: unknown) {}
+	constructor(_options?: unknown) {}
 }

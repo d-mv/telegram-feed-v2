@@ -4,10 +4,10 @@ import { vi } from "vitest";
 import { ScrollTopButton } from "./ScrollTopButton";
 
 test("calls click handler", async () => {
-  const user = userEvent.setup();
-  const onClick = vi.fn();
-  render(<ScrollTopButton onClick={onClick} />);
+	const user = userEvent.setup();
+	const onClick = vi.fn();
+	render(<ScrollTopButton onClick={onClick} />);
 
-  await user.click(screen.getByRole("button", { name: "Scroll to top" }));
-  expect(onClick).toHaveBeenCalledTimes(1);
+	await user.click(screen.getByRole("button", { name: "Scroll to top" }));
+	expect(onClick).toHaveBeenCalledTimes(1);
 });

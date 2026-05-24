@@ -1,22 +1,22 @@
-import type { AuthClient } from '../model/authTypes'
-import { getTelegramAuthEnv } from './authEnv'
-import { createTelegramAuth } from './telegramAuth'
+import type { AuthClient } from "../model/authTypes";
+import { getTelegramAuthEnv } from "./authEnv";
+import { createTelegramAuth } from "./telegramAuth";
 
 type AuthOptions = {
-  session?: string
-  onSession?: (session: string) => void
-}
+	session?: string;
+	onSession?: (session: string) => void;
+};
 
 export function createAuthFromEnv(
-  env: ImportMetaEnv = import.meta.env,
-  options: AuthOptions = {},
+	env: ImportMetaEnv = import.meta.env,
+	options: AuthOptions = {},
 ): AuthClient {
-  const { apiId, apiHash } = getTelegramAuthEnv(env)
+	const { apiId, apiHash } = getTelegramAuthEnv(env);
 
-  return createTelegramAuth({
-    apiId,
-    apiHash,
-    session: options.session,
-    onSession: options.onSession,
-  })
+	return createTelegramAuth({
+		apiId,
+		apiHash,
+		session: options.session,
+		onSession: options.onSession,
+	});
 }

@@ -1,43 +1,47 @@
 import { useSetAtom } from "jotai";
 import { useCallback, useEffect } from "react";
-import { authClientAtom, isAuthenticatedAtom, isAuthLoadingAtom } from "../../atoms/auth.atom";
+import {
+	authClientAtom,
+	isAuthenticatedAtom,
+	isAuthLoadingAtom,
+} from "../../atoms/auth.atom";
 import type { Dal } from "../dal/types";
 
 export function useAuthentication({ dal }: { dal: Dal }) {
-  const setAuthClient = useSetAtom(authClientAtom);
-  const setIsAuthLoading = useSetAtom(isAuthLoadingAtom);
-  const setIsAuthenticated = useSetAtom(isAuthenticatedAtom);
+	const setAuthClient = useSetAtom(authClientAtom);
+	const setIsAuthLoading = useSetAtom(isAuthLoadingAtom);
+	const setIsAuthenticated = useSetAtom(isAuthenticatedAtom);
 
-  const authenticate = useCallback(async () => {
-    try {
-      const { createAuthFromEnv } = await import("../auth/infra/authFactory");
-      const session = await dal.getSession();
-      const sessionValue = typeof session === "string" ? session : undefined;
-      const client = createAuthFromEnv(import.meta.env, {
-        session: sessionValue,
-        onSession: (nextSession) => {
-          dal.setSession(nextSession).catch(() => {});
-        },
-      });
-      setAuthClient(client);
-      if (sessionValue) {
-        const authorized = await client.checkSession();
-        if (authorized) setIsAuthenticated(true);
-      }
-    } catch {
-      const { createAuthFromEnv } = await import("../auth/infra/authFactory");
-      const client = createAuthFromEnv(import.meta.env, {
-        onSession: (nextSession) => {
-          dal.setSession(nextSession).catch(() => {});
-        },
-      });
-      setAuthClient(client);
-    } finally {
-      setIsAuthLoading(false);
-    }
-  }, [dal, setIsAuthLoading, setAuthClient, setIsAuthenticated]);
+	const authenticate = useCallback(async () => {
+		try {
+			const { createAuthFromEnv } = await import("../auth/infra/authFactory");
+			const session = await dal.getSession();
+			const sessionValue = typeof session === "string" ? session : undefined;
+			const client = createAuthFromEnv(import.meta.env, {
+				session: sessionValue,
+				onSession: (nextSession) => {
+					dal.setSession(nextSession).catch(() => {});
+				},
+			});
+			setAuthClient(client);
+			if (sessionValue) {
+				const authorized = await client.checkSession();
+				if (authorized) setIsAuthenticated(true);
+			}
+		} catch {
+			const { createAuthFromEnv } = await import("../auth/infra/authFactory");
+			const client = createAuthFromEnv(import.meta.env, {
+				onSession: (nextSession) => {
+					dal.setSession(nextSession).catch(() => {});
+				},
+			});
+			setAuthClient(client);
+		} finally {
+			setIsAuthLoading(false);
+		}
+	}, [dal, setIsAuthLoading, setAuthClient, setIsAuthenticated]);
 
-  useEffect(() => {
-    authenticate();
-  }, [authenticate]);
+	useEffect(() => {
+		authenticate();
+	}, [authenticate]);
 }

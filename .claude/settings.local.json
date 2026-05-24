@@ -32,7 +32,11 @@
       "Bash(curl -s https://telegram-feed.mlnkv.net/)",
       "Bash(curl *)",
       "Bash(git *)",
-      "Bash(md5 *)"
+      "Bash(md5 *)",
+      "Bash(npm uninstall *)",
+      "Bash(npx lefthook *)",
+      "Bash(node -e \"const m = require\\('/Users/dmelnikov/code/telegram-feed/node_modules/@ant-design/icons/lib/components/AntdIcon.js'\\); console.log\\(m.toString\\(\\).substring\\(0, 500\\)\\)\")",
+      "Bash(lefthook install *)"
     ]
   }
 }

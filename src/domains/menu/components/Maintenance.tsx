@@ -7,31 +7,31 @@ import { MenuDialog } from "./MenuDialog";
 import { SettingButtonRow } from "./SettingButtonRow";
 
 export default function Maintenance() {
-  const closeMenu = useSetAtom(closeMenuAtom);
+	const closeMenu = useSetAtom(closeMenuAtom);
 
-  const { dal } = useContext(AppContext);
+	const { dal } = useContext(AppContext);
 
-  const [isClearingCache, setIsClearingCache] = useState(false);
+	const [isClearingCache, setIsClearingCache] = useState(false);
 
-  async function handleClearCache() {
-    setIsClearingCache(true);
-    try {
-      await dal.clearCache();
-    } finally {
-      setIsClearingCache(false);
-    }
-  }
+	async function handleClearCache() {
+		setIsClearingCache(true);
+		try {
+			await dal.clearCache();
+		} finally {
+			setIsClearingCache(false);
+		}
+	}
 
-  return (
-    <MenuDialog title="Maintenance" onClose={closeMenu}>
-      <SettingButtonRow
-        title="Clear cache"
-        subtitle="Removes feed data and media previews. Session stays."
-        buttonText={isClearingCache ? "Clearing..." : "Clear"}
-        onClick={handleClearCache}
-        disabled={isClearingCache}
-      />
-      <Spacer />
-    </MenuDialog>
-  );
+	return (
+		<MenuDialog title="Maintenance" onClose={closeMenu}>
+			<SettingButtonRow
+				title="Clear cache"
+				subtitle="Removes feed data and media previews. Session stays."
+				buttonText={isClearingCache ? "Clearing..." : "Clear"}
+				onClick={handleClearCache}
+				disabled={isClearingCache}
+			/>
+			<Spacer />
+		</MenuDialog>
+	);
 }
