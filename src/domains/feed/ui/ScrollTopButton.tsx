@@ -1,17 +1,17 @@
 import { FloatButton } from "antd";
-import { ArrowUpIcon } from "../../../assets/ArrowUpIcon";
+import { UpOutlined } from "@ant-design/icons";
 
 type ScrollTopButtonProps = {
-  onClick: () => void;
+	onClick: () => void;
 };
 
 export function ScrollTopButton({ onClick }: ScrollTopButtonProps) {
-  return (
-    <FloatButton
-      onClick={onClick}
-      aria-label="Scroll to top"
-      icon={<ArrowUpIcon style={{ width: 16, height: 16 }} />}
-      style={{ bottom: 24, right: 24 }}
-    />
-  );
+	return (
+		<FloatButton
+			onClick={onClick}
+			aria-label="Scroll to top"
+			icon={<UpOutlined aria-hidden style={{ fontSize: 16 }} />}
+			style={{ bottom: 24, right: 24 }}
+		/>
+	);
 }

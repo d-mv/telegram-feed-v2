@@ -1,0 +1,15 @@
+pre-commit:
+  piped: true
+  commands:
+    format:
+      run: npx @biomejs/biome format --write src
+      stage_fixed: true
+    lint:
+      run: npm run lint
+    types:
+      run: npx tsc -p tsconfig.app.json
+
+pre-push:
+  commands:
+    build:
+      run: npm run build

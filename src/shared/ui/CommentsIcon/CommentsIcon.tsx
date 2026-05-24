@@ -1,5 +1,5 @@
-import { ChatBubbleOvalLeftIcon } from "../../../assets/ChatBubbleOvalLeftIcon";
+import { MessageOutlined } from "@ant-design/icons";
 
 export function CommentsIcon() {
-  return <ChatBubbleOvalLeftIcon style={{ width: 16, height: 16 }} />;
+	return <MessageOutlined aria-hidden style={{ fontSize: 16 }} />;
 }
