@@ -8,6 +8,7 @@ import { notificationFocusAtom } from "../../atoms/notificationFocus.atom";
 import { toastsAtom } from "../../atoms/toasts.atom";
 import { ToastViewport } from "../../shared/ui/Toast/ToastViewport";
 import { useNotificationFocus } from "./useNotificationFocus";
+import { APP_OPEN_TARGET_EVENT } from "./openTarget";
 
 function FocusProbe() {
 	const focus = useAtomValue(notificationFocusAtom);
@@ -206,4 +207,52 @@ test("toast viewport renders the latest toast message", () => {
 	);
 
 	expect(screen.getByRole("status")).toHaveTextContent("Unsupported link.");
+});
+
+test("opens a direct t.me link via APP_OPEN_TARGET_EVENT", async () => {
+	const { Api } = await import("telegram");
+	const sourceMessage = Object.assign(
+		new Api.Message({
+			id: 33,
+		}),
+		{
+			id: 33,
+			date: Math.floor(Date.now() / 1000),
+			message: "Permalink target",
+			getSender: vi.fn().mockResolvedValue({
+				firstName: "Alice",
+			}),
+		},
+	);
+	const getEntity = vi.fn().mockResolvedValue({
+		className: "Channel",
+		id: { toString: () => "99" },
+		title: "News",
+	});
+	const getMessages = vi.fn().mockResolvedValue([sourceMessage]);
+
+	const { store } = renderHookAt("/", {
+		ensureTelegramConnected: vi.fn().mockResolvedValue({
+			getEntity,
+			getMessages,
+		}),
+	});
+
+	window.dispatchEvent(
+		new CustomEvent(APP_OPEN_TARGET_EVENT, {
+			detail: "https://t.me/news/33",
+		}),
+	);
+
+	await waitFor(() => {
+		expectFocusToEqual({
+			channelKey: "group:99",
+			itemId: "group-99-33",
+			view: "thread",
+		});
+	});
+
+	expect(
+		store.get(feedItemsAtom).some((item) => item.text === "Permalink target"),
+	).toBe(true);
 });

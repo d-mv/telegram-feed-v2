@@ -60,8 +60,25 @@ function parseTelegramRoute(url: string): TelegramRoute | "unsupported" {
 }
 
 function parseInboundLocation(
-	location: Pick<Location, "pathname" | "search">,
+	location: Pick<Location, "pathname" | "search"> & {
+		hostname?: string;
+		protocol?: string;
+		href?: string;
+	},
 ): NotificationFocusTarget | TelegramRoute | "unsupported" | null {
+	if (
+		location.protocol === "tg:" ||
+		location.hostname === "t.me" ||
+		location.hostname === "telegram.me"
+	) {
+		const href =
+			location.href ??
+			(location.protocol === "tg:"
+				? `tg:${location.pathname}${location.search}`
+				: `https://${location.hostname}${location.pathname}${location.search}`);
+		return parseTelegramRoute(href);
+	}
+
 	const params = new URLSearchParams(location.search);
 	const focusItemId = params.get("focusItemId") ?? undefined;
 	const focusChannelKey = params.get("focusChannelKey") ?? undefined;
