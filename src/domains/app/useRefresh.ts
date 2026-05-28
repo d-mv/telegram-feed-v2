@@ -24,6 +24,8 @@ export function useRefresh({ dal }: { dal: Dal }) {
 	const authClient = useAtomValue(authClientAtom);
 	const inFlightRefreshRef = useRef<Promise<void> | null>(null);
 	const lastCutoffRef = useRef<number>(0);
+	const feedItemsRef = useRef(feedItems);
+	feedItemsRef.current = feedItems;
 
 	const refreshFeed = useCallback(
 		async (options?: { background?: boolean }) => {
@@ -50,7 +52,9 @@ export function useRefresh({ dal }: { dal: Dal }) {
 				}
 
 				const shouldShowLoading =
-					!isBackground && cachedItems.length === 0 && feedItems.length === 0;
+					!isBackground &&
+					cachedItems.length === 0 &&
+					feedItemsRef.current.length === 0;
 				if (shouldShowLoading) {
 					setIsLoadingFeed(true);
 				}
@@ -96,7 +100,7 @@ export function useRefresh({ dal }: { dal: Dal }) {
 			inFlightRefreshRef.current = refreshPromise;
 			return refreshPromise;
 		},
-		[authClient, dal, feedItems.length, setFeedItems, setIsLoadingFeed],
+		[authClient, dal, setFeedItems, setIsLoadingFeed],
 	);
 
 	const loadOlder = useCallback(async () => {

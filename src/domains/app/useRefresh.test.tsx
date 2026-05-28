@@ -305,6 +305,39 @@ test("coalesces overlapping background refresh triggers into a single fetch", as
 	}
 });
 
+test("refreshFeed is not recreated when feedItems changes after a new message arrives", async () => {
+	const dal = createDalStub();
+	fetchRecentFeedMock.mockResolvedValue([]);
+	const { store, Wrapper } = createWrapper({ isAuthenticated: true });
+
+	renderHook(() => useRefresh({ dal }), { wrapper: Wrapper });
+
+	await waitFor(() => {
+		expect(fetchRecentFeedMock).toHaveBeenCalledTimes(1);
+	});
+
+	// Simulate a new message arriving via useProcessMessages
+	act(() => {
+		store.set(feedItemsAtom, [
+			{
+				id: "dm-1-99",
+				type: "dm",
+				channelKey: "dm:1",
+				chatName: "Alice",
+				senderName: "Alice",
+				date: 99,
+				text: "New message",
+			} as never,
+		]);
+	});
+
+	// Give any spurious effects a chance to fire
+	await new Promise((r) => setTimeout(r, 50));
+
+	// refreshFeed should NOT have been called again
+	expect(fetchRecentFeedMock).toHaveBeenCalledTimes(1);
+});
+
 test("loadOlder fetches and merges older items into the feed", async () => {
 	const currentItems = [
 		{
