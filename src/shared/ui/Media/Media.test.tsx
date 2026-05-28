@@ -14,6 +14,67 @@ vi.mock("../../../domains/feed/infra/telegramFeed", () => ({
 	getCachedMediaUrl: vi.fn().mockResolvedValue(undefined),
 }));
 
+const { downloadThumbnailForItem } = await import(
+	"../../../domains/feed/infra/telegramFeed"
+);
+
+describe("blob URL cleanup", () => {
+	it("revokes blob previewUrl on unmount to prevent memory leak", async () => {
+		const blobUrl = "blob:http://localhost/preview-123";
+		vi.mocked(downloadThumbnailForItem).mockResolvedValueOnce(blobUrl);
+		const revokeSpy = vi.spyOn(URL, "revokeObjectURL");
+
+		const item: FeedItem = {
+			id: "img-leak",
+			type: "group",
+			chatName: "Test",
+			timestamp: "now",
+			text: "",
+			media: {
+				meta: { type: "image", width: 100, height: 100, sizeBytes: 0 },
+				alt: "img",
+			},
+			isFocused: false,
+		};
+
+		const { unmount } = render(<Media item={item} />);
+		await screen.findByRole("img");
+
+		unmount();
+
+		expect(revokeSpy).toHaveBeenCalledWith(blobUrl);
+		revokeSpy.mockRestore();
+	});
+
+	it("revokes blob videoUrl on unmount to prevent memory leak", async () => {
+		const blobUrl = "blob:http://localhost/video-456";
+		vi.mocked(getCachedMediaUrl).mockResolvedValueOnce(blobUrl);
+		const revokeSpy = vi.spyOn(URL, "revokeObjectURL");
+
+		const item: FeedItem = {
+			id: "vid-leak",
+			type: "group",
+			chatName: "Test",
+			timestamp: "now",
+			text: "",
+			media: {
+				meta: { type: "video", width: 640, height: 360, sizeBytes: 0 },
+				url: "https://example.com/poster.jpg",
+				alt: "vid",
+			},
+			isFocused: false,
+		};
+
+		const { unmount } = render(<Media item={item} />);
+		await screen.findByRole("button", { name: "Play" });
+
+		unmount();
+
+		expect(revokeSpy).toHaveBeenCalledWith(blobUrl);
+		revokeSpy.mockRestore();
+	});
+});
+
 describe("Media video controls", () => {
 	it("uses a dedicated controls container class instead of the media root container class", async () => {
 		vi.mocked(getCachedMediaUrl).mockResolvedValueOnce("blob:test");

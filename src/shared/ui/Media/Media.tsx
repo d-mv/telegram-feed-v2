@@ -178,18 +178,28 @@ export function Media({
 		}
 	}
 
+	const previewBlobRef = useRef<string | undefined>(undefined);
+	const videoBlobRef = useRef<string | undefined>(undefined);
+
 	useEffect(() => {
 		if (!media || media.url || previewUrl || previewFailed) return;
 		let active = true;
 		downloadThumbnailForItem(item, 480, ensureTelegramConnected)
 			.then((url) => {
-				if (active && url) setPreviewUrl(url);
+				if (active && url) {
+					previewBlobRef.current = url;
+					setPreviewUrl(url);
+				}
 			})
 			.catch((error) => {
 				runtimeLogger.error("Failed to load media preview", error);
 			});
 		return () => {
 			active = false;
+			if (previewBlobRef.current?.startsWith("blob:")) {
+				URL.revokeObjectURL(previewBlobRef.current);
+				previewBlobRef.current = undefined;
+			}
 		};
 	}, [ensureTelegramConnected, item, media, previewUrl, previewFailed]);
 
@@ -199,11 +209,18 @@ export function Media({
 		let active = true;
 		getCachedMediaUrl(item)
 			.then((url) => {
-				if (active && url) setVideoUrl(url);
+				if (active && url) {
+					videoBlobRef.current = url;
+					setVideoUrl(url);
+				}
 			})
 			.catch(() => {});
 		return () => {
 			active = false;
+			if (videoBlobRef.current?.startsWith("blob:")) {
+				URL.revokeObjectURL(videoBlobRef.current);
+				videoBlobRef.current = undefined;
+			}
 		};
 	}, [item, media, videoUrl]);
 
