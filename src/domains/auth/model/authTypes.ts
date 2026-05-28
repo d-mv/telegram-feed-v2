@@ -15,7 +15,6 @@ export type QrLoginToken = {
 	token: Uint8Array;
 	expires: number;
 	loginUrl: string;
-	qrImageUrl: string;
 };
 
 export type QrLoginResult =

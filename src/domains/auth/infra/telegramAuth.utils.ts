@@ -14,11 +14,7 @@ export function toBase64Url(bytes: Uint8Array) {
 
 export function buildQrToken(token: Uint8Array, expires: number): QrLoginToken {
 	const loginUrl = `tg://login?token=${toBase64Url(token)}`;
-	const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(
-		loginUrl,
-	)}`;
-
-	return { token, expires, loginUrl, qrImageUrl };
+	return { token, expires, loginUrl };
 }
 
 export function getTelegramErrorMessage(error: unknown, fallback: string) {

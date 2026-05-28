@@ -18,6 +18,7 @@
     "embla-carousel-react": "^8.6.0",
     "jotai": "^2.20.0",
     "oxlint": "^1.64.0",
+    "qrcode": "^1.5.4",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "telegram": "npm:telegram@browser",
