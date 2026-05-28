@@ -1,5 +1,12 @@
-import { useAtomValue, useSetAtom } from "jotai/react";
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useAtom, useAtomValue, useSetAtom } from "jotai/react";
+import {
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { WindowVirtualizer } from "virtua";
 import { Spin } from "antd";
 import { channelsAtom } from "../../../atoms/channels.atom";
@@ -8,6 +15,7 @@ import { feedItemsAtom } from "../../../atoms/feedItems.atom";
 import { notificationFocusAtom } from "../../../atoms/notificationFocus.atom";
 import type { FeedItem } from "../../../types";
 import { AppContext } from "../../app/AppContext";
+import { toCachedFeedItems } from "../infra/feedCache";
 import { Chat } from "./Chat";
 import { FeedCard } from "./FeedCard";
 import { FeedHeader } from "./FeedHeader";
@@ -26,14 +34,30 @@ function getItemChannelKey(item: FeedItem): string {
 }
 
 export function FeedView() {
-	const feedItems = useAtomValue(feedItemsAtom);
+	const [feedItems, setFeedItems] = useAtom(feedItemsAtom);
 	const feedFilterSettings = useAtomValue(feedFilterSettingsAtom);
 	const notificationFocus = useAtomValue(notificationFocusAtom);
 	const setNotificationFocus = useSetAtom(notificationFocusAtom);
 	const setChannels = useSetAtom(channelsAtom);
-	const { onManualLoadOlder, isLoadingOlder } = useContext(AppContext);
+	const { onManualLoadOlder, isLoadingOlder, dal } = useContext(AppContext);
 
 	const [focusedItem, setFocusedItem] = useState<FeedItem | null>(null);
+
+	const handleFocus = useCallback(
+		(item: FeedItem) => {
+			setFocusedItem(item);
+			if (item.isRead === false) {
+				setFeedItems((items) => {
+					const next = items.map((i) =>
+						i.id === item.id ? { ...i, isRead: true } : i,
+					);
+					void dal.setFeedCache(toCachedFeedItems(next));
+					return next;
+				});
+			}
+		},
+		[dal, setFeedItems],
+	);
 	const [showScrollTop, setShowScrollTop] = useState(false);
 	const bottomSentinelRef = useRef<HTMLDivElement>(null);
 
@@ -149,7 +173,7 @@ export function FeedView() {
 							key={group[0].id}
 							item={group[0]}
 							groupedItems={group.length > 1 ? group : undefined}
-							onFocus={setFocusedItem}
+							onFocus={handleFocus}
 						/>
 					))}
 				</WindowVirtualizer>

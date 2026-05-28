@@ -84,6 +84,20 @@ export function FeedCard({ item, onFocus, groupedItems }: FeedCardProps) {
 				commentsCount={effectiveCommentsCount || undefined}
 			>
 				{getItemSenderLabel(item)}
+				{item.isRead === false && (
+					<span
+						aria-label="Unread"
+						style={{
+							display: "inline-block",
+							width: 8,
+							height: 8,
+							borderRadius: "50%",
+							background: token.colorPrimary,
+							marginLeft: 6,
+							verticalAlign: "middle",
+						}}
+					/>
+				)}
 			</Header>
 			<ForwardedBadge sourceMessage={item.sourceMessage} />
 			<Text sourceMessage={item.sourceMessage}>{item.text}</Text>

@@ -511,6 +511,77 @@ test("does not trigger loadOlder when sentinel becomes visible on a short initia
 	expect(onManualLoadOlder).not.toHaveBeenCalled();
 });
 
+test("marks item as read and updates cache when user opens a thread", async () => {
+	const user = userEvent.setup();
+	const setFeedCache = vi.fn().mockResolvedValue(undefined);
+	const store = createStore();
+	act(() => {
+		store.set(feedItemsAtom, [
+			{
+				id: "dm-1-1",
+				channelKey: "dm:1",
+				type: "dm" as const,
+				chatName: "Alice",
+				senderName: "Alice",
+				timestamp: "now",
+				text: "Unread message",
+				reactions: [],
+				isRead: false,
+				isFocused: false,
+			},
+		]);
+	});
+
+	render(
+		<Provider store={store}>
+			<AppContext.Provider
+				value={
+					{
+						dal: {
+							getSession: vi.fn(),
+							setSession: vi.fn(),
+							getNotificationSettings: vi.fn(),
+							setNotificationSettings: vi.fn(),
+							getFeedFilterSettings: vi.fn(),
+							setFeedFilterSettings: vi.fn(),
+							getAvatarVisibilitySettings: vi.fn(),
+							setAvatarVisibilitySettings: vi.fn(),
+							getFeedCache: vi.fn(),
+							setFeedCache,
+							getMedia: vi.fn(),
+							setMedia: vi.fn(),
+							clearCache: vi.fn(),
+						},
+						onManualRefresh: vi.fn(),
+						onSendMessage: vi.fn().mockResolvedValue(undefined),
+						ensureTelegramConnected: vi.fn().mockResolvedValue({}),
+						avatarVisibility: { feed: true, thread: true, notifications: true },
+						onSetAvatarVisibility: vi.fn(),
+						onToggleChannelNotification: vi.fn(),
+						onToggleChannelFilter: vi.fn(),
+						onRequestNotificationPermission: vi.fn(),
+						onDisableNotifications: vi.fn(),
+						onEnableAllFeedFilters: vi.fn(),
+					} as never
+				}
+			>
+				<FeedView />
+			</AppContext.Provider>
+		</Provider>,
+	);
+
+	await user.click(screen.getByText("Unread message"));
+
+	await waitFor(() => {
+		expect(store.get(feedItemsAtom)[0].isRead).toBe(true);
+	});
+	expect(setFeedCache).toHaveBeenCalledWith(
+		expect.arrayContaining([
+			expect.objectContaining({ id: "dm-1-1", isRead: true }),
+		]),
+	);
+});
+
 test("opens the thread immediately when navigation target requests thread view", async () => {
 	const store = createStore();
 	act(() => {

@@ -204,6 +204,7 @@ test("appends incoming messages to the feed", async () => {
 		chatName: "Alice",
 		senderName: "Alice",
 		text: "Hello from runtime",
+		isRead: false,
 	});
 	expect(dal.setFeedCache).toHaveBeenCalledWith([
 		expect.objectContaining({

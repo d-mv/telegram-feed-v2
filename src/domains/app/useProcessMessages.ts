@@ -95,10 +95,13 @@ export function useProcessMessages({ dal }: { dal: Dal }) {
 					const legacyChannelKey = `${isPrivate ? "dm" : "group"}:${chatName}`;
 					const itemId = `${idPrefix}-${chatId}-${message.id ?? message.date}`;
 
-					const nextItem: FeedItem = buildFeedItem(
-						{ itemId, channelKey, isPrivate, chatName, senderName },
-						message,
-					);
+					const nextItem: FeedItem = {
+						...buildFeedItem(
+							{ itemId, channelKey, isPrivate, chatName, senderName },
+							message,
+						),
+						isRead: false,
+					};
 
 					let isDuplicate = false;
 					let nextFeedItems: FeedItem[] | null = null;

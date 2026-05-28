@@ -424,3 +424,49 @@ test("renders Telegram message entities in feed text and routes Telegram links i
 
 	window.removeEventListener(APP_OPEN_TARGET_EVENT, handler as EventListener);
 });
+
+test("shows unread indicator when isRead is false", () => {
+	render(
+		<FeedCard
+			item={{
+				id: "dm-1",
+				type: "dm",
+				chatName: "Alice",
+				senderName: "Alice",
+				timestamp: "now",
+				date: 0,
+				text: "New message",
+				reactions: [],
+				isRead: false,
+				isFocused: false,
+			}}
+			onFocus={() => {}}
+		/>,
+		{ wrapper: Wrapper },
+	);
+
+	expect(screen.getByLabelText("Unread")).toBeInTheDocument();
+});
+
+test("hides unread indicator when isRead is true", () => {
+	render(
+		<FeedCard
+			item={{
+				id: "dm-2",
+				type: "dm",
+				chatName: "Alice",
+				senderName: "Alice",
+				timestamp: "now",
+				date: 0,
+				text: "Read message",
+				reactions: [],
+				isRead: true,
+				isFocused: false,
+			}}
+			onFocus={() => {}}
+		/>,
+		{ wrapper: Wrapper },
+	);
+
+	expect(screen.queryByLabelText("Unread")).not.toBeInTheDocument();
+});

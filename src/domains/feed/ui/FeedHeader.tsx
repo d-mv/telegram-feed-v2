@@ -1,8 +1,12 @@
 import { Flex, theme, Typography } from "antd";
+import { useAtomValue } from "jotai/react";
+import { feedItemsAtom } from "../../../atoms/feedItems.atom";
 import { Menu } from "../../menu/Menu";
 
 export function FeedHeader() {
 	const { token } = theme.useToken();
+	const feedItems = useAtomValue(feedItemsAtom);
+	const unreadCount = feedItems.filter((item) => item.isRead === false).length;
 	const bg = `color-mix(in srgb, ${token.colorBgLayout} 80%, transparent)`;
 
 	return (
@@ -37,9 +41,31 @@ export function FeedHeader() {
 					>
 						Feed
 					</Typography.Text>
-					<Typography.Title level={4} style={{ margin: 0 }}>
-						Your feed is ready.
-					</Typography.Title>
+					<Flex align="center" gap={8}>
+						<Typography.Title level={4} style={{ margin: 0 }}>
+							Your feed is ready.
+						</Typography.Title>
+						{unreadCount > 0 && (
+							<span
+								aria-label={`${unreadCount} unread messages`}
+								style={{
+									display: "inline-flex",
+									alignItems: "center",
+									justifyContent: "center",
+									minWidth: 20,
+									height: 20,
+									borderRadius: 10,
+									background: token.colorPrimary,
+									color: token.colorTextLightSolid,
+									fontSize: 11,
+									fontWeight: 600,
+									padding: "0 5px",
+								}}
+							>
+								{unreadCount}
+							</span>
+						)}
+					</Flex>
 				</div>
 				<Menu />
 			</Flex>
