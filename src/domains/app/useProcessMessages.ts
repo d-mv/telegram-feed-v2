@@ -38,6 +38,24 @@ export function useProcessMessages({ dal }: { dal: Dal }) {
 	>(null);
 	const eventBuilderRef = useRef<NewMessage | null>(null);
 
+	// Keep mutable values in refs so the handler closure always reads the latest
+	// without re-registering the event handler on every change.
+	const notificationSettingsRef = useRef(notificationSettings);
+	const notificationPermissionRef = useRef(notificationPermission);
+	const avatarVisibilityRef = useRef(avatarVisibility);
+
+	useEffect(() => {
+		notificationSettingsRef.current = notificationSettings;
+	}, [notificationSettings]);
+
+	useEffect(() => {
+		notificationPermissionRef.current = notificationPermission;
+	}, [notificationPermission]);
+
+	useEffect(() => {
+		avatarVisibilityRef.current = avatarVisibility;
+	}, [avatarVisibility]);
+
 	useEffect(() => {
 		if (!isAuthenticated || !authClient) return;
 		let isActive = true;
@@ -100,15 +118,15 @@ export function useProcessMessages({ dal }: { dal: Dal }) {
 					}
 
 					const notificationsEnabled =
-						notificationSettings[channelKey] === true ||
-						notificationSettings[legacyChannelKey] === true;
+						notificationSettingsRef.current[channelKey] === true ||
+						notificationSettingsRef.current[legacyChannelKey] === true;
 					const canNotify =
 						typeof Notification !== "undefined" &&
-						notificationPermission === "granted";
+						notificationPermissionRef.current === "granted";
 
 					if (notificationsEnabled && canNotify) {
 						const body = message.message ?? "";
-						const notificationAvatar = avatarVisibility.notifications
+						const notificationAvatar = avatarVisibilityRef.current.notifications
 							? await getAvatarPhotoUrl(
 									senderEntity,
 									message.senderId?.toString() || `notify:${channelKey}`,
@@ -177,14 +195,5 @@ export function useProcessMessages({ dal }: { dal: Dal }) {
 			handlerRef.current = null;
 			eventBuilderRef.current = null;
 		};
-	}, [
-		authClient,
-		avatarVisibility.notifications,
-		dal,
-		isAuthenticated,
-		notificationPermission,
-		notificationSettings,
-		setNotificationFocus,
-		setFeedItems,
-	]);
+	}, [authClient, dal, isAuthenticated, setNotificationFocus, setFeedItems]);
 }

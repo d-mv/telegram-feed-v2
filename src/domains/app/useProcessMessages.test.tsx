@@ -51,6 +51,65 @@ function createWrapper() {
 	return { store, Wrapper };
 }
 
+test("does not re-register handler when notificationSettings changes", async () => {
+	const addEventHandler = vi.fn();
+	const removeEventHandler = vi.fn();
+
+	ensureTelegramConnectedMock.mockResolvedValue({
+		getMe: vi.fn().mockResolvedValue({ id: 1 }),
+		addEventHandler,
+		removeEventHandler,
+	});
+
+	const dal = { setFeedCache: vi.fn().mockResolvedValue(undefined) };
+	const { store, Wrapper } = createWrapper();
+
+	renderHook(() => useProcessMessages({ dal } as never), { wrapper: Wrapper });
+
+	await waitFor(() => {
+		expect(addEventHandler).toHaveBeenCalledTimes(1);
+	});
+
+	// Changing notification settings should NOT tear down and re-register the handler
+	act(() => {
+		store.set(notificationSettingsAtom, { "dm:99": true });
+	});
+
+	await waitFor(() => {
+		expect(addEventHandler).toHaveBeenCalledTimes(1);
+	});
+	expect(removeEventHandler).not.toHaveBeenCalled();
+});
+
+test("does not re-register handler when notificationPermission changes", async () => {
+	const addEventHandler = vi.fn();
+	const removeEventHandler = vi.fn();
+
+	ensureTelegramConnectedMock.mockResolvedValue({
+		getMe: vi.fn().mockResolvedValue({ id: 1 }),
+		addEventHandler,
+		removeEventHandler,
+	});
+
+	const dal = { setFeedCache: vi.fn().mockResolvedValue(undefined) };
+	const { store, Wrapper } = createWrapper();
+
+	renderHook(() => useProcessMessages({ dal } as never), { wrapper: Wrapper });
+
+	await waitFor(() => {
+		expect(addEventHandler).toHaveBeenCalledTimes(1);
+	});
+
+	act(() => {
+		store.set(notificationPermissionAtom, "granted");
+	});
+
+	await waitFor(() => {
+		expect(addEventHandler).toHaveBeenCalledTimes(1);
+	});
+	expect(removeEventHandler).not.toHaveBeenCalled();
+});
+
 test("keeps Telegram message handler subscribed until unmount", async () => {
 	const addEventHandler = vi.fn();
 	const removeEventHandler = vi.fn();
