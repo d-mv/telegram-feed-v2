@@ -7,6 +7,8 @@ import {
 	type NotificationFocusTarget,
 } from "../../atoms/notificationFocus.atom";
 import { pushToastAtom } from "../../atoms/toasts.atom";
+import type { AuthClient } from "../auth/model/authTypes";
+import type { FeedItem } from "../../types";
 import { APP_OPEN_TARGET_EVENT } from "./openTarget";
 import {
 	parseTelegramRoute as parseTelegramUrl,
@@ -128,6 +130,37 @@ function parseInboundLocation(
 	return "unsupported";
 }
 
+function resolveTelegramLink(
+	url: string,
+	authClient: AuthClient | null,
+	isActive: () => boolean,
+	pushToast: (msg: string) => void,
+	setFeedItems: (updater: (items: FeedItem[]) => FeedItem[]) => void,
+	setNotificationFocus: (target: NotificationFocusTarget | null) => void,
+) {
+	if (!authClient) {
+		pushToast("Unsupported link.");
+		return;
+	}
+	void resolveTelegramFeedItem(url, authClient.ensureTelegramConnected)
+		.then((item) => {
+			if (!isActive()) return;
+			setFeedItems((currentItems) =>
+				currentItems.some((entry) => entry.id === item.id)
+					? currentItems
+					: [item, ...currentItems],
+			);
+			setNotificationFocus({
+				channelKey: item.channelKey,
+				itemId: item.id,
+				view: "thread",
+			});
+		})
+		.catch(() => {
+			if (isActive()) pushToast("Unsupported link.");
+		});
+}
+
 export function useNotificationFocus() {
 	const authClient = useAtomValue(authClientAtom);
 	const isAuthenticated = useAtomValue(isAuthenticatedAtom);
@@ -155,34 +188,14 @@ export function useNotificationFocus() {
 		}
 
 		if ("kind" in target && target.kind === "telegram") {
-			if (!authClient) {
-				pushToast("Unsupported link.");
-				return;
-			}
-			void resolveTelegramFeedItem(
+			resolveTelegramLink(
 				target.url,
-				authClient.ensureTelegramConnected,
-			)
-				.then((item) => {
-					if (!isActive) {
-						return;
-					}
-					setFeedItems((currentItems) =>
-						currentItems.some((entry) => entry.id === item.id)
-							? currentItems
-							: [item, ...currentItems],
-					);
-					setNotificationFocus({
-						channelKey: item.channelKey,
-						itemId: item.id,
-						view: "thread",
-					});
-				})
-				.catch(() => {
-					if (isActive) {
-						pushToast("Unsupported link.");
-					}
-				});
+				authClient,
+				() => isActive,
+				pushToast,
+				setFeedItems,
+				setNotificationFocus,
+			);
 			return () => {
 				isActive = false;
 			};
@@ -233,34 +246,14 @@ export function useNotificationFocus() {
 				return;
 			}
 			if ("kind" in target && target.kind === "telegram") {
-				if (!authClient) {
-					pushToast("Unsupported link.");
-					return;
-				}
-				void resolveTelegramFeedItem(
+				resolveTelegramLink(
 					target.url,
-					authClient.ensureTelegramConnected,
-				)
-					.then((item) => {
-						if (!isActive) {
-							return;
-						}
-						setFeedItems((currentItems) =>
-							currentItems.some((entry) => entry.id === item.id)
-								? currentItems
-								: [item, ...currentItems],
-						);
-						setNotificationFocus({
-							channelKey: item.channelKey,
-							itemId: item.id,
-							view: "thread",
-						});
-					})
-					.catch(() => {
-						if (isActive) {
-							pushToast("Unsupported link.");
-						}
-					});
+					authClient,
+					() => isActive,
+					pushToast,
+					setFeedItems,
+					setNotificationFocus,
+				);
 				return;
 			}
 
