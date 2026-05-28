@@ -174,7 +174,12 @@ export function mergeAlbumFeedItems(items: FeedItem[]): FeedItem[] {
 
 		merged.push({
 			...item,
-			mediaItems: item.media ? [item.media] : item.mediaItems,
+			mediaItems:
+				item.mediaItems && item.mediaItems.length > 1
+					? item.mediaItems
+					: item.media
+						? [item.media]
+						: item.mediaItems,
 		});
 	}
 
@@ -366,11 +371,13 @@ export function buildFeedItem(
 	message: Api.Message,
 ): FeedItem {
 	const { itemId, channelKey, isPrivate, chatName, senderName } = params;
+	const senderId = (message.senderId || message.peerId)?.toString();
 	const base = {
 		id: itemId,
 		channelKey,
 		chatName,
 		senderName,
+		senderId,
 		timestamp: toRelativeTime(message.date),
 		date: message.date,
 		text: message.message ?? "",

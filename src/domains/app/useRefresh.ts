@@ -7,6 +7,7 @@ import type { FeedItem } from "../../types";
 import type { Dal } from "../dal/types";
 import {
 	getLatestMessageIdsByChat,
+	getOldestMessageIdsByChat,
 	mergeFeedItems,
 	toCachedFeedItems,
 } from "../feed/infra/feedCache";
@@ -15,12 +16,14 @@ import { emitTelemetry } from "../../shared/infra/telemetry";
 
 export function useRefresh({ dal }: { dal: Dal }) {
 	const setIsLoadingFeed = useSetAtom(isLoadingFeedAtom);
+	const [isLoadingOlder, setIsLoadingOlder] = useState(false);
 	const [feedError, setFeedError] = useState("");
 	const setFeedItems = useSetAtom(feedItemsAtom);
 	const feedItems = useAtomValue(feedItemsAtom);
 	const isAuthenticated = useAtomValue(isAuthenticatedAtom);
 	const authClient = useAtomValue(authClientAtom);
 	const inFlightRefreshRef = useRef<Promise<void> | null>(null);
+	const lastCutoffRef = useRef<number>(0);
 
 	const refreshFeed = useCallback(
 		async (options?: { background?: boolean }) => {
@@ -96,6 +99,60 @@ export function useRefresh({ dal }: { dal: Dal }) {
 		[authClient, dal, feedItems.length, setFeedItems, setIsLoadingFeed],
 	);
 
+	const loadOlder = useCallback(async () => {
+		if (isLoadingOlder || !authClient || feedItems.length === 0) {
+			return;
+		}
+
+		const oldestItem = feedItems[feedItems.length - 1];
+		const oldestDate = oldestItem.date || Date.now() / 1000;
+		// Load 3 days before the oldest item we have
+		const daysToLoad = 3;
+		const dynamicCutoff = oldestDate - daysToLoad * 24 * 60 * 60;
+
+		// If we already tried to load this window and got nothing new, don't spam
+		if (lastCutoffRef.current && dynamicCutoff <= lastCutoffRef.current) {
+			// Increase the window if we keep scrolling
+			lastCutoffRef.current = dynamicCutoff - daysToLoad * 24 * 60 * 60;
+		} else {
+			lastCutoffRef.current = dynamicCutoff;
+		}
+
+		setIsLoadingOlder(true);
+		const startedAt = Date.now();
+		try {
+			const items = await fetchRecentFeed(
+				{
+					perChat: 20,
+					maxAgeDays: Math.ceil(
+						(Date.now() / 1000 - lastCutoffRef.current) / (24 * 60 * 60),
+					),
+					oldestMessageIdsByChat: getOldestMessageIdsByChat(feedItems),
+				},
+				authClient.ensureTelegramConnected,
+			);
+			const nextItems = mergeFeedItems(items, feedItems);
+			setFeedItems(nextItems);
+			await dal.setFeedCache(toCachedFeedItems(nextItems));
+			emitTelemetry("feed_load_older_completed", {
+				durationMs: Date.now() - startedAt,
+				itemCount: items.length,
+				totalCount: nextItems.length,
+				windowDays: Math.ceil(
+					(Date.now() / 1000 - lastCutoffRef.current) / (24 * 60 * 60),
+				),
+			});
+		} catch (err) {
+			const error = err as Error;
+			emitTelemetry("feed_load_older_failed", {
+				durationMs: Date.now() - startedAt,
+				error: error.message,
+			});
+		} finally {
+			setIsLoadingOlder(false);
+		}
+	}, [authClient, dal, feedItems, isLoadingOlder, setFeedItems]);
+
 	useEffect(() => {
 		if (!isAuthenticated) {
 			return;
@@ -133,5 +190,7 @@ export function useRefresh({ dal }: { dal: Dal }) {
 	return {
 		feedError,
 		refreshFeed,
+		loadOlder,
+		isLoadingOlder,
 	};
 }

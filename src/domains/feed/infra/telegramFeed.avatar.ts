@@ -105,6 +105,9 @@ export async function getAvatarPhotoUrl(
 				entity as ProfilePhotoEntity,
 				{ isBig: false },
 			);
+			if (!photo || photo.length === 0) {
+				return undefined;
+			}
 			const url = toBinaryObjectUrl(photo);
 			setAvatarPhotoCache(cacheKey, url);
 			return url;
@@ -136,6 +139,17 @@ export async function getAvatarPhotoGallery(
 	}
 	const task = (async () => {
 		try {
+			const isUser =
+				entity instanceof Api.User ||
+				(typeof entity === "object" &&
+					entity !== null &&
+					"className" in entity &&
+					entity.className === "User");
+
+			if (!isUser) {
+				return [];
+			}
+
 			const client = await ensureTelegramConnected();
 			const response = await client.invoke(
 				new Api.photos.GetUserPhotos({
@@ -150,19 +164,25 @@ export async function getAvatarPhotoGallery(
 					? response.photos
 					: [];
 			const urls: string[] = [];
-			for (const photo of photos) {
-				if (!(photo instanceof Api.Photo)) {
-					continue;
-				}
-				const binary = await client.downloadMedia(
-					photo as unknown as DownloadMediaTarget,
-					{},
-				);
-				const url = toBinaryObjectUrl(binary);
-				if (url) {
-					urls.push(url);
-				}
+
+			// Optimize: download first photo immediately, others in parallel or later
+			// For now, let's at least do them in parallel with a limit to avoid blocking
+			const downloadPromises = photos
+				.filter((photo): photo is Api.Photo => photo instanceof Api.Photo)
+				.slice(0, 5) // Limit to first 5 for now to avoid massive overhead
+				.map(async (photo) => {
+					const binary = await client.downloadMedia(
+						photo as unknown as DownloadMediaTarget,
+						{},
+					);
+					return toBinaryObjectUrl(binary);
+				});
+
+			const results = await Promise.all(downloadPromises);
+			for (const url of results) {
+				if (url) urls.push(url);
 			}
+
 			setAvatarGalleryCache(cacheKey, urls);
 			return urls;
 		} catch {

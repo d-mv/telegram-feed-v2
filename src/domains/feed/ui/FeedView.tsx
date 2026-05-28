@@ -1,11 +1,13 @@
 import { useAtomValue, useSetAtom } from "jotai/react";
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { WindowVirtualizer } from "virtua";
+import { Spin } from "antd";
 import { channelsAtom } from "../../../atoms/channels.atom";
 import { feedFilterSettingsAtom } from "../../../atoms/feedFilters.atom";
 import { feedItemsAtom } from "../../../atoms/feedItems.atom";
 import { notificationFocusAtom } from "../../../atoms/notificationFocus.atom";
 import type { FeedItem } from "../../../types";
+import { AppContext } from "../../app/AppContext";
 import { Chat } from "./Chat";
 import { FeedCard } from "./FeedCard";
 import { FeedHeader } from "./FeedHeader";
@@ -29,9 +31,11 @@ export function FeedView() {
 	const notificationFocus = useAtomValue(notificationFocusAtom);
 	const setNotificationFocus = useSetAtom(notificationFocusAtom);
 	const setChannels = useSetAtom(channelsAtom);
+	const { onManualLoadOlder, isLoadingOlder } = useContext(AppContext);
 
 	const [focusedItem, setFocusedItem] = useState<FeedItem | null>(null);
 	const [showScrollTop, setShowScrollTop] = useState(false);
+	const bottomSentinelRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
 		const entries = new Map<string, { key: string; label: string }>();
@@ -51,6 +55,23 @@ export function FeedView() {
 		window.addEventListener("scroll", handleScroll);
 		return () => window.removeEventListener("scroll", handleScroll);
 	}, []);
+
+	useEffect(() => {
+		const sentinel = bottomSentinelRef.current;
+		if (!sentinel) return;
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0].isIntersecting && !isLoadingOlder) {
+					onManualLoadOlder();
+				}
+			},
+			{ rootMargin: "400px" },
+		);
+
+		observer.observe(sentinel);
+		return () => observer.disconnect();
+	}, [isLoadingOlder, onManualLoadOlder]);
 
 	useEffect(() => {
 		document.body.style.overflow = focusedItem ? "hidden" : "";
@@ -130,6 +151,24 @@ export function FeedView() {
 						/>
 					))}
 				</WindowVirtualizer>
+				<div ref={bottomSentinelRef} style={{ height: 20 }} />
+				{isLoadingOlder && (
+					<div
+						style={{
+							display: "flex",
+							alignItems: "center",
+							justifyContent: "center",
+							gap: 8,
+							padding: "16px 0",
+						}}
+						aria-live="polite"
+					>
+						<Spin size="small" />
+						<span style={{ fontSize: 14, color: "#888" }}>
+							Loading older messages...
+						</span>
+					</div>
+				)}
 				{focusedItem && (
 					<Chat item={focusedItem} onClose={() => setFocusedItem(null)} />
 				)}

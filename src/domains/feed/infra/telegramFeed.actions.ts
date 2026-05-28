@@ -52,6 +52,7 @@ export async function sendMessageToFeedItem(
 		type: item.type,
 		chatName: item.chatName,
 		senderName: "You",
+		senderId: (sentMessage.senderId || sentMessage.peerId)?.toString(),
 		timestamp: toRelativeTime(sentMessage.date),
 		date: sentMessage.date,
 		text: sentMessage.message ?? trimmed,

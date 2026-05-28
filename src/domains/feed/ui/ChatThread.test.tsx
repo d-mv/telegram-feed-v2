@@ -52,6 +52,23 @@ Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
 	value: vi.fn(),
 });
 
+const mockIntersectionObserver = vi.fn();
+mockIntersectionObserver.prototype.observe = vi.fn();
+mockIntersectionObserver.prototype.unobserve = vi.fn();
+mockIntersectionObserver.prototype.disconnect = vi.fn();
+window.IntersectionObserver = mockIntersectionObserver;
+
+function triggerIntersection() {
+	if (mockIntersectionObserver.mock.calls.length === 0) {
+		throw new Error("IntersectionObserver not initialized");
+	}
+	const [callback] =
+		mockIntersectionObserver.mock.calls[
+			mockIntersectionObserver.mock.calls.length - 1
+		];
+	callback([{ isIntersecting: true }]);
+}
+
 function renderThread(node: ReactElement) {
 	return render(
 		<AppContext.Provider
@@ -130,6 +147,7 @@ test("loads message comments in accordion and shows comments icon", async () => 
 				chatName: "Team",
 				timestamp: "now",
 				text: "Parent",
+				commentsCount: 1,
 				sourceMessage,
 				isFocused: true,
 			}}
@@ -197,6 +215,7 @@ test("groups consecutive media-only messages from the same sender in the thread"
 			item={{
 				id: "group-1-31",
 				type: "group",
+				channelKey: "group:1",
 				chatName: "Team",
 				timestamp: "now",
 				text: "",
@@ -205,6 +224,9 @@ test("groups consecutive media-only messages from the same sender in the thread"
 			}}
 		/>,
 	);
+
+	await waitFor(() => expect(mockIntersectionObserver).toHaveBeenCalled());
+	triggerIntersection();
 
 	await waitFor(() => {
 		expect(document.querySelectorAll('[data-media-type="image"]')).toHaveLength(
@@ -271,11 +293,14 @@ test("loads full thread history for a cached item without sourceMessage", async 
 		/>,
 	);
 
+	await waitFor(() => expect(mockIntersectionObserver).toHaveBeenCalled());
+	triggerIntersection();
+
 	await waitFor(() => {
 		expect(screen.getByText("Older message")).toBeInTheDocument();
 	});
-	expect(getMessages).toHaveBeenCalledWith("1", { ids: [71] });
-	expect(screen.getByText("Newest message")).toBeInTheDocument();
+	expect(getMessages).toHaveBeenCalledWith(1n, { ids: [71] });
+	expect(screen.getAllByText("Newest message")).toHaveLength(2);
 });
 
 test("keeps media visible for mixed text and media messages in the thread", () => {
@@ -436,6 +461,7 @@ test("groups a media-only multi-image thread message with adjacent media-only me
 			item={{
 				id: "group-1-62",
 				type: "group",
+				channelKey: "group:1",
 				chatName: "Team",
 				timestamp: "now",
 				text: "",
@@ -444,6 +470,9 @@ test("groups a media-only multi-image thread message with adjacent media-only me
 			}}
 		/>,
 	);
+
+	await waitFor(() => expect(mockIntersectionObserver).toHaveBeenCalled());
+	triggerIntersection();
 
 	await waitFor(() => {
 		expect(

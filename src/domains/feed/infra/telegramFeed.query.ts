@@ -9,8 +9,9 @@ import {
 
 type FetchFeedOptions = {
 	perChat: number;
-	maxAgeDays: number;
+	maxAgeDays?: number;
 	latestMessageIdsByChat?: Record<string, number>;
+	oldestMessageIdsByChat?: Record<string, number>;
 };
 
 type TelegramDialog = {
@@ -64,14 +65,24 @@ export async function fetchRecentFeed(
 	options: Partial<FetchFeedOptions> = {},
 	ensureTelegramConnected: EnsureTelegramConnected,
 ): Promise<FeedItem[]> {
-	const { perChat, maxAgeDays, latestMessageIdsByChat } = {
+	const {
+		perChat,
+		maxAgeDays,
+		latestMessageIdsByChat,
+		oldestMessageIdsByChat,
+	} = {
 		...DEFAULT_OPTIONS,
 		...options,
 	};
 	const client = await ensureTelegramConnected();
 	const me = await client.getMe();
 	const dialogs = await client.getDialogs({});
-	const cutoff = Date.now() / 1000 - maxAgeDays * 24 * 60 * 60;
+
+	let cutoff: number | undefined;
+	if (maxAgeDays !== undefined) {
+		cutoff = Date.now() / 1000 - maxAgeDays * 24 * 60 * 60;
+	}
+
 	const dialogItems = await Promise.all(
 		dialogs.map(async (dialog) => {
 			if (!dialog.entity) {
@@ -79,17 +90,30 @@ export async function fetchRecentFeed(
 			}
 
 			try {
-				const latestMessageId =
-					latestMessageIdsByChat?.[getDialogChannelKey(dialog)];
+				const channelKey = getDialogChannelKey(dialog);
+				const latestMessageId = latestMessageIdsByChat?.[channelKey];
+				const oldestMessageId = oldestMessageIdsByChat?.[channelKey];
+
+				let messagesOptions: Parameters<TelegramClient["getMessages"]>[1];
+				if (latestMessageId !== undefined) {
+					messagesOptions = {
+						limit: undefined,
+						minId: latestMessageId,
+						maxId: TELEGRAM_MAX_MESSAGE_ID,
+					};
+				} else if (oldestMessageId !== undefined) {
+					messagesOptions = {
+						limit: perChat,
+						maxId: oldestMessageId,
+						offsetId: 0,
+					};
+				} else {
+					messagesOptions = { limit: perChat };
+				}
+
 				const messages = await client.getMessages(
 					dialog.entity as MessagesTarget,
-					latestMessageId === undefined
-						? { limit: perChat }
-						: {
-								limit: undefined,
-								minId: latestMessageId,
-								maxId: TELEGRAM_MAX_MESSAGE_ID,
-							},
+					messagesOptions,
 				);
 				return Promise.all(
 					messages.map(async (message) => {
@@ -111,7 +135,17 @@ export async function fetchRecentFeed(
 						) {
 							return null;
 						}
-						if (!message.date || message.date < cutoff) {
+						if (
+							oldestMessageId !== undefined &&
+							typeof message.id === "number" &&
+							message.id >= oldestMessageId
+						) {
+							return null;
+						}
+						if (
+							cutoff !== undefined &&
+							(!message.date || message.date < cutoff)
+						) {
 							return null;
 						}
 

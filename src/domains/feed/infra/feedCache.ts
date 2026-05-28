@@ -27,6 +27,28 @@ export function getLatestMessageIdsByChat(
 	}, {});
 }
 
+export function getOldestMessageIdsByChat(
+	items: FeedItem[],
+): Record<string, number> {
+	return items.reduce<Record<string, number>>((acc, item) => {
+		if (!item.channelKey) {
+			return acc;
+		}
+
+		const messageId = getFeedItemMessageId(item);
+		if (messageId === undefined) {
+			return acc;
+		}
+
+		const current = acc[item.channelKey];
+		if (current === undefined || messageId < current) {
+			acc[item.channelKey] = messageId;
+		}
+
+		return acc;
+	}, {});
+}
+
 export function mergeFeedItems(
 	nextItems: FeedItem[],
 	cachedItems: FeedItem[],
@@ -36,10 +58,12 @@ export function mergeFeedItems(
 	}
 
 	const seen = new Set(nextItems.map((item) => item.id));
-	return mergeAlbumFeedItems([
+	const combined = [
 		...nextItems,
 		...cachedItems.filter((item) => !seen.has(item.id)),
-	]);
+	].sort((a, b) => (b.date || 0) - (a.date || 0));
+
+	return mergeAlbumFeedItems(combined);
 }
 
 function getFeedItemMessageId(item: FeedItem): number | undefined {

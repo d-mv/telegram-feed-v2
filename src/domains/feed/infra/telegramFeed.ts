@@ -3,6 +3,7 @@ export {
 	getAvatarPhotoGallery,
 	getAvatarPhotoUrl,
 } from "./telegramFeed.avatar";
+export { resolveFeedItemSourceMessage } from "./resolveFeedItemSourceMessage";
 export { sendMessageToFeedItem, voteOnPoll } from "./telegramFeed.actions";
 export {
 	downloadMediaForItem,

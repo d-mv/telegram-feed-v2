@@ -1,6 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const telegramMock = vi.hoisted(() => {
+	class User {
+		className = "User";
+		id?: number;
+		constructor(data: Record<string, unknown> = {}) {
+			Object.assign(this, data);
+		}
+	}
+
 	class Message {
 		constructor(data: Record<string, unknown> = {}) {
 			Object.assign(this, data);
@@ -109,6 +117,7 @@ const telegramMock = vi.hoisted(() => {
 	}
 
 	return {
+		User,
 		Message,
 		Photo,
 		Document,
@@ -651,9 +660,56 @@ describe("fetchRecentFeed", () => {
 				limit: undefined,
 			}),
 		);
+
 		expect(items).toHaveLength(2);
 		expect(items[0]?.id).toBe("dm-101-11");
 		expect(items[1]?.id).toBe("group-202-9");
+	});
+
+	test("fetches only messages older than the cached oldest item for each chat", async () => {
+		const nowSeconds = Math.floor(Date.now() / 1000);
+		const dialogUser = {
+			id: 101,
+			isUser: true,
+			name: "Alice",
+			entity: { id: "first" },
+		};
+		const client = {
+			getMe: vi.fn().mockResolvedValue({ id: 1 }),
+			getDialogs: vi.fn().mockResolvedValue([dialogUser]),
+			getMessages: vi.fn().mockResolvedValue([
+				new Api.Message({
+					id: 9,
+					date: nowSeconds - 120,
+					message: "older dm",
+					out: false,
+					fromId: { userId: 2 },
+				}),
+			]),
+		};
+
+		ensureTelegramConnectedMock.mockResolvedValue(client);
+
+		const items = await fetchRecentFeed(
+			{
+				perChat: 10,
+				oldestMessageIdsByChat: {
+					"dm:101": 10,
+				},
+			},
+			ensureTelegramConnectedMock,
+		);
+
+		expect(client.getMessages).toHaveBeenCalledWith(
+			dialogUser.entity,
+			expect.objectContaining({
+				maxId: 10,
+				limit: 10,
+			}),
+		);
+
+		expect(items).toHaveLength(1);
+		expect(items[0]?.id).toBe("dm-101-9");
 	});
 });
 
@@ -672,12 +728,12 @@ describe("avatar helpers", () => {
 		ensureTelegramConnectedMock.mockResolvedValue(client);
 
 		const first = await getAvatarPhotoUrl(
-			{ id: 1 },
+			new Api.User({ id: 1 }),
 			"avatar:test",
 			ensureTelegramConnectedMock,
 		);
 		const second = await getAvatarPhotoUrl(
-			{ id: 1 },
+			new Api.User({ id: 1 }),
 			"avatar:test",
 			ensureTelegramConnectedMock,
 		);
@@ -699,7 +755,7 @@ describe("avatar helpers", () => {
 		ensureTelegramConnectedMock.mockResolvedValue(client);
 
 		const url = await getAvatarPhotoUrl(
-			{ id: 2 },
+			new Api.User({ id: 2 }),
 			"avatar:profile",
 			ensureTelegramConnectedMock,
 		);
@@ -717,7 +773,7 @@ describe("avatar helpers", () => {
 		ensureTelegramConnectedMock.mockResolvedValue(client);
 
 		const gallery = await getAvatarPhotoGallery(
-			{ id: 2 },
+			new Api.User({ id: 2 }),
 			"avatar:gallery",
 			ensureTelegramConnectedMock,
 		);
@@ -755,12 +811,12 @@ describe("avatar helpers", () => {
 		ensureTelegramConnectedMock.mockResolvedValue(client);
 
 		await getAvatarPhotoGallery(
-			{ id: 1 },
+			new Api.User({ id: 1 }),
 			"avatar:gallery-clear",
 			ensureTelegramConnectedMock,
 		);
 		await getAvatarPhotoUrl(
-			{ id: 2 },
+			new Api.User({ id: 2 }),
 			"avatar:profile-clear",
 			ensureTelegramConnectedMock,
 		);
@@ -937,7 +993,7 @@ describe("message helpers", () => {
 			ensureTelegramConnectedMock,
 		);
 
-		expect(getMessages).toHaveBeenCalledWith("1", { ids: [123] });
+		expect(getMessages).toHaveBeenCalledWith(1n, { ids: [123] });
 		expect(sendMessage).toHaveBeenCalledWith(
 			"chat",
 			expect.objectContaining({
@@ -1117,7 +1173,7 @@ describe("downloadMediaForItem", () => {
 			ensureTelegramConnectedMock,
 		);
 
-		expect(client.getMessages).toHaveBeenCalledWith("77", { ids: [44] });
+		expect(client.getMessages).toHaveBeenCalledWith(77n, { ids: [44] });
 		expect(client.downloadMedia).toHaveBeenCalledWith(sourceMessage, {
 			progressCallback: undefined,
 		});
@@ -1212,7 +1268,7 @@ describe("downloadMediaForItem", () => {
 			ensureTelegramConnectedMock,
 		);
 
-		expect(client.getMessages).toHaveBeenCalledWith("55", { ids: [99] });
+		expect(client.getMessages).toHaveBeenCalledWith(55n, { ids: [99] });
 		expect(client.downloadMedia).toHaveBeenCalledWith(
 			sourceMessage,
 			expect.objectContaining({ thumb: expect.anything() }),

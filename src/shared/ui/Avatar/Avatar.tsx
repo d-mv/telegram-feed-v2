@@ -25,8 +25,8 @@ export function Avatar({ message, noPreview, isThread }: Props) {
 	if (!isAvatarVisible) return null;
 
 	const size = isThread ? 28 : 32;
-	const cacheKey = isThread ? `thread:${message.id}` : `feed:${message.id}`;
-	const background = avatarPhotoMap[cacheKey]
+	const cacheKey = message.senderId || message.id;
+	const backgroundColor = avatarPhotoMap[cacheKey]
 		? undefined
 		: getAvatarColor(message.senderName || "unknown");
 	const backgroundImage = avatarPhotoMap[cacheKey]
@@ -40,7 +40,7 @@ export function Avatar({ message, noPreview, isThread }: Props) {
 					width: size,
 					height: size,
 					borderRadius: "50%",
-					background,
+					backgroundColor,
 					backgroundImage,
 					backgroundSize: "cover",
 					backgroundPosition: "center",

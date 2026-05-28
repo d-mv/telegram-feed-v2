@@ -5,6 +5,8 @@ import type { Dal } from "../dal/types";
 
 type AppContextType = {
 	onManualRefresh: () => void | Promise<void>;
+	onManualLoadOlder: () => void | Promise<void>;
+	isLoadingOlder: boolean;
 	onSendMessage: (
 		item: FeedItem,
 		text: string,

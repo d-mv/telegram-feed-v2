@@ -304,3 +304,62 @@ test("coalesces overlapping background refresh triggers into a single fetch", as
 		Object.defineProperty(document, "visibilityState", originalVisibilityState);
 	}
 });
+
+test("loadOlder fetches and merges older items into the feed", async () => {
+	const currentItems = [
+		{
+			id: "dm-1-10",
+			type: "dm",
+			channelKey: "dm:1",
+			chatName: "Alice",
+			senderName: "Alice",
+			timestamp: "1 min ago",
+			date: 10,
+			text: "Current",
+			reactions: [],
+			isFocused: false,
+		},
+	];
+	const olderItems = [
+		{
+			id: "dm-1-9",
+			type: "dm",
+			channelKey: "dm:1",
+			chatName: "Alice",
+			senderName: "Alice",
+			timestamp: "2 min ago",
+			date: 9,
+			text: "Older",
+			reactions: [],
+			isFocused: false,
+		},
+	];
+	const dal = createDalStub();
+	const { store, Wrapper } = createWrapper({ isAuthenticated: false });
+	store.set(feedItemsAtom, currentItems);
+	store.set(authClientAtom, {
+		ensureTelegramConnected: vi.fn().mockResolvedValue({}),
+	} as never);
+
+	fetchRecentFeedMock.mockResolvedValue(olderItems);
+
+	const { result } = renderHook(() => useRefresh({ dal }), {
+		wrapper: Wrapper,
+	});
+
+	await act(async () => {
+		await result.current.loadOlder();
+	});
+
+	expect(fetchRecentFeedMock).toHaveBeenCalled();
+	const lastCall =
+		fetchRecentFeedMock.mock.calls[fetchRecentFeedMock.mock.calls.length - 1];
+	expect(lastCall[0]).toMatchObject({
+		perChat: 20,
+		oldestMessageIdsByChat: {
+			"dm:1": 10,
+		},
+	});
+
+	expect(store.get(feedItemsAtom)).toEqual([...currentItems, ...olderItems]);
+});

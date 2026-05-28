@@ -77,7 +77,6 @@ export function Header({
 						}}
 					>
 						<CommentsIcon />
-						{commentsCount}
 					</Typography.Text>
 				)}
 				<Typography.Text

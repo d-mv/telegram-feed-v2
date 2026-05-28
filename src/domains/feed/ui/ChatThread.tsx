@@ -15,6 +15,8 @@ import { Header } from "../../../shared/ui/Header/Header";
 import { Media } from "../../../shared/ui/Media/Media";
 import { Text } from "../../../shared/ui/Text/Text";
 import type { FeedItem } from "../../../types";
+import { useAtomValue } from "jotai";
+import { feedItemsAtom } from "../../../atoms/feedItems.atom";
 import { AppContext } from "../../app/AppContext";
 import {
 	getMediaPreview,
@@ -100,7 +102,30 @@ function getSenderLabel(message: Api.Message, fallback: string) {
 export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 	const { token } = theme.useToken();
 	const { ensureTelegramConnected } = useContext(AppContext);
-	const [messages, setMessages] = useState<FeedItem[]>([]);
+	const allFeedItems = useAtomValue(feedItemsAtom);
+
+	const initialMessages = useMemo(() => {
+		const sameChat = allFeedItems.filter(
+			(fi) => fi.channelKey === item.channelKey && fi.channelKey !== undefined,
+		);
+
+		const items = sameChat.some((fi) => fi.id === item.id)
+			? sameChat.map((fi) =>
+					fi.id === item.id
+						? { ...fi, isFocused: true }
+						: { ...fi, isFocused: false },
+				)
+			: [
+					...sameChat.map((fi) => ({ ...fi, isFocused: false })),
+					{ ...item, isFocused: true },
+				];
+
+		return mergeAlbumFeedItems(
+			items.sort((a, b) => (a.date ?? 0) - (b.date ?? 0)),
+		);
+	}, [allFeedItems, item]);
+
+	const [messages, setMessages] = useState<FeedItem[]>(initialMessages);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState("");
 	const [showJump, setShowJump] = useState(false);
@@ -113,68 +138,59 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 	const focusedRef = useRef<HTMLDivElement | null>(null);
 	const threadRef = useRef<HTMLDivElement | null>(null);
 
-	const fallbackMessage = useMemo<FeedItem[]>(() => {
-		const message = {
-			id: item.id,
-			type: item.type,
-			chatName: item.chatName,
-			senderName: item.type === "dm" ? item.senderName : item.chatName,
-			text: item.text,
-			timestamp: item.timestamp,
-			commentsCount: item.commentsCount,
-			media: item.media,
-			mediaItems: item.mediaItems,
-			poll: item.poll,
-			sourceMessage: item.sourceMessage,
-			isFocused: true,
-		};
-
-		if (item.type !== "dm") return [message as FeedItem];
-
-		return [message as FeedItem];
-	}, [item]);
-
 	useEffect(() => {
-		if (!(item.sourceMessage instanceof Api.Message) && !item.channelKey) {
-			setMessages(fallbackMessage);
-			setIsLoading(false);
-			setError("");
-			return;
-		}
+		setMessages((current) => {
+			const seen = new Set(current.map((m) => m.id));
+			const newlyArrived = initialMessages.filter((m) => !seen.has(m.id));
+			if (newlyArrived.length === 0) return current;
 
-		let active = true;
-		setError("");
-		setIsLoading(true);
-		ensureTelegramConnected()
-			.then(async (client) => {
-				const sourceMessage = await resolveFeedItemSourceMessage(item, client);
-				if (!active) {
-					return;
-				}
+			const combined = [...current, ...newlyArrived];
+			return mergeAlbumFeedItems(
+				combined.sort((a, b) => (a.date ?? 0) - (b.date ?? 0)),
+			);
+		});
+	}, [initialMessages]);
+
+	const loadHistory = useCallback(
+		async (direction: "older" | "newer") => {
+			if (isLoading || !item.channelKey) return;
+
+			setIsLoading(true);
+			setError("");
+			try {
+				const client = await ensureTelegramConnected();
+				const pivotItem =
+					direction === "older" ? messages[0] : messages[messages.length - 1];
+				const sourceMessage = await resolveFeedItemSourceMessage(
+					pivotItem,
+					client,
+				);
+
 				if (!sourceMessage) {
-					setMessages(fallbackMessage);
-					return;
+					throw new Error("Could not find pivot message");
 				}
 
 				const inputChat = sourceMessage.getInputChat
 					? await sourceMessage.getInputChat()
 					: (sourceMessage as Api.Message & { inputChat?: unknown }).inputChat;
+
 				const history = await client.getMessages(inputChat ?? undefined, {
-					limit: 40,
-					offsetId: sourceMessage.id + 1,
-					addOffset: -20,
+					limit: 20,
+					offsetId: sourceMessage.id,
+					addOffset: direction === "older" ? 0 : -20,
 				});
+
 				const normalized = history
 					.filter(
 						(message): message is Api.Message => message instanceof Api.Message,
 					)
-					.reverse()
 					.map((message) => {
 						const senderName = getSenderLabel(message, item.chatName);
 						const timestamp = toRelativeTime(message.date);
 						return {
 							id: String(message.id),
 							senderName,
+							senderId: (message.senderId || message.peerId)?.toString(),
 							text: message.message ?? "",
 							timestamp,
 							date: message.date,
@@ -182,58 +198,90 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 							poll: getPollPreview(message),
 							commentsCount: getMessageCommentsCount(message),
 							sourceMessage: message,
-							mediaGroupKey:
-								typeof (message as Api.Message & { groupedId?: unknown })
-									.groupedId === "bigint" ||
-								typeof (message as Api.Message & { groupedId?: unknown })
-									.groupedId === "number" ||
-								typeof (message as Api.Message & { groupedId?: unknown })
-									.groupedId === "string"
-									? String(
-											(message as Api.Message & { groupedId?: unknown })
-												.groupedId,
-										)
-									: undefined,
-							isFocused: message.id === sourceMessage.id,
-							reactions: (
-								message as { reactions?: { emoji: string; count: number }[] }
-							).reactions,
 							type: message.toId instanceof Api.PeerUser ? "dm" : "group",
 							chatName:
 								message.toId instanceof Api.PeerUser
 									? senderName
 									: item.chatName,
+							isFocused: false,
 						} as FeedItem;
 					});
-				if (active) {
-					setMessages(mergeAlbumFeedItems(normalized));
+
+				const container = threadRef.current;
+				const previousScrollHeight = container?.scrollHeight ?? 0;
+				const previousScrollTop = container?.scrollTop ?? 0;
+
+				setMessages((current) => {
+					const next =
+						direction === "older"
+							? [...normalized, ...current]
+							: [...current, ...normalized];
+					const seen = new Set<string>();
+					const unique = next.filter((m) => {
+						if (seen.has(m.id)) return false;
+						seen.add(m.id);
+						return true;
+					});
+					return mergeAlbumFeedItems(
+						unique.sort((a, b) => (a.date ?? 0) - (b.date ?? 0)),
+					);
+				});
+
+				if (direction === "older" && container) {
+					requestAnimationFrame(() => {
+						const currentScrollHeight = container.scrollHeight;
+						container.scrollTop =
+							previousScrollTop + (currentScrollHeight - previousScrollHeight);
+					});
 				}
-			})
-			.catch((err) => {
-				if (!active) {
-					return;
-				}
-				const message =
-					err instanceof Error ? err.message : "Failed to load thread";
-				setError(message);
-				setMessages(fallbackMessage);
-			})
-			.finally(() => {
-				if (active) {
-					setIsLoading(false);
-				}
-			});
-		return () => {
-			active = false;
-		};
-	}, [ensureTelegramConnected, fallbackMessage, item, item.chatName]);
+			} catch (err) {
+				setError(err instanceof Error ? err.message : "Failed to load history");
+			} finally {
+				setIsLoading(false);
+			}
+		},
+		[
+			ensureTelegramConnected,
+			isLoading,
+			item.channelKey,
+			item.chatName,
+			messages,
+		],
+	);
+
+	const topSentinelRef = useRef<HTMLDivElement | null>(null);
 
 	useEffect(() => {
-		if (!focusedRef.current) return;
+		const container = threadRef.current;
+		const sentinel = topSentinelRef.current;
+		if (!sentinel || !container) return;
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0].isIntersecting && !isLoading) {
+					void loadHistory("older");
+				}
+			},
+			{ root: container, threshold: 0.1 },
+		);
+
+		observer.observe(sentinel);
+		return () => observer.disconnect();
+	}, [loadHistory, isLoading]);
+
+	const initialScrollDoneRef = useRef(false);
+
+	useEffect(() => {
+		initialScrollDoneRef.current = false;
+	}, [item.id]);
+
+	useEffect(() => {
+		if (!focusedRef.current || initialScrollDoneRef.current) return;
 
 		const node = focusedRef.current;
 		node.scrollIntoView({ block: "center" });
 		node.focus({ preventScroll: true });
+		initialScrollDoneRef.current = true;
 	}, [messages]);
 
 	useEffect(() => {
@@ -276,14 +324,14 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 		if (commentsByMessage[message.id] || commentsLoading[message.id]) {
 			return;
 		}
-		const source = message.sourceMessage;
-		if (!(source instanceof Api.Message)) {
-			setCommentsByMessage((current) => ({ ...current, [message.id]: [] }));
-			return;
-		}
 		setCommentsLoading((current) => ({ ...current, [message.id]: true }));
 		try {
 			const client = await ensureTelegramConnected();
+			const source = await resolveFeedItemSourceMessage(message, client);
+			if (!source) {
+				setCommentsByMessage((current) => ({ ...current, [message.id]: [] }));
+				return;
+			}
 			const inputChat = source.getInputChat
 				? await source.getInputChat()
 				: (source as Api.Message & { inputChat?: unknown }).inputChat;
@@ -342,9 +390,6 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 					aria-label="Comments"
 				>
 					<CommentsIcon />
-					<Typography.Text type="secondary" style={{ fontSize: 12 }}>
-						{message.commentsCount}
-					</Typography.Text>
 				</summary>
 				<div
 					style={{
@@ -406,14 +451,9 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 				display: "flex",
 				flexDirection: "column",
 				height: "100%",
-				minHeight: messages.length === 0 || isLoading ? 200 : undefined,
+				minHeight: messages.length === 0 ? 200 : undefined,
 			}}
 		>
-			{isLoading && (
-				<div style={{ display: "flex", justifyContent: "center", padding: 16 }}>
-					<Spin size="small" />
-				</div>
-			)}
 			{error !== "" && (
 				<Typography.Text
 					type="danger"
@@ -433,6 +473,13 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 					gap: 12,
 				}}
 			>
+				<div ref={topSentinelRef} style={{ height: 1, flexShrink: 0 }} />
+				{isLoading && (
+					<Spin
+						size="small"
+						style={{ alignSelf: "center", padding: "8px 0" }}
+					/>
+				)}
 				{messageGroups.map((group) => {
 					const representative = group[0];
 					const galleryItems =

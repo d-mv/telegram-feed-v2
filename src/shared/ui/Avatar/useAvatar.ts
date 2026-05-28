@@ -1,9 +1,9 @@
 import { useContext, useEffect, useState } from "react";
-import { Api } from "telegram";
 import { AppContext } from "../../../domains/app/AppContext";
 import {
 	getAvatarPhotoGallery,
 	getAvatarPhotoUrl,
+	resolveFeedItemSourceMessage,
 } from "../../../domains/feed/infra/telegramFeed";
 import type { FeedItem } from "../../../types";
 
@@ -26,15 +26,16 @@ export function useAvatar(message: FeedItem, isThread?: boolean) {
 	}
 
 	async function ensureAvatarPhoto() {
-		const source = message.sourceMessage;
-		if (!(source instanceof Api.Message)) {
-			return;
-		}
-		const cacheKey = isThread ? `thread:${message.id}` : `feed:${message.id}`;
+		const cacheKey = message.senderId || message.id;
 		if (avatarPhotoMap[cacheKey]) {
 			return;
 		}
 		try {
+			const client = await ensureTelegramConnected();
+			const source = await resolveFeedItemSourceMessage(message, client);
+			if (!source) {
+				return;
+			}
 			const sender = await source.getSender();
 			const url = await getAvatarPhotoUrl(
 				sender,
@@ -50,13 +51,13 @@ export function useAvatar(message: FeedItem, isThread?: boolean) {
 	}
 
 	async function handleOpenAvatar() {
-		const source = message.sourceMessage;
-
-		if (!(source instanceof Api.Message)) return;
-
 		try {
+			const client = await ensureTelegramConnected();
+			const source = await resolveFeedItemSourceMessage(message, client);
+			if (!source) return;
+
 			const sender = await source.getSender();
-			const cacheKey = `thread:${message.id}`;
+			const cacheKey = message.senderId || message.id;
 			const [latest, gallery] = await Promise.all([
 				getAvatarPhotoUrl(sender, cacheKey, ensureTelegramConnected),
 				getAvatarPhotoGallery(sender, cacheKey, ensureTelegramConnected),

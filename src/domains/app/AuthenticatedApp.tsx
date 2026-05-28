@@ -38,7 +38,9 @@ export default function AuthenticatedApp({ dal }: { dal: Dal }) {
 		handleRequestNotificationPermission,
 		handleToggleChannelNotification,
 	} = useSettings({ dal });
-	const { refreshFeed, feedError } = useRefresh({ dal });
+	const { refreshFeed, loadOlder, isLoadingOlder, feedError } = useRefresh({
+		dal,
+	});
 
 	async function handleSendMessage(item: FeedItem, text: string) {
 		const sentMessage = await sendMessageToFeedItem(
@@ -76,6 +78,8 @@ export default function AuthenticatedApp({ dal }: { dal: Dal }) {
 			value={{
 				dal,
 				onManualRefresh: refreshFeed,
+				onManualLoadOlder: loadOlder,
+				isLoadingOlder,
 				onSendMessage: handleSendMessage,
 				onVotePoll: handleVotePoll,
 				ensureTelegramConnected,

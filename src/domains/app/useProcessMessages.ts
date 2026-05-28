@@ -111,7 +111,7 @@ export function useProcessMessages({ dal }: { dal: Dal }) {
 						const notificationAvatar = avatarVisibility.notifications
 							? await getAvatarPhotoUrl(
 									senderEntity,
-									`notify:${channelKey}`,
+									message.senderId?.toString() || `notify:${channelKey}`,
 									authClient.ensureTelegramConnected,
 								)
 							: undefined;

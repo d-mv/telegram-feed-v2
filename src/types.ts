@@ -52,6 +52,7 @@ interface Message {
 	mediaItems?: MediaPreview[];
 	poll?: PollPreview;
 	senderName?: string;
+	senderId?: string;
 	mediaGroupKey?: string;
 	sourceMessage?: unknown;
 	isFocused: boolean;

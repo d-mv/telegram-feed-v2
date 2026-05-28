@@ -40,9 +40,15 @@ export async function resolveFeedItemSourceMessage(
 		return undefined;
 	}
 
-	const messages = await client.getMessages(chatId as MessagesTarget, {
-		ids: [messageId],
-	});
-	const sourceMessage = messages[0];
-	return sourceMessage instanceof Api.Message ? sourceMessage : undefined;
+	try {
+		// Convert numeric chat IDs to BigInt for better gramjs compatibility
+		const targetId = /^-?\d+$/.test(chatId) ? BigInt(chatId) : chatId;
+		const messages = await client.getMessages(targetId as MessagesTarget, {
+			ids: [messageId],
+		});
+		const sourceMessage = messages[0];
+		return sourceMessage instanceof Api.Message ? sourceMessage : undefined;
+	} catch {
+		return undefined;
+	}
 }
