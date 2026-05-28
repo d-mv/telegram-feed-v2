@@ -180,6 +180,44 @@ test("vote button is disabled when nothing is selected", () => {
 	expect(screen.getByRole("button", { name: /Vote/i })).toBeDisabled();
 });
 
+test("poll option is keyboard-accessible as a button", () => {
+	renderPoll(makePollItem());
+	expect(
+		screen.getByRole("button", { name: "TypeScript" }),
+	).toBeInTheDocument();
+	expect(screen.getByRole("button", { name: "Python" })).toBeInTheDocument();
+});
+
+test("poll option can be activated by pressing Enter", async () => {
+	const user = userEvent.setup();
+	renderPoll(makePollItem());
+
+	const tsOption = screen.getByRole("button", { name: "TypeScript" });
+	tsOption.focus();
+	await user.keyboard("{Enter}");
+
+	expect(screen.getByRole("button", { name: /Vote/i })).not.toBeDisabled();
+});
+
+test("poll option can be activated by pressing Space", async () => {
+	const user = userEvent.setup();
+	renderPoll(makePollItem());
+
+	const tsOption = screen.getByRole("button", { name: "TypeScript" });
+	tsOption.focus();
+	await user.keyboard(" ");
+
+	expect(screen.getByRole("button", { name: /Vote/i })).not.toBeDisabled();
+});
+
+test("poll option receives keyboard focus via Tab", async () => {
+	const user = userEvent.setup();
+	renderPoll(makePollItem());
+
+	await user.tab();
+	expect(screen.getByRole("button", { name: "TypeScript" })).toHaveFocus();
+});
+
 test("does not call onVotePoll when isVoting is true", async () => {
 	let resolveVote!: () => void;
 	onVotePoll.mockReturnValue(

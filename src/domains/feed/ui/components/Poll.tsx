@@ -110,7 +110,17 @@ export function Poll({ item }: PollProps) {
 								</div>
 							) : (
 								<div
+									role="button"
+									tabIndex={0}
+									aria-label={option.text}
+									aria-pressed={isSelected}
 									onClick={() => toggleOption(option.option)}
+									onKeyDown={(e) => {
+										if (e.key === "Enter" || e.key === " ") {
+											e.preventDefault();
+											toggleOption(option.option);
+										}
+									}}
 									style={{
 										padding: "8px 12px",
 										borderRadius: token.borderRadiusSM,

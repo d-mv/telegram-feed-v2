@@ -84,6 +84,7 @@ export function Controls({
 
 			<input
 				type="range"
+				aria-label="Scrub video"
 				min={0}
 				max={duration || 0}
 				step={0.1}
