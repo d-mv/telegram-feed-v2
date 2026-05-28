@@ -27,8 +27,17 @@ export function getAvatarColor(name: string): string {
 	return PALETTE[value % PALETTE.length]!;
 }
 
+function escapeXml(str: string): string {
+	return str
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&apos;");
+}
+
 export function getAvatarDataUrl(name: string): string {
-	const initials = getAvatarInitials(name);
+	const initials = escapeXml(getAvatarInitials(name));
 	const color = getAvatarColor(name);
 	const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><rect width="128" height="128" rx="64" fill="${color}"/><text x="64" y="72" font-family="Arial, sans-serif" font-size="46" text-anchor="middle" fill="white">${initials}</text></svg>`;
 	return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
