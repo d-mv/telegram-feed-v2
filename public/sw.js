@@ -38,6 +38,7 @@ self.addEventListener('activate', (event) => {
 })
 
 self.addEventListener('message', (event) => {
+  if (!event.source) return
   if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting()
   }
