@@ -36,7 +36,9 @@
       "Bash(npm uninstall *)",
       "Bash(npx lefthook *)",
       "Bash(node -e \"const m = require\\('/Users/dmelnikov/code/telegram-feed/node_modules/@ant-design/icons/lib/components/AntdIcon.js'\\); console.log\\(m.toString\\(\\).substring\\(0, 500\\)\\)\")",
-      "Bash(lefthook install *)"
+      "Bash(lefthook install *)",
+      "mcp__kairos__create_task",
+      "mcp__kairos__update_task"
     ]
   }
 }

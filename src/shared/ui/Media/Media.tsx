@@ -198,6 +198,22 @@ export function Media({
 	const previewBlobRef = useRef<string | undefined>(undefined);
 	const videoBlobRef = useRef<string | undefined>(undefined);
 
+	// Revoke blob URLs only when the item changes or the component unmounts,
+	// not on every state update — revoking on state change causes ERR_FILE_NOT_FOUND
+	// because the blob is still being displayed when the cleanup runs.
+	useEffect(() => {
+		return () => {
+			if (previewBlobRef.current?.startsWith("blob:")) {
+				URL.revokeObjectURL(previewBlobRef.current);
+				previewBlobRef.current = undefined;
+			}
+			if (videoBlobRef.current?.startsWith("blob:")) {
+				URL.revokeObjectURL(videoBlobRef.current);
+				videoBlobRef.current = undefined;
+			}
+		};
+	}, [item]);
+
 	useEffect(() => {
 		if (!media || media.url || previewUrl || previewFailed) return;
 		let active = true;
@@ -213,12 +229,8 @@ export function Media({
 			});
 		return () => {
 			active = false;
-			if (previewBlobRef.current?.startsWith("blob:")) {
-				URL.revokeObjectURL(previewBlobRef.current);
-				previewBlobRef.current = undefined;
-			}
 		};
-	}, [ensureTelegramConnected, item, media, previewUrl, previewFailed]);
+	}, [ensureTelegramConnected, item, media, previewUrl, previewFailed, dal]);
 
 	useEffect(() => {
 		if (!media || media.meta.type !== "video") return;
@@ -234,12 +246,8 @@ export function Media({
 			.catch(() => {});
 		return () => {
 			active = false;
-			if (videoBlobRef.current?.startsWith("blob:")) {
-				URL.revokeObjectURL(videoBlobRef.current);
-				videoBlobRef.current = undefined;
-			}
 		};
-	}, [item, media, videoUrl]);
+	}, [item, media, videoUrl, dal]);
 
 	if (!media) return null;
 
