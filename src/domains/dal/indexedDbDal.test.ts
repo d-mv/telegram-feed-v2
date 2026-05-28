@@ -160,6 +160,26 @@ test("clearCache preserves session and removes other keys", async () => {
 	expect(await dal.getFeedCache()).toBeUndefined();
 });
 
+test("opens the IDBDatabase only once across multiple DAL calls", async () => {
+	let openCallCount = 0;
+	const originalOpen = (
+		globalThis.indexedDB as unknown as FakeIndexedDb
+	).open.bind(globalThis.indexedDB);
+	(globalThis.indexedDB as unknown as FakeIndexedDb).open = function () {
+		openCallCount++;
+		return originalOpen();
+	};
+
+	const dal = createIndexedDbDal();
+
+	await dal.setSession("token");
+	await dal.getSession();
+	await dal.setFeedCache([]);
+	await dal.getFeedCache();
+
+	expect(openCallCount).toBe(1);
+});
+
 test("does not expose unused saved or draft persistence helpers", () => {
 	const dal = createIndexedDbDal() as Record<string, unknown>;
 
