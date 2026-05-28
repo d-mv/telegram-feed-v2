@@ -115,7 +115,7 @@ describe("Media video controls", () => {
 		let resolveDownload: ((value: string | undefined) => void) | undefined;
 
 		vi.mocked(downloadMediaForItem).mockImplementationOnce(
-			(_, __, onProgress) => {
+			(_, __, _dal, onProgress) => {
 				progressHandler = onProgress;
 				return new Promise<string | undefined>((resolve) => {
 					resolveDownload = resolve;

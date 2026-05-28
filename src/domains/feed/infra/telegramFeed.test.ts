@@ -1041,8 +1041,17 @@ describe("downloadMediaForItem", () => {
 		};
 
 		ensureTelegramConnectedMock.mockResolvedValue(client);
+		const dal = {
+			getMedia: vi.fn().mockResolvedValue(undefined),
+			setMedia: vi.fn().mockResolvedValue(undefined),
+		};
 
-		await downloadMediaForItem(item, ensureTelegramConnectedMock, progress);
+		await downloadMediaForItem(
+			item,
+			ensureTelegramConnectedMock,
+			dal,
+			progress,
+		);
 
 		expect(progress).toHaveBeenCalledWith(
 			expect.objectContaining({ value: 131072n }),
@@ -1058,28 +1067,30 @@ describe("downloadMediaForItem", () => {
 				.mockResolvedValueOnce(undefined),
 			setMedia: vi.fn(),
 		};
-		createIndexedDbDalMock.mockReturnValue(dal);
 		ensureTelegramConnectedMock.mockResolvedValue({ downloadMedia: vi.fn() });
 
-		const cached = await getCachedMediaUrl({
-			id: "group-1",
-			type: "group",
-			chatName: "Team",
-			timestamp: "now",
-			text: "x",
-			media: {
-				key: "key-1",
-				meta: {
-					type: "file",
-					width: 0,
-					height: 0,
-					sizeBytes: 1,
-					mimeType: "text/plain",
+		const cached = await getCachedMediaUrl(
+			{
+				id: "group-1",
+				type: "group",
+				chatName: "Team",
+				timestamp: "now",
+				text: "x",
+				media: {
+					key: "key-1",
+					meta: {
+						type: "file",
+						width: 0,
+						height: 0,
+						sizeBytes: 1,
+						mimeType: "text/plain",
+					},
+					alt: "x",
 				},
-				alt: "x",
+				isFocused: false,
 			},
-			isFocused: false,
-		});
+			dal,
+		);
 
 		const none = await downloadMediaForItem(
 			{
@@ -1091,6 +1102,7 @@ describe("downloadMediaForItem", () => {
 				isFocused: false,
 			},
 			ensureTelegramConnectedMock,
+			dal,
 		);
 
 		expect(cached).toBe("blob:mock");
@@ -1099,10 +1111,10 @@ describe("downloadMediaForItem", () => {
 
 	test("stores downloaded media without refetching blob urls", async () => {
 		const setMedia = vi.fn().mockResolvedValue(undefined);
-		createIndexedDbDalMock.mockReturnValue({
+		const dal = {
 			getMedia: vi.fn().mockResolvedValue(undefined),
 			setMedia,
-		});
+		};
 		const client = {
 			downloadMedia: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
 		};
@@ -1130,6 +1142,7 @@ describe("downloadMediaForItem", () => {
 				isFocused: false,
 			},
 			ensureTelegramConnectedMock,
+			dal,
 		);
 
 		expect(url).toBe("blob:mock");
@@ -1140,10 +1153,10 @@ describe("downloadMediaForItem", () => {
 	test("resolves a cached item source message before downloading full media", async () => {
 		const setMedia = vi.fn().mockResolvedValue(undefined);
 		const sourceMessage = new Api.Message({ id: 44 });
-		createIndexedDbDalMock.mockReturnValue({
+		const dal = {
 			getMedia: vi.fn().mockResolvedValue(undefined),
 			setMedia,
-		});
+		};
 		const client = {
 			getMessages: vi.fn().mockResolvedValue([sourceMessage]),
 			downloadMedia: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
@@ -1172,6 +1185,7 @@ describe("downloadMediaForItem", () => {
 				isFocused: false,
 			},
 			ensureTelegramConnectedMock,
+			dal,
 		);
 
 		expect(client.getMessages).toHaveBeenCalledWith(77n, { ids: [44] });
@@ -1193,10 +1207,10 @@ describe("downloadMediaForItem", () => {
 			downloadMedia: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
 		};
 		ensureTelegramConnectedMock.mockResolvedValue(client);
-		createIndexedDbDalMock.mockReturnValue({
+		const dal = {
 			getMedia: vi.fn().mockResolvedValue(undefined),
 			setMedia: vi.fn().mockResolvedValue(undefined),
-		});
+		};
 
 		const noThumb = await downloadThumbnailForItem(
 			{
@@ -1220,6 +1234,7 @@ describe("downloadMediaForItem", () => {
 			},
 			320,
 			ensureTelegramConnectedMock,
+			dal,
 		);
 
 		expect(noThumb).toBeUndefined();
@@ -1239,10 +1254,10 @@ describe("downloadMediaForItem", () => {
 			downloadMedia: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
 		};
 		ensureTelegramConnectedMock.mockResolvedValue(client);
-		createIndexedDbDalMock.mockReturnValue({
+		const dal = {
 			getMedia: vi.fn().mockResolvedValue(undefined),
 			setMedia: vi.fn().mockResolvedValue(undefined),
-		});
+		};
 
 		const thumbUrl = await downloadThumbnailForItem(
 			{
@@ -1267,6 +1282,7 @@ describe("downloadMediaForItem", () => {
 			},
 			320,
 			ensureTelegramConnectedMock,
+			dal,
 		);
 
 		expect(client.getMessages).toHaveBeenCalledWith(55n, { ids: [99] });

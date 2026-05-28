@@ -1,6 +1,6 @@
 import { Api } from "telegram";
 import type { FeedItem } from "../../../types";
-import { createIndexedDbDal } from "../../dal/indexedDbDal";
+import type { Dal } from "../../dal/types";
 import type { TelegramClient } from "telegram";
 import {
 	getBinarySize,
@@ -16,24 +16,23 @@ type DownloadProgressCallback = (
 ) => void;
 type EnsureTelegramConnected = () => Promise<TelegramClient>;
 
-async function storeBlob(cacheKey: string, blob: Blob | undefined) {
+async function storeBlob(cacheKey: string, blob: Blob | undefined, dal: Dal) {
 	if (!blob) {
 		return;
 	}
-	const dal = createIndexedDbDal();
 	await dal.setMedia(cacheKey, blob);
 }
 
 export async function downloadMediaForItem(
 	item: FeedItem,
 	ensureTelegramConnected: EnsureTelegramConnected,
+	dal: Dal,
 	onProgress?: DownloadProgressCallback,
 ): Promise<string | undefined> {
 	if (!item.media) {
 		return undefined;
 	}
 	const client = await ensureTelegramConnected();
-	const dal = createIndexedDbDal();
 	const cacheKey = item.media.key ?? item.id;
 	const cached = await dal.getMedia(cacheKey);
 	if (cached && cached.size > 0) {
@@ -59,17 +58,17 @@ export async function downloadMediaForItem(
 	if (!blob) {
 		return undefined;
 	}
-	await storeBlob(cacheKey, blob);
+	await storeBlob(cacheKey, blob, dal);
 	return URL.createObjectURL(blob);
 }
 
 export async function getCachedMediaUrl(
 	item: FeedItem,
+	dal: Dal,
 ): Promise<string | undefined> {
 	if (!item.media) {
 		return undefined;
 	}
-	const dal = createIndexedDbDal();
 	const cacheKey = item.media.key ?? item.id;
 	const cached = await dal.getMedia(cacheKey);
 	if (!cached || cached.size === 0) {
@@ -120,10 +119,10 @@ export async function downloadThumbnailForItem(
 	item: FeedItem,
 	targetWidth: number,
 	ensureTelegramConnected: EnsureTelegramConnected,
+	dal: Dal,
 ): Promise<string | undefined> {
 	if (!item.media) return undefined;
 	const client = await ensureTelegramConnected();
-	const dal = createIndexedDbDal();
 	const cacheKey = `${item.media.key ?? item.id}:thumb:${targetWidth}`;
 	const cached = await dal.getMedia(cacheKey);
 	if (cached && cached.size > 0) {
@@ -158,7 +157,7 @@ export async function downloadThumbnailForItem(
 		if (!fallbackBlob) {
 			return undefined;
 		}
-		await storeBlob(cacheKey, fallbackBlob);
+		await storeBlob(cacheKey, fallbackBlob, dal);
 		return URL.createObjectURL(fallbackBlob);
 	}
 
@@ -175,6 +174,6 @@ export async function downloadThumbnailForItem(
 	if (!blob) {
 		return undefined;
 	}
-	await storeBlob(cacheKey, blob);
+	await storeBlob(cacheKey, blob, dal);
 	return URL.createObjectURL(blob);
 }

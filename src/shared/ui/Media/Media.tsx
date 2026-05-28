@@ -29,7 +29,7 @@ export function Media({
 	aspectRatioOverride,
 }: Props) {
 	const { token } = theme.useToken();
-	const { ensureTelegramConnected } = useContext(AppContext);
+	const { ensureTelegramConnected, dal } = useContext(AppContext);
 	const media = item.media;
 
 	const [previewUrl, setPreviewUrl] = useState<string | undefined>(
@@ -150,13 +150,18 @@ export function Media({
 				nextUrl = await downloadMediaForItem(
 					item,
 					ensureTelegramConnected,
+					dal,
 					(downloaded, total) => {
 						if (Number(total) > 0)
 							setDownloadProgress(Number(downloaded) / Number(total));
 					},
 				);
 			} else {
-				nextUrl = await downloadMediaForItem(item, ensureTelegramConnected);
+				nextUrl = await downloadMediaForItem(
+					item,
+					ensureTelegramConnected,
+					dal,
+				);
 			}
 			const url = nextUrl;
 			if (!url) {
@@ -184,7 +189,7 @@ export function Media({
 	useEffect(() => {
 		if (!media || media.url || previewUrl || previewFailed) return;
 		let active = true;
-		downloadThumbnailForItem(item, 480, ensureTelegramConnected)
+		downloadThumbnailForItem(item, 480, ensureTelegramConnected, dal)
 			.then((url) => {
 				if (active && url) {
 					previewBlobRef.current = url;
@@ -207,7 +212,7 @@ export function Media({
 		if (!media || media.meta.type !== "video") return;
 		if (videoUrl) return;
 		let active = true;
-		getCachedMediaUrl(item)
+		getCachedMediaUrl(item, dal)
 			.then((url) => {
 				if (active && url) {
 					videoBlobRef.current = url;
