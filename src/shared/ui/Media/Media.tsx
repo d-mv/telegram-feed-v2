@@ -308,7 +308,9 @@ export function Media({
 		}
 
 		if (media.meta.type === "youtube") {
-			const youtubeId = item.media?.key?.split("-")[1];
+			const rawId = item.media?.key?.split("-")[1] ?? "";
+			const youtubeId = /^[a-zA-Z0-9_-]{11}$/.test(rawId) ? rawId : null;
+			if (!youtubeId) return null;
 			const embedUrl = `https://www.youtube.com/embed/${youtubeId}?rel=0`;
 			return (
 				<div style={{ position: "relative", width: "100%", height: "100%" }}>
@@ -318,6 +320,7 @@ export function Media({
 						frameBorder="0"
 						allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
 						allowFullScreen
+						sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
 						style={{
 							width: "100%",
 							height: "100%",
@@ -377,10 +380,10 @@ export function Media({
 			style={{
 				position: "relative",
 				width: "100%",
-				aspectRatio: ratio,
+				aspectRatio: media.meta.type === "file" ? "undefined" : ratio,
 				overflow: "hidden",
 				borderRadius: token.borderRadius,
-				background: token.colorBgLayout,
+				background: media.meta.type === "file" ? "none" : token.colorBgLayout,
 				filter: grayscale ? "grayscale(100%)" : undefined,
 			}}
 		>

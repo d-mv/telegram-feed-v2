@@ -97,6 +97,49 @@ describe("blob URL cleanup", () => {
 	});
 });
 
+describe("YouTube iframe", () => {
+	function youtubeItem(key: string): FeedItem {
+		return {
+			id: "yt-1",
+			type: "group",
+			chatName: "Test",
+			timestamp: "now",
+			text: "",
+			media: {
+				key,
+				url: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+				meta: { type: "youtube", title: "Test video" } as never,
+				alt: "video",
+			},
+		};
+	}
+
+	it("renders iframe with sandbox attribute for valid YouTube ID", () => {
+		const { container } = render(
+			<Media item={youtubeItem("youtube-dQw4w9WgXcQ")} />,
+			{ wrapper: Wrapper },
+		);
+		const iframe = container.querySelector("iframe");
+		expect(iframe).toBeTruthy();
+		expect(iframe!.getAttribute("sandbox")).toBeTruthy();
+	});
+
+	it("does not render iframe when YouTube ID is invalid", () => {
+		const { container } = render(
+			<Media item={youtubeItem("youtube-<script>alert(1)</script>")} />,
+			{ wrapper: Wrapper },
+		);
+		expect(container.querySelector("iframe")).toBeNull();
+	});
+
+	it("does not render iframe when YouTube ID is missing", () => {
+		const { container } = render(<Media item={youtubeItem("youtube-")} />, {
+			wrapper: Wrapper,
+		});
+		expect(container.querySelector("iframe")).toBeNull();
+	});
+});
+
 describe("Media video controls", () => {
 	it("uses a dedicated controls container class instead of the media root container class", async () => {
 		vi.mocked(getCachedMediaUrl).mockResolvedValueOnce("blob:test");
