@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { Provider, createStore } from "jotai";
 import type { ReactNode } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi, type Mock } from "vitest";
 import { avatarVisibilityAtom } from "../../atoms/avatarVisibility.atom";
 import { feedFilterSettingsAtom } from "../../atoms/feedFilters.atom";
 import {
@@ -332,5 +332,120 @@ describe("useSettings", () => {
 		});
 
 		expect(store.get(notificationPermissionAtom)).toBe("unsupported");
+	});
+});
+
+describe("settings round-trip (write → DAL → atom → reload)", () => {
+	function createRoundTripDal() {
+		const dal = createDalStub();
+		let storedAvatar: unknown;
+		let storedFilters: unknown;
+		let storedNotifications: unknown;
+
+		(dal.getAvatarVisibilitySettings as Mock).mockImplementation(() =>
+			Promise.resolve(storedAvatar),
+		);
+		(dal.setAvatarVisibilitySettings as Mock).mockImplementation(
+			(v: unknown) => {
+				storedAvatar = v;
+				return Promise.resolve();
+			},
+		);
+		(dal.getFeedFilterSettings as Mock).mockImplementation(() =>
+			Promise.resolve(storedFilters),
+		);
+		(dal.setFeedFilterSettings as Mock).mockImplementation((v: unknown) => {
+			storedFilters = v;
+			return Promise.resolve();
+		});
+		(dal.getNotificationSettings as Mock).mockImplementation(() =>
+			Promise.resolve(storedNotifications),
+		);
+		(dal.setNotificationSettings as Mock).mockImplementation((v: unknown) => {
+			storedNotifications = v;
+			return Promise.resolve();
+		});
+		return dal;
+	}
+
+	it("avatar visibility: write then reload restores atom from DAL", async () => {
+		const dal = createRoundTripDal();
+
+		const { Wrapper: W1, store: store1 } = createWrapper();
+		const { result, unmount } = renderHook(() => useSettings({ dal }), {
+			wrapper: W1,
+		});
+
+		act(() => {
+			result.current.handleSetAvatarVisibility({
+				feed: false,
+				thread: false,
+				notifications: false,
+			});
+		});
+		expect(store1.get(avatarVisibilityAtom)).toEqual({
+			feed: false,
+			thread: false,
+			notifications: false,
+		});
+		unmount();
+
+		const { Wrapper: W2, store: store2 } = createWrapper();
+		renderHook(() => useSettings({ dal }), { wrapper: W2 });
+
+		await waitFor(() => {
+			expect(store2.get(avatarVisibilityAtom)).toEqual({
+				feed: false,
+				thread: false,
+				notifications: false,
+			});
+		});
+	});
+
+	it("feed filter: disable channel then reload restores filter atom from DAL", async () => {
+		const dal = createRoundTripDal();
+
+		const { Wrapper: W1, store: store1 } = createWrapper();
+		const { result, unmount } = renderHook(() => useSettings({ dal }), {
+			wrapper: W1,
+		});
+
+		act(() => {
+			result.current.handleToggleChannelFilter("ch:99", false);
+		});
+		expect(store1.get(feedFilterSettingsAtom)).toEqual({ "ch:99": false });
+		unmount();
+
+		const { Wrapper: W2, store: store2 } = createWrapper();
+		renderHook(() => useSettings({ dal }), { wrapper: W2 });
+
+		await waitFor(() => {
+			expect(store2.get(feedFilterSettingsAtom)).toEqual({ "ch:99": false });
+		});
+	});
+
+	it("notification settings: enable channel then reload restores notification atom from DAL", async () => {
+		vi.stubGlobal("Notification", {
+			requestPermission: vi.fn().mockResolvedValue("default"),
+		});
+		const dal = createRoundTripDal();
+
+		const { Wrapper: W1, store: store1 } = createWrapper();
+		const { result, unmount } = renderHook(() => useSettings({ dal }), {
+			wrapper: W1,
+		});
+
+		await act(async () => {
+			result.current.handleToggleChannelNotification("ch:7", true);
+		});
+		expect(store1.get(notificationSettingsAtom)).toEqual({ "ch:7": true });
+		unmount();
+
+		const { Wrapper: W2, store: store2 } = createWrapper();
+		renderHook(() => useSettings({ dal }), { wrapper: W2 });
+
+		await waitFor(() => {
+			expect(store2.get(notificationSettingsAtom)).toEqual({ "ch:7": true });
+		});
 	});
 });
