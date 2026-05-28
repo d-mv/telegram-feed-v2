@@ -1353,6 +1353,109 @@ describe("downloadMediaForItem", () => {
 		);
 		expect(thumbUrl).toBe("blob:mock");
 	});
+
+	test("concurrent downloadMediaForItem calls for the same item share one Telegram request", async () => {
+		let resolveDownload!: (value: Uint8Array) => void;
+		const downloadMedia = vi.fn().mockReturnValue(
+			new Promise<Uint8Array>((res) => {
+				resolveDownload = res;
+			}),
+		);
+		ensureTelegramConnectedMock.mockResolvedValue({ downloadMedia });
+
+		const sourceMessage = new Api.Message({
+			id: 5,
+			media: new Api.MessageMediaPhoto({ photo: new Api.Photo({ id: 5 }) }),
+		});
+		const item = {
+			id: "group-5-5",
+			type: "group" as const,
+			chatName: "Team",
+			timestamp: "now",
+			text: "",
+			media: {
+				key: "dedup-key",
+				meta: {
+					type: "image" as const,
+					width: 100,
+					height: 100,
+					sizeBytes: 100,
+					mimeType: "image/jpeg",
+				},
+				alt: "img",
+			},
+			sourceMessage,
+			isFocused: false,
+		};
+		const dal = {
+			getMedia: vi.fn().mockResolvedValue(undefined),
+			setMedia: vi.fn().mockResolvedValue(undefined),
+		};
+
+		const [p1, p2] = [
+			downloadMediaForItem(item, ensureTelegramConnectedMock, dal),
+			downloadMediaForItem(item, ensureTelegramConnectedMock, dal),
+		];
+
+		resolveDownload(new Uint8Array([0xff, 0xd8, 0xff]));
+		await Promise.all([p1, p2]);
+
+		expect(downloadMedia).toHaveBeenCalledTimes(1);
+	});
+
+	test("concurrent downloadThumbnailForItem calls for the same key share one Telegram request", async () => {
+		let resolveDownload!: (value: Uint8Array) => void;
+		const downloadMedia = vi.fn().mockReturnValue(
+			new Promise<Uint8Array>((res) => {
+				resolveDownload = res;
+			}),
+		);
+		ensureTelegramConnectedMock.mockResolvedValue({ downloadMedia });
+
+		const sourceMessage = new Api.Message({
+			id: 7,
+			media: new Api.MessageMediaPhoto({
+				photo: new Api.Photo({
+					id: 7,
+					sizes: [{ w: 320, h: 240 }],
+				}),
+			}),
+		});
+		const item = {
+			id: "group-7-7",
+			type: "group" as const,
+			chatName: "Team",
+			timestamp: "now",
+			text: "",
+			media: {
+				key: "thumb-dedup-key",
+				meta: {
+					type: "image" as const,
+					width: 320,
+					height: 240,
+					sizeBytes: 1024,
+					mimeType: "image/jpeg",
+				},
+				alt: "thumb",
+			},
+			sourceMessage,
+			isFocused: false,
+		};
+		const dal = {
+			getMedia: vi.fn().mockResolvedValue(undefined),
+			setMedia: vi.fn().mockResolvedValue(undefined),
+		};
+
+		const [p1, p2] = [
+			downloadThumbnailForItem(item, 320, ensureTelegramConnectedMock, dal),
+			downloadThumbnailForItem(item, 320, ensureTelegramConnectedMock, dal),
+		];
+
+		resolveDownload(new Uint8Array([0xff, 0xd8, 0xff]));
+		await Promise.all([p1, p2]);
+
+		expect(downloadMedia).toHaveBeenCalledTimes(1);
+	});
 });
 
 describe("mergeAlbumFeedItems", () => {

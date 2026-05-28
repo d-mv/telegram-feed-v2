@@ -16,6 +16,19 @@ type DownloadProgressCallback = (
 ) => void;
 type EnsureTelegramConnected = () => Promise<TelegramClient>;
 
+const inflightDownloads = new Map<string, Promise<string | undefined>>();
+
+function deduplicateDownload(
+	key: string,
+	fn: () => Promise<string | undefined>,
+): Promise<string | undefined> {
+	const existing = inflightDownloads.get(key);
+	if (existing) return existing;
+	const promise = fn().finally(() => inflightDownloads.delete(key));
+	inflightDownloads.set(key, promise);
+	return promise;
+}
+
 async function storeBlob(cacheKey: string, blob: Blob | undefined, dal: Dal) {
 	if (!blob) {
 		return;
@@ -23,7 +36,22 @@ async function storeBlob(cacheKey: string, blob: Blob | undefined, dal: Dal) {
 	await dal.setMedia(cacheKey, blob);
 }
 
-export async function downloadMediaForItem(
+export function downloadMediaForItem(
+	item: FeedItem,
+	ensureTelegramConnected: EnsureTelegramConnected,
+	dal: Dal,
+	onProgress?: DownloadProgressCallback,
+): Promise<string | undefined> {
+	if (!item.media) {
+		return Promise.resolve(undefined);
+	}
+	const cacheKey = item.media.key ?? item.id;
+	return deduplicateDownload(`media:${cacheKey}`, () =>
+		doDownloadMediaForItem(item, ensureTelegramConnected, dal, onProgress),
+	);
+}
+
+async function doDownloadMediaForItem(
 	item: FeedItem,
 	ensureTelegramConnected: EnsureTelegramConnected,
 	dal: Dal,
@@ -115,7 +143,20 @@ function getThumbCandidate(sourceMessage: Api.Message, targetWidth: number) {
 	return undefined;
 }
 
-export async function downloadThumbnailForItem(
+export function downloadThumbnailForItem(
+	item: FeedItem,
+	targetWidth: number,
+	ensureTelegramConnected: EnsureTelegramConnected,
+	dal: Dal,
+): Promise<string | undefined> {
+	if (!item.media) return Promise.resolve(undefined);
+	const cacheKey = `${item.media.key ?? item.id}:thumb:${targetWidth}`;
+	return deduplicateDownload(`thumb:${cacheKey}`, () =>
+		doDownloadThumbnailForItem(item, targetWidth, ensureTelegramConnected, dal),
+	);
+}
+
+async function doDownloadThumbnailForItem(
 	item: FeedItem,
 	targetWidth: number,
 	ensureTelegramConnected: EnsureTelegramConnected,
