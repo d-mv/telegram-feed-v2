@@ -56,9 +56,11 @@ export function FeedView() {
 		return () => window.removeEventListener("scroll", handleScroll);
 	}, []);
 
+	const MIN_ITEMS_FOR_PAGINATION = 5;
+
 	useEffect(() => {
 		const sentinel = bottomSentinelRef.current;
-		if (!sentinel) return;
+		if (!sentinel || feedItems.length < MIN_ITEMS_FOR_PAGINATION) return;
 
 		const observer = new IntersectionObserver(
 			(entries) => {
@@ -71,7 +73,7 @@ export function FeedView() {
 
 		observer.observe(sentinel);
 		return () => observer.disconnect();
-	}, [isLoadingOlder, onManualLoadOlder]);
+	}, [feedItems.length, isLoadingOlder, onManualLoadOlder]);
 
 	useEffect(() => {
 		document.body.style.overflow = focusedItem ? "hidden" : "";

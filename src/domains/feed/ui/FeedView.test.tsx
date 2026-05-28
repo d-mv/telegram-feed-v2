@@ -2,7 +2,11 @@ import { Provider } from "jotai/react";
 import { createStore } from "jotai/vanilla";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { vi } from "vitest";
+import { afterEach, vi } from "vitest";
+
+afterEach(() => {
+	vi.unstubAllGlobals();
+});
 import { feedItemsAtom } from "../../../atoms/feedItems.atom";
 import { feedFilterSettingsAtom } from "../../../atoms/feedFilters.atom";
 import { notificationFocusAtom } from "../../../atoms/notificationFocus.atom";
@@ -421,6 +425,90 @@ test("keeps thread open and focuses target there when notification is for the op
 			within(screen.getByRole("dialog")).getByText("Second thread message"),
 		).toBeInTheDocument();
 	});
+});
+
+test("does not trigger loadOlder when sentinel becomes visible on a short initial feed", () => {
+	let intersectCallback:
+		| ((entries: { isIntersecting: boolean }[]) => void)
+		| null = null;
+	const observeSpy = vi.fn();
+	const disconnectSpy = vi.fn();
+
+	vi.stubGlobal(
+		"IntersectionObserver",
+		vi
+			.fn()
+			.mockImplementation(
+				(cb: (entries: { isIntersecting: boolean }[]) => void) => {
+					intersectCallback = cb;
+					return {
+						observe: observeSpy,
+						disconnect: disconnectSpy,
+					};
+				},
+			),
+	);
+
+	const onManualLoadOlder = vi.fn();
+	const store = createStore();
+	act(() => {
+		store.set(feedItemsAtom, [
+			{
+				id: "dm-1-1",
+				type: "dm" as const,
+				chatName: "Alice",
+				senderName: "Alice",
+				timestamp: "now",
+				text: "Only message",
+				reactions: [],
+			},
+		]);
+	});
+
+	render(
+		<Provider store={store}>
+			<AppContext.Provider
+				value={{
+					dal: {
+						getSession: vi.fn(),
+						setSession: vi.fn(),
+						getNotificationSettings: vi.fn(),
+						setNotificationSettings: vi.fn(),
+						getFeedFilterSettings: vi.fn(),
+						setFeedFilterSettings: vi.fn(),
+						getAvatarVisibilitySettings: vi.fn(),
+						setAvatarVisibilitySettings: vi.fn(),
+						getFeedCache: vi.fn(),
+						setFeedCache: vi.fn(),
+						getMedia: vi.fn(),
+						setMedia: vi.fn(),
+						clearCache: vi.fn(),
+					},
+					onManualRefresh: vi.fn(),
+					onSendMessage: vi.fn().mockResolvedValue(undefined),
+					ensureTelegramConnected: vi.fn().mockResolvedValue({}),
+					avatarVisibility: { feed: true, thread: true, notifications: true },
+					onSetAvatarVisibility: vi.fn(),
+					onToggleChannelNotification: vi.fn(),
+					onToggleChannelFilter: vi.fn(),
+					onRequestNotificationPermission: vi.fn(),
+					onDisableNotifications: vi.fn(),
+					onEnableAllFeedFilters: vi.fn(),
+					onManualLoadOlder,
+					isLoadingOlder: false,
+				}}
+			>
+				<FeedView />
+			</AppContext.Provider>
+		</Provider>,
+	);
+
+	// Simulate bottom sentinel becoming visible with a very short feed (1 item)
+	act(() => {
+		intersectCallback?.([{ isIntersecting: true }]);
+	});
+
+	expect(onManualLoadOlder).not.toHaveBeenCalled();
 });
 
 test("opens the thread immediately when navigation target requests thread view", async () => {
