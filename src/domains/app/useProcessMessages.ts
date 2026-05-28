@@ -2,6 +2,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useRef } from "react";
 import { Api } from "telegram";
 import { NewMessage } from "telegram/events";
+import { EditedMessage } from "telegram/events/EditedMessage";
 import { authClientAtom, isAuthenticatedAtom } from "../../atoms/auth.atom";
 import { avatarVisibilityAtom } from "../../atoms/avatarVisibility.atom";
 import { feedItemsAtom } from "../../atoms/feedItems.atom";
@@ -37,6 +38,10 @@ export function useProcessMessages({ dal }: { dal: Dal }) {
 		((event: { message?: Api.Message }) => void) | null
 	>(null);
 	const eventBuilderRef = useRef<NewMessage | null>(null);
+	const editHandlerRef = useRef<
+		((event: { message?: Api.Message }) => void) | null
+	>(null);
+	const editEventBuilderRef = useRef<EditedMessage | null>(null);
 
 	// Keep mutable values in refs so the handler closure always reads the latest
 	// without re-registering the event handler on every change.
@@ -181,6 +186,30 @@ export function useProcessMessages({ dal }: { dal: Dal }) {
 				handlerRef.current = handler;
 				eventBuilderRef.current = eventBuilder;
 				client.addEventHandler(handler, eventBuilder);
+
+				const editHandler = async (event: { message?: Api.Message }) => {
+					if (!isActive) return;
+					const message = event.message;
+					if (!message || !(message instanceof Api.Message)) return;
+
+					const chatId = message.chatId?.toString() ?? "chat";
+					const isPrivate = Boolean(message.isPrivate);
+					const idPrefix = isPrivate ? "dm" : "group";
+					const itemId = `${idPrefix}-${chatId}-${message.id}`;
+
+					setFeedItems((currentItems) =>
+						currentItems.map((item) =>
+							item.id === itemId
+								? { ...item, text: message.message ?? item.text }
+								: item,
+						),
+					);
+				};
+
+				const editEventBuilder = new EditedMessage({ incoming: true });
+				editHandlerRef.current = editHandler;
+				editEventBuilderRef.current = editEventBuilder;
+				client.addEventHandler(editHandler, editEventBuilder);
 			})
 			.catch(() => {});
 
@@ -194,6 +223,14 @@ export function useProcessMessages({ dal }: { dal: Dal }) {
 			}
 			handlerRef.current = null;
 			eventBuilderRef.current = null;
+
+			const editHandler = editHandlerRef.current;
+			const editEventBuilder = editEventBuilderRef.current;
+			if (client && editHandler && editEventBuilder) {
+				client.removeEventHandler(editHandler, editEventBuilder);
+			}
+			editHandlerRef.current = null;
+			editEventBuilderRef.current = null;
 		};
 	}, [authClient, dal, isAuthenticated, setNotificationFocus, setFeedItems]);
 }

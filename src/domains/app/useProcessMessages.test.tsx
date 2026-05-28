@@ -28,7 +28,14 @@ vi.mock("telegram/events", () => ({
 	},
 }));
 
+vi.mock("telegram/events/EditedMessage", () => ({
+	EditedMessage: class EditedMessage {
+		constructor(_options?: unknown) {}
+	},
+}));
+
 import { useProcessMessages } from "./useProcessMessages";
+import type { FeedItem } from "../../types";
 
 function createWrapper() {
 	const store = createStore();
@@ -67,7 +74,7 @@ test("does not re-register handler when notificationSettings changes", async () 
 	renderHook(() => useProcessMessages({ dal } as never), { wrapper: Wrapper });
 
 	await waitFor(() => {
-		expect(addEventHandler).toHaveBeenCalledTimes(1);
+		expect(addEventHandler).toHaveBeenCalledTimes(2);
 	});
 
 	// Changing notification settings should NOT tear down and re-register the handler
@@ -76,7 +83,7 @@ test("does not re-register handler when notificationSettings changes", async () 
 	});
 
 	await waitFor(() => {
-		expect(addEventHandler).toHaveBeenCalledTimes(1);
+		expect(addEventHandler).toHaveBeenCalledTimes(2);
 	});
 	expect(removeEventHandler).not.toHaveBeenCalled();
 });
@@ -97,7 +104,7 @@ test("does not re-register handler when notificationPermission changes", async (
 	renderHook(() => useProcessMessages({ dal } as never), { wrapper: Wrapper });
 
 	await waitFor(() => {
-		expect(addEventHandler).toHaveBeenCalledTimes(1);
+		expect(addEventHandler).toHaveBeenCalledTimes(2);
 	});
 
 	act(() => {
@@ -105,7 +112,7 @@ test("does not re-register handler when notificationPermission changes", async (
 	});
 
 	await waitFor(() => {
-		expect(addEventHandler).toHaveBeenCalledTimes(1);
+		expect(addEventHandler).toHaveBeenCalledTimes(2);
 	});
 	expect(removeEventHandler).not.toHaveBeenCalled();
 });
@@ -129,14 +136,14 @@ test("keeps Telegram message handler subscribed until unmount", async () => {
 	});
 
 	await waitFor(() => {
-		expect(addEventHandler).toHaveBeenCalledTimes(1);
+		expect(addEventHandler).toHaveBeenCalledTimes(2);
 	});
 	expect(removeEventHandler).not.toHaveBeenCalled();
 
 	unmount();
 
 	await waitFor(() => {
-		expect(removeEventHandler).toHaveBeenCalledTimes(1);
+		expect(removeEventHandler).toHaveBeenCalledTimes(2);
 	});
 });
 
@@ -146,7 +153,7 @@ test("appends incoming messages to the feed", async () => {
 		| ((event: { message?: unknown }) => Promise<void>)
 		| null = null;
 
-	addEventHandler.mockImplementation((handler) => {
+	addEventHandler.mockImplementationOnce((handler) => {
 		registeredHandler = handler;
 	});
 
@@ -205,4 +212,69 @@ test("appends incoming messages to the feed", async () => {
 			text: "Hello from runtime",
 		}),
 	]);
+});
+
+test("updates feed item text when an existing message is edited", async () => {
+	const addEventHandler = vi.fn();
+	const handlers: ((event: { message?: unknown }) => Promise<void>)[] = [];
+	addEventHandler.mockImplementation(
+		(handler: (event: { message?: unknown }) => Promise<void>) => {
+			handlers.push(handler);
+		},
+	);
+
+	ensureTelegramConnectedMock.mockResolvedValue({
+		getMe: vi.fn().mockResolvedValue({ id: 1 }),
+		addEventHandler,
+		removeEventHandler: vi.fn(),
+	});
+
+	const existingItem: FeedItem = {
+		id: "dm-99-42",
+		channelKey: "dm:99",
+		type: "dm",
+		chatName: "Alice",
+		senderName: "Alice",
+		timestamp: "2024-01-01",
+		date: 1_709_000_000,
+		text: "Original text",
+		reactions: [],
+		isFocused: false,
+	};
+
+	const { store, Wrapper } = createWrapper();
+	store.set(feedItemsAtom, [existingItem]);
+
+	const dal = { setFeedCache: vi.fn().mockResolvedValue(undefined) };
+	renderHook(() => useProcessMessages({ dal } as never), { wrapper: Wrapper });
+
+	// Wait for both NewMessage and EditedMessage handlers to be registered
+	await waitFor(() => {
+		expect(handlers.length).toBeGreaterThanOrEqual(2);
+	});
+
+	const { Api } = await import("telegram");
+	const editedMessage = new Api.Message({
+		id: 42,
+		out: false,
+		chatId: { toString: () => "99" },
+		isPrivate: true,
+		date: 1_709_000_000,
+		message: "Edited text",
+		getChat: vi.fn().mockResolvedValue({ firstName: "Alice" }),
+		getSender: vi.fn().mockResolvedValue({ firstName: "Alice" }),
+	});
+
+	// EditedMessage handler is registered second (index 1)
+	const editHandler = handlers[1];
+	await act(async () => {
+		await editHandler?.({ message: editedMessage });
+	});
+
+	await waitFor(() => {
+		expect(store.get(feedItemsAtom)[0]).toMatchObject({
+			id: "dm-99-42",
+			text: "Edited text",
+		});
+	});
 });
