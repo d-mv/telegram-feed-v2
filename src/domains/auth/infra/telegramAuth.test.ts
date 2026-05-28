@@ -58,6 +58,10 @@ const telegramMock = vi.hoisted(() => {
 			this._connected = true;
 		});
 
+		disconnect = vi.fn(async () => {
+			this._connected = false;
+		});
+
 		__setConnected(value: boolean) {
 			this._connected = value;
 		}
@@ -183,5 +187,17 @@ describe("telegramAuth", () => {
 		await auth.ensureTelegramConnected();
 
 		expect(connectMock).toHaveBeenCalledTimes(2);
+	});
+
+	test("logout disconnects the telegram client", async () => {
+		const auth = createTelegramAuth({ apiId: 1, apiHash: "hash" });
+		const client = await auth.ensureTelegramConnected();
+
+		await auth.logout();
+
+		const instance = client as unknown as {
+			disconnect: ReturnType<typeof vi.fn>;
+		};
+		expect(instance.disconnect).toHaveBeenCalledTimes(1);
 	});
 });

@@ -9,9 +9,10 @@ import { SettingButtonRow } from "./SettingButtonRow";
 export default function Maintenance() {
 	const closeMenu = useSetAtom(closeMenuAtom);
 
-	const { dal } = useContext(AppContext);
+	const { dal, onLogout } = useContext(AppContext);
 
 	const [isClearingCache, setIsClearingCache] = useState(false);
+	const [isLoggingOut, setIsLoggingOut] = useState(false);
 
 	async function handleClearCache() {
 		setIsClearingCache(true);
@@ -19,6 +20,16 @@ export default function Maintenance() {
 			await dal.clearCache();
 		} finally {
 			setIsClearingCache(false);
+		}
+	}
+
+	async function handleLogout() {
+		if (!onLogout) return;
+		setIsLoggingOut(true);
+		try {
+			await onLogout();
+		} finally {
+			setIsLoggingOut(false);
 		}
 	}
 
@@ -31,6 +42,17 @@ export default function Maintenance() {
 				onClick={handleClearCache}
 				disabled={isClearingCache}
 			/>
+			<Spacer />
+			{onLogout && (
+				<SettingButtonRow
+					title="Logout"
+					subtitle="Disconnects from Telegram and clears the session."
+					buttonText={isLoggingOut ? "Logging out..." : "Logout"}
+					onClick={handleLogout}
+					disabled={isLoggingOut}
+					danger
+				/>
+			)}
 			<Spacer />
 		</MenuDialog>
 	);

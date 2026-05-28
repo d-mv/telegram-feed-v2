@@ -24,6 +24,7 @@ type AppContextType = {
 	onRequestNotificationPermission: () => void;
 	onDisableNotifications: () => void;
 	onEnableAllFeedFilters: () => void;
+	onLogout?: () => void | Promise<void>;
 	dal: Dal;
 };
 

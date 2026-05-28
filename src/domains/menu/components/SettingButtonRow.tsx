@@ -8,6 +8,7 @@ type Props = {
 	onClick: () => void;
 	disabled?: boolean;
 	variant?: ButtonVariant;
+	danger?: boolean;
 };
 
 export function SettingButtonRow({
@@ -17,6 +18,7 @@ export function SettingButtonRow({
 	onClick,
 	disabled,
 	variant = "primary",
+	danger,
 }: Props) {
 	const antType =
 		variant === "primary"
@@ -45,7 +47,12 @@ export function SettingButtonRow({
 					</Typography.Text>
 				)}
 			</div>
-			<Button type={antType} onClick={onClick} disabled={disabled}>
+			<Button
+				type={antType}
+				onClick={onClick}
+				disabled={disabled}
+				danger={danger}
+			>
 				{buttonText}
 			</Button>
 		</Flex>

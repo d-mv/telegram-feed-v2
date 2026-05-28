@@ -26,5 +26,8 @@ export function createTelegramAuth(config: TelegramAuthConfig): AuthClient {
 			await ensureConnected();
 			return client;
 		},
+		async logout() {
+			await client.disconnect();
+		},
 	};
 }

@@ -31,5 +31,6 @@ export function createMockAuth(options: MockAuthOptions = {}): AuthClient {
 		async checkQrLogin() {
 			return { status: "pending" };
 		},
+		async logout() {},
 	};
 }

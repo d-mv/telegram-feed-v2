@@ -35,4 +35,5 @@ export type AuthClient = {
 	requestQrLogin: () => Promise<QrLoginResult>;
 	checkQrLogin: () => Promise<QrLoginResult>;
 	ensureTelegramConnected: EnsureTelegramConnected;
+	logout: () => Promise<void>;
 };

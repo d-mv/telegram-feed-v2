@@ -212,6 +212,17 @@ test("maintenance clears cache", async () => {
 	expect(clearCache).toHaveBeenCalledTimes(1);
 });
 
+test("maintenance logout button calls onLogout", async () => {
+	const user = userEvent.setup();
+	const onLogout = vi.fn().mockResolvedValue(undefined);
+	renderWithProviders(<Maintenance />, {
+		contextOverrides: { onLogout } as never,
+	});
+
+	await user.click(screen.getByRole("button", { name: "Logout" }));
+	expect(onLogout).toHaveBeenCalledTimes(1);
+});
+
 test("menu header close button works", async () => {
 	const user = userEvent.setup();
 	const onClose = vi.fn();

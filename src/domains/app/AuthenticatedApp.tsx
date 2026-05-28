@@ -1,7 +1,7 @@
 import { lazy, Suspense } from "react";
-import { useAtomValue } from "jotai/react";
+import { useAtomValue, useSetAtom } from "jotai/react";
 import { isLoadingFeedAtom } from "../../atoms/app.atom";
-import { authClientAtom } from "../../atoms/auth.atom";
+import { authClientAtom, isAuthenticatedAtom } from "../../atoms/auth.atom";
 import { avatarVisibilityAtom } from "../../atoms/avatarVisibility.atom";
 import { feedItemsAtom } from "../../atoms/feedItems.atom";
 import { Loading } from "../../shared/ui/Loading/Loading";
@@ -22,11 +22,19 @@ export default function AuthenticatedApp({ dal }: { dal: Dal }) {
 	const avatarVisibility = useAtomValue(avatarVisibilityAtom);
 	const feedItems = useAtomValue(feedItemsAtom);
 	const isFeedLoading = useAtomValue(isLoadingFeedAtom);
+	const setIsAuthenticated = useSetAtom(isAuthenticatedAtom);
 
 	if (!authClient) {
 		throw new Error("Telegram auth client not initialized");
 	}
 	const ensureTelegramConnected = authClient.ensureTelegramConnected;
+
+	async function handleLogout() {
+		await authClient!.logout();
+		await dal.setSession("");
+		await dal.clearCache();
+		setIsAuthenticated(false);
+	}
 
 	useProcessMessages({ dal });
 	const {
@@ -91,6 +99,7 @@ export default function AuthenticatedApp({ dal }: { dal: Dal }) {
 				onRequestNotificationPermission: handleRequestNotificationPermission,
 				onDisableNotifications: handleDisableNotifications,
 				onEnableAllFeedFilters: handleEnableAllFeedFilters,
+				onLogout: handleLogout,
 			}}
 		>
 			<FeedView />
