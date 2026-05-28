@@ -1,8 +1,27 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactNode } from "react";
 import { vi } from "vitest";
 import { APP_OPEN_TARGET_EVENT } from "../../app/openTarget";
+import { AppContext } from "../../app/AppContext";
 import { FeedCard } from "./FeedCard";
+
+function Wrapper({ children }: { children: ReactNode }) {
+	return (
+		<AppContext.Provider
+			value={
+				{
+					avatarVisibility: { feed: true, thread: true, notifications: true },
+					ensureTelegramConnected: vi.fn(),
+					dal: {} as never,
+					onVotePoll: vi.fn(),
+				} as never
+			}
+		>
+			{children}
+		</AppContext.Provider>
+	);
+}
 
 test("shows comments icon only when message has comments", () => {
 	const onFocus = () => {};
@@ -28,10 +47,15 @@ test("shows comments icon only when message has comments", () => {
 
 	const { rerender } = render(
 		<FeedCard item={withComments} onFocus={onFocus} />,
+		{ wrapper: Wrapper },
 	);
 	expect(screen.getByLabelText("Has comments")).toBeInTheDocument();
 
-	rerender(<FeedCard item={withoutComments} onFocus={onFocus} />);
+	rerender(
+		<Wrapper>
+			<FeedCard item={withoutComments} onFocus={onFocus} />
+		</Wrapper>,
+	);
 	expect(screen.queryByLabelText("Has comments")).not.toBeInTheDocument();
 });
 
@@ -60,6 +84,7 @@ test("keeps media visible for mixed text and media messages in the feed", () => 
 			}}
 			onFocus={() => {}}
 		/>,
+		{ wrapper: Wrapper },
 	);
 
 	expect(screen.getByText("Look at this")).toBeInTheDocument();
@@ -142,6 +167,7 @@ test("renders grouped images in a tiled row layout", () => {
 			groupedItems={groupedItems}
 			onFocus={() => {}}
 		/>,
+		{ wrapper: Wrapper },
 	);
 
 	const grid = container.querySelector(
@@ -185,6 +211,7 @@ test("balances larger grouped image sets with fixed columns", () => {
 			groupedItems={groupedItems}
 			onFocus={() => {}}
 		/>,
+		{ wrapper: Wrapper },
 	);
 
 	const grid = container.querySelector(
@@ -251,7 +278,9 @@ test("renders a single message with multiple images as a gallery", () => {
 		isFocused: false,
 	};
 
-	const { container } = render(<FeedCard item={item} onFocus={() => {}} />);
+	const { container } = render(<FeedCard item={item} onFocus={() => {}} />, {
+		wrapper: Wrapper,
+	});
 
 	expect(screen.getByText("Album caption")).toBeInTheDocument();
 	expect(
@@ -293,6 +322,7 @@ test("renders forwarded source metadata and opens resolvable forwarded targets i
 			}}
 			onFocus={() => {}}
 		/>,
+		{ wrapper: Wrapper },
 	);
 
 	expect(
@@ -338,6 +368,7 @@ test("renders Telegram message entities in feed text and routes Telegram links i
 			}}
 			onFocus={() => {}}
 		/>,
+		{ wrapper: Wrapper },
 	);
 
 	expect(screen.getByText("Bold").tagName).toBe("STRONG");

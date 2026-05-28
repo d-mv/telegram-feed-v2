@@ -1,7 +1,25 @@
 import { createRef } from "react";
 import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
+import { AppContext } from "../../app/AppContext";
 import { FeedList } from "./FeedList";
+
+function Wrapper({ children }: { children: React.ReactNode }) {
+	return (
+		<AppContext.Provider
+			value={
+				{
+					avatarVisibility: { feed: true, thread: true, notifications: true },
+					ensureTelegramConnected: vi.fn(),
+					dal: {} as never,
+					onVotePoll: vi.fn(),
+				} as never
+			}
+		>
+			{children}
+		</AppContext.Provider>
+	);
+}
 
 test("renders loading and feed items", () => {
 	const onFocus = vi.fn();
@@ -24,6 +42,7 @@ test("renders loading and feed items", () => {
 			topSentinelRef={topSentinelRef}
 			onFocus={onFocus}
 		/>,
+		{ wrapper: Wrapper },
 	);
 
 	expect(screen.getByText("Loading older...")).toBeInTheDocument();

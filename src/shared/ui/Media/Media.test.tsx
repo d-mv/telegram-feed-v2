@@ -1,12 +1,34 @@
 import userEvent from "@testing-library/user-event";
 import { act, render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { FeedItem } from "../../../types";
 import {
 	downloadMediaForItem,
 	getCachedMediaUrl,
 } from "../../../domains/feed/infra/telegramFeed";
+import { AppContext } from "../../../domains/app/AppContext";
 import { Media } from "./Media";
+
+const mockDal = {
+	getMedia: vi.fn().mockResolvedValue(undefined),
+	setMedia: vi.fn().mockResolvedValue(undefined),
+} as never;
+
+function Wrapper({ children }: { children: ReactNode }) {
+	return (
+		<AppContext.Provider
+			value={
+				{
+					ensureTelegramConnected: vi.fn(),
+					dal: mockDal,
+				} as never
+			}
+		>
+			{children}
+		</AppContext.Provider>
+	);
+}
 
 vi.mock("../../../domains/feed/infra/telegramFeed", () => ({
 	downloadMediaForItem: vi.fn(),
@@ -37,7 +59,7 @@ describe("blob URL cleanup", () => {
 			isFocused: false,
 		};
 
-		const { unmount } = render(<Media item={item} />);
+		const { unmount } = render(<Media item={item} />, { wrapper: Wrapper });
 		await screen.findByRole("img");
 
 		unmount();
@@ -65,7 +87,7 @@ describe("blob URL cleanup", () => {
 			isFocused: false,
 		};
 
-		const { unmount } = render(<Media item={item} />);
+		const { unmount } = render(<Media item={item} />, { wrapper: Wrapper });
 		await screen.findByRole("button", { name: "Play" });
 
 		unmount();
@@ -97,7 +119,7 @@ describe("Media video controls", () => {
 			},
 		};
 
-		const { container } = render(<Media item={item} />);
+		const { container } = render(<Media item={item} />, { wrapper: Wrapper });
 
 		const mediaContainer = container.querySelector('[data-media-type="video"]');
 		const playButton = await screen.findByRole("button", { name: "Play" });
@@ -142,7 +164,7 @@ describe("Media video controls", () => {
 		};
 
 		const user = userEvent.setup();
-		render(<Media item={item} />);
+		render(<Media item={item} />, { wrapper: Wrapper });
 		await user.click(screen.getByRole("button", { name: /download/i }));
 
 		act(() => {
@@ -173,7 +195,7 @@ describe("Media video controls", () => {
 			},
 		};
 
-		render(<Media item={item} />);
+		render(<Media item={item} />, { wrapper: Wrapper });
 
 		const button = screen.getByRole("button", { name: /download/i });
 		expect(button).toBeInTheDocument();
@@ -199,12 +221,18 @@ describe("Media video controls", () => {
 			},
 		};
 
-		const { container, rerender } = render(<Media item={item} />);
+		const { container, rerender } = render(<Media item={item} />, {
+			wrapper: Wrapper,
+		});
 		expect((container.firstChild as HTMLElement).style.filter).toMatch(
 			/grayscale/,
 		);
 
-		rerender(<Media item={item} grayscale={false} />);
+		rerender(
+			<Wrapper>
+				<Media item={item} grayscale={false} />
+			</Wrapper>,
+		);
 		expect((container.firstChild as HTMLElement).style.filter).not.toMatch(
 			/grayscale/,
 		);
@@ -231,6 +259,7 @@ describe("Media video controls", () => {
 
 		const { container } = render(
 			<Media item={item} aspectRatioOverride="1 / 1" />,
+			{ wrapper: Wrapper },
 		);
 		expect(container.firstChild).toHaveStyle({ aspectRatio: "1 / 1" });
 	});
@@ -255,7 +284,7 @@ describe("Media video controls", () => {
 			},
 		};
 
-		render(<Media item={item} />);
+		render(<Media item={item} />, { wrapper: Wrapper });
 
 		expect(screen.getByText("spec.pdf")).toBeInTheDocument();
 		expect(screen.getByText("2 KB")).toBeInTheDocument();
@@ -285,7 +314,7 @@ describe("Media video controls", () => {
 			},
 		};
 
-		render(<Media item={item} />);
+		render(<Media item={item} />, { wrapper: Wrapper });
 
 		expect(await screen.findByLabelText("Video media")).toBeInTheDocument();
 		expect(screen.queryByText("clip.mp4")).not.toBeInTheDocument();

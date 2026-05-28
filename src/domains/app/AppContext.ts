@@ -27,6 +27,14 @@ type AppContextType = {
 	dal: Dal;
 };
 
-export const AppContext = createContext<AppContextType>({} as AppContextType);
+export const AppContext = createContext<AppContextType>(
+	new Proxy({} as AppContextType, {
+		get(_, key) {
+			throw new Error(
+				`AppContext.${String(key)} accessed outside of AppContext.Provider`,
+			);
+		},
+	}),
+);
 
 AppContext.displayName = "AppContext";
