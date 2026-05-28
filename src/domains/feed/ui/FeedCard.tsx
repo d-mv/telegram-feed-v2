@@ -7,6 +7,7 @@ import type { FeedItem } from "../../../types";
 import { ForwardedBadge } from "./ForwardedBadge";
 import { getItemSenderLabel } from "./feedItemUtils";
 import { getForwardedMessageMeta } from "./getForwardedMessageMeta";
+import { getImageGridColumns } from "./mediaGroupUtils";
 import { Poll } from "./components/Poll";
 
 type FeedCardProps = {
@@ -14,13 +15,6 @@ type FeedCardProps = {
 	onFocus: (item: FeedItem) => void;
 	groupedItems?: FeedItem[];
 };
-
-function getImageGridColumns(count: number): number {
-	if (count <= 2) return count;
-	if (count <= 4) return count;
-	if (count <= 6) return 3;
-	return 4;
-}
 
 function getGalleryItems(
 	item: FeedItem,

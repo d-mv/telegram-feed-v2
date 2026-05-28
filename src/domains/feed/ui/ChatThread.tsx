@@ -29,6 +29,7 @@ import {
 } from "../infra/telegramFeed";
 import { resolveFeedItemSourceMessage } from "../infra/resolveFeedItemSourceMessage";
 import { groupConsecutiveMediaOnlyItems } from "./groupConsecutiveMediaOnlyItems";
+import { getImageGridColumns } from "./mediaGroupUtils";
 import { ForwardedBadge } from "./ForwardedBadge";
 import { getForwardedMessageMeta } from "./getForwardedMessageMeta";
 import { Poll } from "./components/Poll";
@@ -44,19 +45,6 @@ type ThreadComment = {
 	text: string;
 	timestamp: string;
 };
-
-function getImageGridColumns(count: number): number {
-	if (count <= 2) {
-		return count;
-	}
-	if (count <= 4) {
-		return count;
-	}
-	if (count <= 6) {
-		return 3;
-	}
-	return 4;
-}
 
 function getGalleryItems(item: FeedItem): FeedItem[] {
 	if (!item.mediaItems || item.mediaItems.length <= 1) {
