@@ -8,6 +8,8 @@ pre-commit:
       run: npm run lint
     types:
       run: npx tsc -p tsconfig.app.json
+    test:
+      run: npm test
 
 pre-push:
   commands:
