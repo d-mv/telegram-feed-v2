@@ -30,6 +30,26 @@ const DEFAULT_OPTIONS: FetchFeedOptions = {
 	maxAgeDays: 7,
 };
 const TELEGRAM_MAX_MESSAGE_ID = 2_147_483_647;
+const CONCURRENCY_LIMIT = 5;
+
+async function mapConcurrent<T, U>(
+	items: T[],
+	limit: number,
+	fn: (item: T) => Promise<U>,
+): Promise<U[]> {
+	const results: U[] = new Array(items.length);
+	let index = 0;
+	async function worker() {
+		while (index < items.length) {
+			const current = index++;
+			results[current] = await fn(items[current]!);
+		}
+	}
+	await Promise.all(
+		Array.from({ length: Math.min(limit, items.length) }, worker),
+	);
+	return results;
+}
 
 function toFeedItem(
 	dialog: TelegramDialog,
@@ -83,8 +103,10 @@ export async function fetchRecentFeed(
 		cutoff = Date.now() / 1000 - maxAgeDays * 24 * 60 * 60;
 	}
 
-	const dialogItems = await Promise.all(
-		dialogs.map(async (dialog) => {
+	const dialogItems = await mapConcurrent(
+		dialogs,
+		CONCURRENCY_LIMIT,
+		async (dialog) => {
 			if (!dialog.entity) {
 				return [];
 			}
@@ -173,7 +195,7 @@ export async function fetchRecentFeed(
 				});
 				return [];
 			}
-		}),
+		},
 	);
 
 	const sortedItems = dialogItems

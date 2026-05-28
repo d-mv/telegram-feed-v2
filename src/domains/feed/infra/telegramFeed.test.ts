@@ -555,6 +555,67 @@ describe("fetchRecentFeed", () => {
 		expect(items).toHaveLength(2);
 	});
 
+	test("limits concurrent getMessages calls to CONCURRENCY_LIMIT even when there are many dialogs", async () => {
+		const DIALOG_COUNT = 8;
+		const CONCURRENCY_LIMIT = 5;
+		const nowSeconds = Math.floor(Date.now() / 1000);
+
+		let peakInFlight = 0;
+		let currentInFlight = 0;
+		const resolvers: Array<() => void> = [];
+
+		const dialogs = Array.from({ length: DIALOG_COUNT }, (_, i) => ({
+			id: 100 + i,
+			isUser: true,
+			name: `User${i}`,
+			entity: { id: String(i) },
+		}));
+
+		const client = {
+			getMe: vi.fn().mockResolvedValue({ id: 1 }),
+			getDialogs: vi.fn().mockResolvedValue(dialogs),
+			getMessages: vi.fn().mockImplementation(() => {
+				currentInFlight++;
+				peakInFlight = Math.max(peakInFlight, currentInFlight);
+				return new Promise<unknown[]>((resolve) => {
+					resolvers.push(() => {
+						currentInFlight--;
+						resolve([
+							new Api.Message({
+								id: 1,
+								date: nowSeconds - 60,
+								message: "hi",
+								out: false,
+								fromId: { userId: 2 },
+							}),
+						]);
+					});
+				});
+			}),
+		};
+
+		ensureTelegramConnectedMock.mockResolvedValue(client);
+
+		const feedPromise = fetchRecentFeed(
+			{ perChat: 10, maxAgeDays: 7 },
+			ensureTelegramConnectedMock,
+		);
+
+		// Yield enough microtasks for the concurrency pool to fill up
+		for (let i = 0; i < 20; i++) await Promise.resolve();
+
+		expect(peakInFlight).toBe(CONCURRENCY_LIMIT);
+
+		// Drain all pending resolvers
+		while (resolvers.length > 0) {
+			resolvers.splice(0).forEach((r) => r());
+			for (let i = 0; i < 10; i++) await Promise.resolve();
+		}
+
+		await feedPromise;
+		expect(client.getMessages).toHaveBeenCalledTimes(DIALOG_COUNT);
+	});
+
 	test("does not resolve sender entities for direct messages", async () => {
 		const nowSeconds = Math.floor(Date.now() / 1000);
 		const getSender = vi.fn().mockResolvedValue({ firstName: "Ignored" });
