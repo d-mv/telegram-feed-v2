@@ -81,6 +81,76 @@ test("coalesces repeated lifecycle-triggered service worker updates", async () =
 	cleanup();
 });
 
+test("requestSkipWaiting sends SKIP_WAITING to waiting worker", async () => {
+	const postMessage = vi.fn();
+	const registration = createRegistration();
+	(registration as Record<string, unknown>).waiting = { postMessage };
+
+	const cleanup = attachServiceWorkerAutoUpdate(registration as never, {
+		documentTarget: document,
+		serviceWorker: createEventTarget(),
+		windowTarget: window,
+	});
+
+	await Promise.resolve();
+	expect(postMessage).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
+	cleanup();
+});
+
+test("handleControllerChange reloads the page once on first call", () => {
+	const registration = createRegistration();
+	const serviceWorker = createEventTarget();
+	const reload = vi.fn();
+	const windowTarget = {
+		...window,
+		location: { reload },
+		setInterval: window.setInterval.bind(window),
+		clearInterval: window.clearInterval.bind(window),
+		addEventListener: window.addEventListener.bind(window),
+		removeEventListener: window.removeEventListener.bind(window),
+	};
+
+	const cleanup = attachServiceWorkerAutoUpdate(registration as never, {
+		documentTarget: document,
+		serviceWorker,
+		windowTarget: windowTarget as never,
+	});
+
+	serviceWorker.dispatchEvent(new Event("controllerchange"));
+	serviceWorker.dispatchEvent(new Event("controllerchange")); // second call ignored
+
+	expect(reload).toHaveBeenCalledTimes(1);
+	cleanup();
+});
+
+test("handleUpdateFound listens for statechange on installing worker", async () => {
+	const postMessage = vi.fn();
+	const installing = Object.assign(new EventTarget(), {
+		state: "installed",
+		postMessage,
+	});
+	const registration = createRegistration();
+
+	// Stub navigator.serviceWorker.controller to be truthy
+	Object.defineProperty(navigator, "serviceWorker", {
+		value: { controller: {} },
+		configurable: true,
+	});
+
+	const cleanup = attachServiceWorkerAutoUpdate(registration as never, {
+		documentTarget: document,
+		serviceWorker: createEventTarget(),
+		windowTarget: window,
+	});
+
+	(registration as Record<string, unknown>).installing = installing;
+	registration.dispatch("updatefound");
+	installing.dispatchEvent(new Event("statechange"));
+
+	expect(postMessage).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
+	cleanup();
+});
+
 test("runs the interval check without double-calling while an update is in flight", async () => {
 	let resolveUpdate: (() => void) | undefined;
 	const registration = createRegistration();
