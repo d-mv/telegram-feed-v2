@@ -1,9 +1,12 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
+import React from "react";
 import { vi } from "vitest";
+import { createStore, Provider } from "jotai";
 import { APP_OPEN_TARGET_EVENT } from "../../app/openTarget";
 import { AppContext } from "../../app/AppContext";
+import { feedItemsAtom } from "../../../atoms/feedItems.atom";
 import { ChatThread } from "./ChatThread";
 
 vi.mock("telegram", () => {
@@ -563,4 +566,94 @@ test("renders poll data inside the thread", () => {
 	expect(screen.getByText(/\(10\)/)).toBeInTheDocument();
 	expect(screen.getByText(/33%/)).toBeInTheDocument();
 	expect(screen.getByText(/\(5\)/)).toBeInTheDocument();
+});
+
+test("does not re-render when feedItems for a different channel change", async () => {
+	let chatThreadRenderCount = 0;
+
+	const store = createStore();
+	store.set(feedItemsAtom, [
+		{
+			id: "group-1-1",
+			type: "group" as const,
+			channelKey: "group:1",
+			chatName: "Team",
+			timestamp: "now",
+			text: "Initial",
+			isFocused: false,
+		},
+	]);
+
+	const appContextValue = {
+		dal: {
+			getSession: vi.fn(),
+			setSession: vi.fn(),
+			getNotificationSettings: vi.fn(),
+			setNotificationSettings: vi.fn(),
+			getFeedFilterSettings: vi.fn(),
+			setFeedFilterSettings: vi.fn(),
+			getAvatarVisibilitySettings: vi.fn(),
+			setAvatarVisibilitySettings: vi.fn(),
+			getFeedCache: vi.fn(),
+			setFeedCache: vi.fn(),
+			getMedia: vi.fn(),
+			setMedia: vi.fn(),
+			clearCache: vi.fn(),
+		},
+		onManualRefresh: vi.fn(),
+		onSendMessage: vi.fn().mockResolvedValue(undefined),
+		ensureTelegramConnected: ensureTelegramConnectedMock,
+		avatarVisibility: { feed: true, thread: true, notifications: true },
+		onSetAvatarVisibility: vi.fn(),
+		onToggleChannelNotification: vi.fn(),
+		onToggleChannelFilter: vi.fn(),
+		onRequestNotificationPermission: vi.fn(),
+		onDisableNotifications: vi.fn(),
+		onEnableAllFeedFilters: vi.fn(),
+	} as never;
+
+	render(
+		<Provider store={store}>
+			<AppContext.Provider value={appContextValue}>
+				<React.Profiler
+					id="chat-thread"
+					onRender={() => {
+						chatThreadRenderCount++;
+					}}
+				>
+					<ChatThread
+						item={{
+							id: "group-1-1",
+							type: "group",
+							channelKey: "group:1",
+							chatName: "Team",
+							timestamp: "now",
+							text: "Initial",
+							isFocused: true,
+						}}
+					/>
+				</React.Profiler>
+			</AppContext.Provider>
+		</Provider>,
+	);
+
+	const baselineRenders = chatThreadRenderCount;
+
+	act(() => {
+		store.set(feedItemsAtom, (prev) => [
+			...prev,
+			{
+				id: "group-2-99",
+				type: "group" as const,
+				channelKey: "group:2",
+				chatName: "Other",
+				timestamp: "now",
+				text: "Unrelated message",
+				isFocused: false,
+			},
+		]);
+	});
+
+	// Adding items for a different channel should not trigger any re-render
+	expect(chatThreadRenderCount).toBe(baselineRenders);
 });

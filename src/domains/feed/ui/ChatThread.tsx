@@ -16,6 +16,7 @@ import { Media } from "../../../shared/ui/Media/Media";
 import { Text } from "../../../shared/ui/Text/Text";
 import type { FeedItem } from "../../../types";
 import { useAtomValue } from "jotai";
+import { selectAtom } from "jotai/utils";
 import { feedItemsAtom } from "../../../atoms/feedItems.atom";
 import { AppContext } from "../../app/AppContext";
 import {
@@ -102,28 +103,37 @@ function getSenderLabel(message: Api.Message, fallback: string) {
 export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 	const { token } = theme.useToken();
 	const { ensureTelegramConnected } = useContext(AppContext);
-	const allFeedItems = useAtomValue(feedItemsAtom);
+	const channelItemsAtom = useMemo(
+		() =>
+			selectAtom(
+				feedItemsAtom,
+				(items) =>
+					items.filter(
+						(fi) =>
+							fi.channelKey !== undefined && fi.channelKey === item.channelKey,
+					),
+				(a, b) => a.length === b.length && a.every((fi, i) => fi === b[i]),
+			),
+		[item.channelKey],
+	);
+	const channelFeedItems = useAtomValue(channelItemsAtom);
 
 	const initialMessages = useMemo(() => {
-		const sameChat = allFeedItems.filter(
-			(fi) => fi.channelKey === item.channelKey && fi.channelKey !== undefined,
-		);
-
-		const items = sameChat.some((fi) => fi.id === item.id)
-			? sameChat.map((fi) =>
+		const items = channelFeedItems.some((fi) => fi.id === item.id)
+			? channelFeedItems.map((fi) =>
 					fi.id === item.id
 						? { ...fi, isFocused: true }
 						: { ...fi, isFocused: false },
 				)
 			: [
-					...sameChat.map((fi) => ({ ...fi, isFocused: false })),
+					...channelFeedItems.map((fi) => ({ ...fi, isFocused: false })),
 					{ ...item, isFocused: true },
 				];
 
 		return mergeAlbumFeedItems(
 			items.sort((a, b) => (a.date ?? 0) - (b.date ?? 0)),
 		);
-	}, [allFeedItems, item]);
+	}, [channelFeedItems, item]);
 
 	const [messages, setMessages] = useState<FeedItem[]>(initialMessages);
 	const [isLoading, setIsLoading] = useState(false);
