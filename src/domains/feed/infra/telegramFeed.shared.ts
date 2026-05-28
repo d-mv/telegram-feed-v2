@@ -161,14 +161,16 @@ export function mergeAlbumFeedItems(items: FeedItem[]): FeedItem[] {
 			previous.channelKey === item.channelKey &&
 			previous.senderName === item.senderName
 		) {
-			previous.mediaItems = [
-				...(previous.mediaItems ?? [previous.media!]),
-				item.media!,
-			];
-			if (previous.text === "" && item.text !== "") {
-				previous.text = item.text;
-				previous.sourceMessage = item.sourceMessage;
-			}
+			merged[merged.length - 1] = {
+				...previous,
+				mediaItems: [
+					...(previous.mediaItems ?? [previous.media!]),
+					item.media!,
+				],
+				...(previous.text === "" && item.text !== ""
+					? { text: item.text, sourceMessage: item.sourceMessage }
+					: {}),
+			};
 			continue;
 		}
 

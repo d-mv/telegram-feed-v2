@@ -163,6 +163,7 @@ import {
 	getCachedMediaUrl,
 	getMessageCommentsCount,
 	getMediaPreview,
+	mergeAlbumFeedItems,
 	getPollPreview,
 	sendMessageToFeedItem,
 	toRelativeTime,
@@ -1274,5 +1275,71 @@ describe("downloadMediaForItem", () => {
 			expect.objectContaining({ thumb: expect.anything() }),
 		);
 		expect(thumbUrl).toBe("blob:mock");
+	});
+});
+
+describe("mergeAlbumFeedItems", () => {
+	const imageMedia = (key: string) => ({
+		meta: { type: "image" as const, width: 100, height: 100, sizeBytes: 0 },
+		alt: key,
+		key,
+	});
+
+	function makeItem(id: string, groupKey: string, mediaKey: string) {
+		return {
+			id,
+			type: "group" as const,
+			chatName: "Test",
+			timestamp: "now",
+			date: 1000,
+			text: "",
+			isFocused: false,
+			channelKey: "group:1",
+			mediaGroupKey: groupKey,
+			media: imageMedia(mediaKey),
+			reactions: [],
+		};
+	}
+
+	test("merges consecutive album items into a single item with mediaItems", () => {
+		const a = makeItem("g1-1", "g1", "photo-1");
+		const b = makeItem("g1-2", "g1", "photo-2");
+
+		const result = mergeAlbumFeedItems([a, b]);
+
+		expect(result).toHaveLength(1);
+		expect(result[0]?.mediaItems).toHaveLength(2);
+		expect(result[0]?.mediaItems?.map((m) => m.key)).toEqual([
+			"photo-1",
+			"photo-2",
+		]);
+	});
+
+	test("does not mutate original input items", () => {
+		const a = makeItem("g1-1", "g1", "photo-1");
+		const b = makeItem("g1-2", "g1", "photo-2");
+		const originalAMediaItems = a.mediaItems;
+
+		mergeAlbumFeedItems([a, b]);
+
+		expect(a.mediaItems).toBe(originalAMediaItems);
+	});
+
+	test("keeps items from different groups separate", () => {
+		const a = makeItem("g1-1", "g1", "photo-1");
+		const b = makeItem("g2-1", "g2", "photo-2");
+
+		const result = mergeAlbumFeedItems([a, b]);
+
+		expect(result).toHaveLength(2);
+	});
+
+	test("result items are not the same reference as input items", () => {
+		const a = makeItem("g1-1", "g1", "photo-1");
+		const b = makeItem("g1-2", "g1", "photo-2");
+
+		const result = mergeAlbumFeedItems([a, b]);
+
+		expect(result[0]).not.toBe(a);
 	});
 });
