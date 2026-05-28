@@ -1,7 +1,7 @@
 import userEvent from "@testing-library/user-event";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedItem } from "../../../types";
 import {
 	downloadMediaForItem,
@@ -361,5 +361,194 @@ describe("Media video controls", () => {
 
 		expect(await screen.findByLabelText("Video media")).toBeInTheDocument();
 		expect(screen.queryByText("clip.mp4")).not.toBeInTheDocument();
+	});
+});
+
+describe("thumbnail fetching", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it("fetches thumbnail when media has no url", async () => {
+		const thumbnailUrl = "blob:http://localhost/thumb-abc";
+		vi.mocked(downloadThumbnailForItem).mockResolvedValueOnce(thumbnailUrl);
+
+		const item: FeedItem = {
+			id: "img-no-url",
+			type: "group",
+			chatName: "Test",
+			timestamp: "now",
+			text: "",
+			media: {
+				meta: { type: "image", width: 100, height: 100, sizeBytes: 0 },
+				alt: "img",
+			},
+		};
+
+		render(<Media item={item} />, { wrapper: Wrapper });
+		const img = await screen.findByRole("img");
+		expect(img).toHaveAttribute("src", thumbnailUrl);
+	});
+
+	it("skips thumbnail fetch when media already has a url", () => {
+		const item: FeedItem = {
+			id: "img-with-url",
+			type: "group",
+			chatName: "Test",
+			timestamp: "now",
+			text: "",
+			media: {
+				meta: { type: "image", width: 100, height: 100, sizeBytes: 0 },
+				url: "https://example.com/image.jpg",
+				alt: "img",
+			},
+		};
+
+		render(<Media item={item} />, { wrapper: Wrapper });
+		expect(vi.mocked(downloadThumbnailForItem)).not.toHaveBeenCalled();
+	});
+});
+
+describe("download flow", () => {
+	it("sets previewUrl after successful large-image download", async () => {
+		const downloadedUrl = "blob:http://localhost/dl-img";
+		vi.mocked(downloadMediaForItem).mockResolvedValueOnce(downloadedUrl);
+
+		const item: FeedItem = {
+			id: "img-dl",
+			type: "group",
+			chatName: "Test",
+			timestamp: "now",
+			text: "",
+			media: {
+				meta: { type: "image", width: 640, height: 480, sizeBytes: 600000 },
+				url: "https://example.com/large.jpg",
+				alt: "img",
+			},
+		};
+
+		const user = userEvent.setup();
+		render(<Media item={item} />, { wrapper: Wrapper });
+		await user.click(screen.getByRole("button", { name: /download/i }));
+		const img = await screen.findByRole("img");
+		expect(img).toHaveAttribute("src", downloadedUrl);
+	});
+
+	it("shows error message when download throws", async () => {
+		vi.mocked(downloadMediaForItem).mockRejectedValueOnce(
+			new Error("network error"),
+		);
+
+		const item: FeedItem = {
+			id: "video-err",
+			type: "group",
+			chatName: "Test",
+			timestamp: "now",
+			text: "",
+			media: {
+				meta: { type: "video", width: 640, height: 360, sizeBytes: 1000 },
+				url: "https://example.com/poster.jpg",
+				alt: "preview",
+			},
+		};
+
+		const user = userEvent.setup();
+		render(<Media item={item} />, { wrapper: Wrapper });
+		await user.click(screen.getByRole("button", { name: /download/i }));
+		expect(await screen.findByText("network error")).toBeInTheDocument();
+	});
+
+	it("shows 'Download failed' when download returns undefined", async () => {
+		vi.mocked(downloadMediaForItem).mockResolvedValueOnce(undefined);
+
+		const item: FeedItem = {
+			id: "video-undef",
+			type: "group",
+			chatName: "Test",
+			timestamp: "now",
+			text: "",
+			media: {
+				meta: { type: "video", width: 640, height: 360, sizeBytes: 1000 },
+				url: "https://example.com/poster.jpg",
+				alt: "preview",
+			},
+		};
+
+		const user = userEvent.setup();
+		render(<Media item={item} />, { wrapper: Wrapper });
+		await user.click(screen.getByRole("button", { name: /download/i }));
+		expect(await screen.findByText("Download failed")).toBeInTheDocument();
+	});
+});
+
+describe("video player", () => {
+	it("sets video src from cached url on mount", async () => {
+		const cachedUrl = "blob:http://localhost/cached-video";
+		vi.mocked(getCachedMediaUrl).mockResolvedValueOnce(cachedUrl);
+
+		const item: FeedItem = {
+			id: "vid-cached",
+			type: "group",
+			chatName: "Test",
+			timestamp: "now",
+			text: "",
+			media: {
+				meta: { type: "video", width: 640, height: 360, sizeBytes: 0 },
+				url: "https://example.com/poster.jpg",
+				alt: "vid",
+			},
+		};
+
+		render(<Media item={item} />, { wrapper: Wrapper });
+		await waitFor(() => {
+			expect(screen.getByLabelText("Video media")).toHaveAttribute(
+				"src",
+				cachedUrl,
+			);
+		});
+	});
+
+	it("hides play controls before video url is available", () => {
+		const item: FeedItem = {
+			id: "vid-nodl",
+			type: "group",
+			chatName: "Test",
+			timestamp: "now",
+			text: "",
+			media: {
+				meta: { type: "video", width: 640, height: 360, sizeBytes: 0 },
+				url: "https://example.com/poster.jpg",
+				alt: "vid",
+			},
+		};
+
+		render(<Media item={item} />, { wrapper: Wrapper });
+		expect(
+			screen.queryByRole("button", { name: "Play" }),
+		).not.toBeInTheDocument();
+	});
+
+	it("enables play button once video url is loaded from cache", async () => {
+		vi.mocked(getCachedMediaUrl).mockResolvedValueOnce(
+			"blob:http://localhost/vid",
+		);
+
+		const item: FeedItem = {
+			id: "vid-enabled",
+			type: "group",
+			chatName: "Test",
+			timestamp: "now",
+			text: "",
+			media: {
+				meta: { type: "video", width: 640, height: 360, sizeBytes: 0 },
+				url: "https://example.com/poster.jpg",
+				alt: "vid",
+			},
+		};
+
+		render(<Media item={item} />, { wrapper: Wrapper });
+		await waitFor(() => {
+			expect(screen.getByRole("button", { name: "Play" })).not.toBeDisabled();
+		});
 	});
 });
