@@ -9,6 +9,7 @@ import {
 import { LoginView } from "../auth/ui/LoginView";
 import { createIndexedDbDal } from "../dal/indexedDbDal";
 import { ToastViewport } from "../../shared/ui/Toast/ToastViewport";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Message } from "./components/Message";
 import { useAuthentication } from "./useAuthentication";
 import { useNotificationFocus } from "./useNotificationFocus";
@@ -36,9 +37,11 @@ export default function App() {
 	if (isAuthenticated) {
 		return (
 			<>
-				<Suspense fallback={<Message>Loading feed...</Message>}>
-					<AuthenticatedApp dal={dal} />
-				</Suspense>
+				<ErrorBoundary>
+					<Suspense fallback={<Message>Loading feed...</Message>}>
+						<AuthenticatedApp dal={dal} />
+					</Suspense>
+				</ErrorBoundary>
 				<ToastViewport />
 			</>
 		);
