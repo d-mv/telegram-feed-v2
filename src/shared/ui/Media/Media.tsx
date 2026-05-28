@@ -61,7 +61,12 @@ export function Media({
 
 	const shouldOfferFullDownload = useMemo(() => {
 		if (!media) return false;
-		return media.meta.type === "video" || media.meta.sizeBytes >= 524288;
+		return (
+			media.meta.type === "video" ||
+			media.meta.type === "file" ||
+			media.meta.type === "audio" ||
+			media.meta.sizeBytes >= 524288
+		);
 	}, [media]);
 
 	const shouldRenderAsDocument = useMemo(() => {
@@ -170,6 +175,13 @@ export function Media({
 			}
 			if (item.media.meta.type === "video") {
 				setVideoUrl(url);
+				return;
+			}
+			if (item.media.meta.type === "file" || item.media.meta.type === "audio") {
+				const a = document.createElement("a");
+				a.href = url;
+				a.download = item.media.meta.fileName || "download";
+				a.click();
 				return;
 			}
 			setPreviewUrl(url);
@@ -354,7 +366,7 @@ export function Media({
 				<span style={{ color: token.colorTextSecondary }}>
 					<FileTextOutlined aria-hidden style={{ fontSize: 32 }} />
 				</span>
-				<div style={{ minWidth: 0 }}>
+				<div style={{ minWidth: 0, flex: 1 }}>
 					<Typography.Text
 						strong
 						style={{
@@ -370,6 +382,30 @@ export function Media({
 						{formatBytes(media.meta.sizeBytes)}
 					</Typography.Text>
 				</div>
+				<button
+					type="button"
+					aria-label={getDownloadLabel()}
+					onClick={(event) => {
+						event.stopPropagation();
+						void handleDownload();
+					}}
+					disabled={isDownloading}
+					style={{
+						background: "none",
+						border: "none",
+						cursor: "pointer",
+						color: token.colorPrimary,
+						padding: 4,
+						display: "flex",
+						alignItems: "center",
+					}}
+				>
+					{isDownloading ? (
+						<ReloadOutlined aria-hidden spin style={{ fontSize: 18 }} />
+					) : (
+						<DownloadOutlined aria-hidden style={{ fontSize: 18 }} />
+					)}
+				</button>
 			</div>
 		);
 	}
@@ -380,10 +416,10 @@ export function Media({
 			style={{
 				position: "relative",
 				width: "100%",
-				aspectRatio: media.meta.type === "file" ? "undefined" : ratio,
+				aspectRatio: shouldRenderAsDocument ? undefined : ratio,
 				overflow: "hidden",
 				borderRadius: token.borderRadius,
-				background: media.meta.type === "file" ? "none" : token.colorBgLayout,
+				background: shouldRenderAsDocument ? "none" : token.colorBgLayout,
 				filter: grayscale ? "grayscale(100%)" : undefined,
 			}}
 		>
@@ -405,37 +441,39 @@ export function Media({
 					</Typography.Text>
 				</div>
 			)}
-			{(shouldOfferFullDownload || downloadError) && !videoUrl && (
-				<button
-					type="button"
-					aria-label={getDownloadLabel()}
-					onClick={(event) => {
-						event.stopPropagation();
-						handleDownload();
-					}}
-					disabled={isDownloading}
-					style={{
-						position: "absolute",
-						bottom: 8,
-						right: 8,
-						background: "rgba(0,0,0,0.6)",
-						border: "none",
-						borderRadius: token.borderRadius,
-						color: "#fff",
-						padding: "6px 8px",
-						cursor: "pointer",
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "center",
-					}}
-				>
-					{isDownloading ? (
-						<ReloadOutlined aria-hidden spin style={{ fontSize: 16 }} />
-					) : (
-						<DownloadOutlined aria-hidden style={{ fontSize: 16 }} />
-					)}
-				</button>
-			)}
+			{(shouldOfferFullDownload || downloadError) &&
+				!videoUrl &&
+				!shouldRenderAsDocument && (
+					<button
+						type="button"
+						aria-label={getDownloadLabel()}
+						onClick={(event) => {
+							event.stopPropagation();
+							void handleDownload();
+						}}
+						disabled={isDownloading}
+						style={{
+							position: "absolute",
+							bottom: 8,
+							right: 8,
+							background: "rgba(0,0,0,0.6)",
+							border: "none",
+							borderRadius: token.borderRadius,
+							color: "#fff",
+							padding: "6px 8px",
+							cursor: "pointer",
+							display: "flex",
+							alignItems: "center",
+							justifyContent: "center",
+						}}
+					>
+						{isDownloading ? (
+							<ReloadOutlined aria-hidden spin style={{ fontSize: 16 }} />
+						) : (
+							<DownloadOutlined aria-hidden style={{ fontSize: 16 }} />
+						)}
+					</button>
+				)}
 			{downloadError && (
 				<Typography.Text
 					type="danger"

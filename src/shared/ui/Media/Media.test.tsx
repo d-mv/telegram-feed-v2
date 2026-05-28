@@ -552,3 +552,85 @@ describe("video player", () => {
 		});
 	});
 });
+
+describe("file/document download", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it("shows a download button for small file attachments", () => {
+		const item: FeedItem = {
+			id: "file-small",
+			type: "group",
+			chatName: "Docs",
+			timestamp: "now",
+			text: "",
+			media: {
+				meta: {
+					type: "file",
+					width: 0,
+					height: 0,
+					sizeBytes: 1024,
+					mimeType: "application/pdf",
+					fileName: "small.pdf",
+				},
+				alt: "file",
+			},
+		};
+
+		render(<Media item={item} />, { wrapper: Wrapper });
+
+		expect(
+			screen.getByRole("button", { name: /download/i }),
+		).toBeInTheDocument();
+	});
+
+	it("triggers browser download after file is fetched", async () => {
+		const user = userEvent.setup();
+		const blobUrl = "blob:http://localhost/file-abc";
+		vi.mocked(downloadMediaForItem).mockResolvedValueOnce(blobUrl);
+
+		const clickSpy = vi.fn();
+		const fakeAnchor = { href: "", download: "", click: clickSpy } as never;
+
+		const item: FeedItem = {
+			id: "file-download",
+			type: "group",
+			chatName: "Docs",
+			timestamp: "now",
+			text: "",
+			media: {
+				meta: {
+					type: "file",
+					width: 0,
+					height: 0,
+					sizeBytes: 1024,
+					mimeType: "application/pdf",
+					fileName: "report.pdf",
+				},
+				alt: "file",
+			},
+		};
+
+		render(<Media item={item} />, { wrapper: Wrapper });
+
+		// Spy after render; only intercept "a" tag so React's own renders still work
+		const original = document.createElement.bind(document);
+		const createSpy = vi
+			.spyOn(document, "createElement")
+			.mockImplementation((tag, ...rest) => {
+				if (tag === "a") return fakeAnchor;
+				return original(tag, ...rest);
+			});
+
+		await user.click(screen.getByRole("button", { name: /download/i }));
+
+		await waitFor(() => {
+			expect(clickSpy).toHaveBeenCalledTimes(1);
+		});
+		expect(fakeAnchor.href).toBe(blobUrl);
+		expect(fakeAnchor.download).toBe("report.pdf");
+
+		createSpy.mockRestore();
+	});
+});
