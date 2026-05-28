@@ -5,6 +5,7 @@ import { Media } from "../../../shared/ui/Media/Media";
 import { Text } from "../../../shared/ui/Text/Text";
 import type { FeedItem } from "../../../types";
 import { ForwardedBadge } from "./ForwardedBadge";
+import { getItemSenderLabel } from "./feedItemUtils";
 import { getForwardedMessageMeta } from "./getForwardedMessageMeta";
 import { Poll } from "./components/Poll";
 
@@ -88,7 +89,7 @@ export function FeedCard({ item, onFocus, groupedItems }: FeedCardProps) {
 				message={item}
 				commentsCount={effectiveCommentsCount || undefined}
 			>
-				{item.type === "dm" ? item.senderName : item.chatName}
+				{getItemSenderLabel(item)}
 			</Header>
 			<ForwardedBadge sourceMessage={item.sourceMessage} />
 			<Text sourceMessage={item.sourceMessage}>{item.text}</Text>
