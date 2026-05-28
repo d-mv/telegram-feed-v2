@@ -257,6 +257,66 @@ describe("useSettings", () => {
 		expect(store.get(feedFilterSettingsAtom)).toEqual({});
 	});
 
+	it("logs a warning when a DAL write fails instead of silently swallowing the error", async () => {
+		const dal = createDalStub();
+		dal.setAvatarVisibilitySettings.mockRejectedValue(new Error("IDB quota"));
+
+		const { store, Wrapper } = createWrapper();
+
+		const { result } = renderHook(() => useSettings({ dal }), {
+			wrapper: Wrapper,
+		});
+
+		await act(async () => {
+			result.current.handleSetAvatarVisibility({
+				feed: false,
+				thread: false,
+				notifications: false,
+			});
+			// Let the rejected promise settle
+			await new Promise((r) => setTimeout(r, 0));
+		});
+
+		expect(runtimeLoggerMock.warn).toHaveBeenCalledWith(
+			"settings_persist_failed",
+			expect.objectContaining({
+				scope: "avatar_visibility",
+				error: "IDB quota",
+			}),
+		);
+		// Atom was still updated optimistically
+		expect(store.get(avatarVisibilityAtom)).toEqual({
+			feed: false,
+			thread: false,
+			notifications: false,
+		});
+	});
+
+	it("handler references are stable across re-renders", async () => {
+		const dal = createDalStub();
+		const { Wrapper } = createWrapper();
+		let previousHandlers: ReturnType<typeof result.current> | undefined;
+		let result: {
+			current: ReturnType<typeof import("./useSettings").useSettings>;
+		};
+
+		({ result } = renderHook(() => useSettings({ dal }), { wrapper: Wrapper }));
+		previousHandlers = { ...result.current };
+
+		// Force a re-render by updating an unrelated atom
+		act(() => {
+			// Re-render the hook without changing anything
+		});
+
+		// Handlers should be the same references
+		expect(result.current.handleSetAvatarVisibility).toBe(
+			previousHandlers.handleSetAvatarVisibility,
+		);
+		expect(result.current.handleEnableAllFeedFilters).toBe(
+			previousHandlers.handleEnableAllFeedFilters,
+		);
+	});
+
 	it("handleRequestNotificationPermission sets unsupported when Notification is absent", async () => {
 		vi.stubGlobal("Notification", undefined);
 

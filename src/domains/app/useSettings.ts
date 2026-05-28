@@ -22,12 +22,8 @@ import {
 import { runtimeLogger } from "../../shared/infra/runtimeLogger";
 
 export function useSettings({ dal }: { dal: Dal }) {
-	const [feedFilterSettings, setFeedFilterSettings] = useAtom(
-		feedFilterSettingsAtom,
-	);
-	const [notificationSettings, setNotificationSettings] = useAtom(
-		notificationSettingsAtom,
-	);
+	const [, setFeedFilterSettings] = useAtom(feedFilterSettingsAtom);
+	const [, setNotificationSettings] = useAtom(notificationSettingsAtom);
 	const setAvatarVisibility = useSetAtom(avatarVisibilityAtom);
 	const [notificationPermission, setNotificationPermission] = useAtom(
 		notificationPermissionAtom,
@@ -87,82 +83,109 @@ export function useSettings({ dal }: { dal: Dal }) {
 		getNotificationSettings,
 	]);
 
-	function handleSetAvatarVisibility(next: AvatarVisibilitySettings) {
-		setAvatarVisibility(next);
-		dal.setAvatarVisibilitySettings(next).catch(() => {});
+	function persistOrWarn(promise: Promise<void>, scope: string) {
+		promise.catch((e) => {
+			runtimeLogger.warn("settings_persist_failed", {
+				scope,
+				error: e instanceof Error ? e.message : String(e),
+			});
+		});
 	}
 
-	function handleEnableAllFeedFilters() {
+	const handleSetAvatarVisibility = useCallback(
+		(next: AvatarVisibilitySettings) => {
+			setAvatarVisibility(next);
+			persistOrWarn(dal.setAvatarVisibilitySettings(next), "avatar_visibility");
+		},
+		[dal, setAvatarVisibility],
+	);
+
+	const handleEnableAllFeedFilters = useCallback(() => {
 		const nextSettings: FeedFilterSettings = {};
 		setFeedFilterSettings(nextSettings);
-		dal.setFeedFilterSettings(nextSettings).catch(() => {});
-	}
+		persistOrWarn(dal.setFeedFilterSettings(nextSettings), "feed_filters");
+	}, [dal, setFeedFilterSettings]);
 
-	function handleToggleChannelFilter(channelKey: string, enabled: boolean) {
-		const nextSettings = { ...feedFilterSettings };
-		if (enabled) {
-			delete nextSettings[channelKey];
-		} else {
-			nextSettings[channelKey] = false;
-		}
-		setFeedFilterSettings(nextSettings);
-		dal.setFeedFilterSettings(nextSettings).catch(() => {});
-	}
+	const handleToggleChannelFilter = useCallback(
+		(channelKey: string, enabled: boolean) => {
+			setFeedFilterSettings((prev) => {
+				const nextSettings = { ...prev };
+				if (enabled) {
+					delete nextSettings[channelKey];
+				} else {
+					nextSettings[channelKey] = false;
+				}
+				persistOrWarn(dal.setFeedFilterSettings(nextSettings), "feed_filters");
+				return nextSettings;
+			});
+		},
+		[dal, setFeedFilterSettings],
+	);
 
-	function handleDisableNotifications() {
+	const handleDisableNotifications = useCallback(() => {
 		const nextSettings: NotificationSettings = {};
 		setNotificationSettings(nextSettings);
-		dal.setNotificationSettings(nextSettings).catch(() => {});
+		persistOrWarn(dal.setNotificationSettings(nextSettings), "notifications");
 		closeVisibleNotifications();
-	}
+	}, [dal, setNotificationSettings]);
 
-	function handleToggleChannelNotification(
-		channelKey: string,
-		enabled: boolean,
-	) {
-		const nextSettings = {
-			...notificationSettings,
-			[channelKey]: enabled,
-		};
-		setNotificationSettings(nextSettings);
-		dal.setNotificationSettings(nextSettings).catch(() => {});
-
-		const notificationsOn = hasEnabledChannels(nextSettings);
-
-		if (notificationsOn) {
-			if (notificationPermission !== "granted") {
-				void handleRequestNotificationPermission();
-			}
-			return;
-		}
-
-		closeVisibleNotifications();
-	}
-
-	function handleClearChannelState(channelKey: string) {
-		const nextNotificationSettings = { ...notificationSettings };
-		delete nextNotificationSettings[channelKey];
-		setNotificationSettings(nextNotificationSettings);
-		dal.setNotificationSettings(nextNotificationSettings).catch(() => {});
-
-		const nextFeedFilterSettings = { ...feedFilterSettings };
-		delete nextFeedFilterSettings[channelKey];
-		setFeedFilterSettings(nextFeedFilterSettings);
-		dal.setFeedFilterSettings(nextFeedFilterSettings).catch(() => {});
-
-		if (!hasEnabledChannels(nextNotificationSettings)) {
-			closeVisibleNotifications();
-		}
-	}
-
-	async function handleRequestNotificationPermission() {
+	const handleRequestNotificationPermission = useCallback(async () => {
 		if (typeof Notification === "undefined") {
 			setNotificationPermission("unsupported");
 			return;
 		}
 		const nextPermission = await Notification.requestPermission();
 		setNotificationPermission(nextPermission);
-	}
+	}, [setNotificationPermission]);
+
+	const handleToggleChannelNotification = useCallback(
+		(channelKey: string, enabled: boolean) => {
+			setNotificationSettings((prev) => {
+				const nextSettings = { ...prev, [channelKey]: enabled };
+				persistOrWarn(
+					dal.setNotificationSettings(nextSettings),
+					"notifications",
+				);
+
+				const notificationsOn = hasEnabledChannels(nextSettings);
+				if (notificationsOn) {
+					if (notificationPermission !== "granted") {
+						void handleRequestNotificationPermission();
+					}
+				} else {
+					closeVisibleNotifications();
+				}
+				return nextSettings;
+			});
+		},
+		[
+			dal,
+			handleRequestNotificationPermission,
+			notificationPermission,
+			setNotificationSettings,
+		],
+	);
+
+	const handleClearChannelState = useCallback(
+		(channelKey: string) => {
+			setNotificationSettings((prev) => {
+				const next = { ...prev };
+				delete next[channelKey];
+				persistOrWarn(dal.setNotificationSettings(next), "notifications");
+				if (!hasEnabledChannels(next)) {
+					closeVisibleNotifications();
+				}
+				return next;
+			});
+			setFeedFilterSettings((prev) => {
+				const next = { ...prev };
+				delete next[channelKey];
+				persistOrWarn(dal.setFeedFilterSettings(next), "feed_filters");
+				return next;
+			});
+		},
+		[dal, setNotificationSettings, setFeedFilterSettings],
+	);
 
 	return {
 		handleDisableNotifications,
