@@ -22,6 +22,15 @@ function getEntityBounds(entity: TelegramEntity) {
 	};
 }
 
+function isSafeHref(href: string): boolean {
+	try {
+		const { protocol } = new URL(href);
+		return ["http:", "https:", "mailto:", "tel:", "tg:"].includes(protocol);
+	} catch {
+		return false;
+	}
+}
+
 function isTelegramLink(href: string) {
 	try {
 		const parsed = new URL(href);
@@ -127,6 +136,9 @@ function renderEntity(
 			);
 		case "MessageEntityTextUrl":
 			if (typeof entity.url !== "string" || entity.url === "") {
+				return value;
+			}
+			if (!isSafeHref(entity.url)) {
 				return value;
 			}
 			return renderLink(key, value, entity.url);

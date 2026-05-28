@@ -91,6 +91,40 @@ test("routes Telegram text URLs internally and leaves external links external", 
 	window.removeEventListener(APP_OPEN_TARGET_EVENT, handler as EventListener);
 });
 
+test("renders javascript: URL as plain text, not a link", () => {
+	const message = createMessage("click me", [
+		{
+			className: "MessageEntityTextUrl",
+			offset: 0,
+			length: 8,
+			url: "javascript:alert(document.cookie)",
+		},
+	]);
+
+	render(<Text sourceMessage={message}>{message.message}</Text>);
+
+	expect(screen.queryByRole("link")).toBeNull();
+	expect(screen.queryByRole("button")).toBeNull();
+	expect(screen.getByText("click me")).toBeInTheDocument();
+});
+
+test("renders data: URL as plain text, not a link", () => {
+	const message = createMessage("click me", [
+		{
+			className: "MessageEntityTextUrl",
+			offset: 0,
+			length: 8,
+			url: "data:text/html,<script>alert(1)</script>",
+		},
+	]);
+
+	render(<Text sourceMessage={message}>{message.message}</Text>);
+
+	expect(screen.queryByRole("link")).toBeNull();
+	expect(screen.queryByRole("button")).toBeNull();
+	expect(screen.getByText("click me")).toBeInTheDocument();
+});
+
 test("falls back to plain text for malformed overlapping entities", () => {
 	const message = createMessage("abcdef", [
 		{ className: "MessageEntityBold", offset: 0, length: 4 },
