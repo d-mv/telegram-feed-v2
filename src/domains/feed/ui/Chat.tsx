@@ -12,6 +12,7 @@ import { useContext, useEffect, useState } from "react";
 import type { FeedItem } from "../../../types";
 import { AppContext } from "../../app/AppContext";
 import { leaveFeedChannel } from "../../search/infra/telegramMembership";
+import { confirmAsync } from "../../../shared/ui/confirmAsync";
 import { ChatThread } from "./ChatThread";
 import { EllipsisOutlined, SendOutlined } from "@ant-design/icons";
 
@@ -98,7 +99,7 @@ export function Chat({ item, onClose }: ChatProps) {
 	}
 
 	async function handleLeave() {
-		if (isLeaving || !window.confirm(`Leave ${title}?`)) return;
+		if (isLeaving || !(await confirmAsync(`Leave ${title}?`))) return;
 		setIsLeaving(true);
 		setError("");
 		try {

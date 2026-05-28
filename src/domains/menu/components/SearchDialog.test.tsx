@@ -14,6 +14,7 @@ const resolveTelegramFeedItemMock = vi.hoisted(() => vi.fn());
 const previewInviteLinkMock = vi.hoisted(() => vi.fn());
 const joinInviteLinkMock = vi.hoisted(() => vi.fn());
 const joinSearchResultMock = vi.hoisted(() => vi.fn());
+const confirmAsyncMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../search/infra/telegramSearch", () => ({
 	searchTelegram: searchTelegramMock,
@@ -27,6 +28,10 @@ vi.mock("../../search/infra/telegramMembership", () => ({
 	previewInviteLink: previewInviteLinkMock,
 	joinInviteLink: joinInviteLinkMock,
 	joinSearchResult: joinSearchResultMock,
+}));
+
+vi.mock("../../../shared/ui/confirmAsync", () => ({
+	confirmAsync: confirmAsyncMock,
 }));
 
 function createDalStub() {
@@ -185,10 +190,7 @@ test("shows join for unjoined results and joins before opening", async () => {
 	const ensureTelegramConnected = vi.fn().mockResolvedValue({});
 	const onManualRefresh = vi.fn().mockResolvedValue(undefined);
 
-	vi.stubGlobal(
-		"confirm",
-		vi.fn(() => true),
-	);
+	confirmAsyncMock.mockResolvedValue(true);
 	previewInviteLinkMock.mockResolvedValue(null);
 	searchTelegramMock.mockResolvedValue([
 		{
@@ -271,10 +273,7 @@ test("shows invite preview and joins invite links", async () => {
 	const ensureTelegramConnected = vi.fn().mockResolvedValue({});
 	const onManualRefresh = vi.fn().mockResolvedValue(undefined);
 
-	vi.stubGlobal(
-		"confirm",
-		vi.fn(() => true),
-	);
+	confirmAsyncMock.mockResolvedValue(true);
 	previewInviteLinkMock.mockResolvedValue({
 		hash: "invite_hash",
 		title: "Invite Group",

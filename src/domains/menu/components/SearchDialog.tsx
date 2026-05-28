@@ -13,6 +13,7 @@ import {
 	previewInviteLink,
 } from "../../search/infra/telegramMembership";
 import { searchTelegram } from "../../search/infra/telegramSearch";
+import { confirmAsync } from "../../../shared/ui/confirmAsync";
 import type {
 	SearchChatTarget,
 	SearchResult,
@@ -100,7 +101,7 @@ export default function SearchDialog() {
 		try {
 			let entity = result.entity;
 			if (!result.isJoined && result.kind !== "direct") {
-				if (!window.confirm(`Join ${result.title}?`)) return;
+				if (!(await confirmAsync(`Join ${result.title}?`))) return;
 				entity = await joinSearchResult(
 					result as SearchChatTarget,
 					ensureTelegramConnected,
@@ -133,7 +134,7 @@ export default function SearchDialog() {
 		try {
 			let entity = invitePreview.entity;
 			if (!invitePreview.isJoined) {
-				if (!window.confirm(`Join ${invitePreview.title}?`)) return;
+				if (!(await confirmAsync(`Join ${invitePreview.title}?`))) return;
 				entity = await joinInviteLink(query.trim(), ensureTelegramConnected);
 				await Promise.resolve(onManualRefresh());
 			}

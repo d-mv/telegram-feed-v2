@@ -1,13 +1,20 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { vi } from "vitest";
+import { afterEach, vi } from "vitest";
 import { AppContext } from "../../app/AppContext";
 import { Chat } from "./Chat";
 
+afterEach(() => vi.unstubAllGlobals());
+
 const leaveFeedChannelMock = vi.hoisted(() => vi.fn());
+const confirmAsyncMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../search/infra/telegramMembership", () => ({
 	leaveFeedChannel: leaveFeedChannelMock,
+}));
+
+vi.mock("../../../shared/ui/confirmAsync", () => ({
+	confirmAsync: confirmAsyncMock,
 }));
 
 vi.mock("./ChatThread", () => ({
@@ -238,10 +245,7 @@ test("leaves the current chat, clears channel state, refreshes, and closes", asy
 	const onClearChannelState = vi.fn();
 	const ensureTelegramConnected = vi.fn().mockResolvedValue({});
 
-	vi.stubGlobal(
-		"confirm",
-		vi.fn(() => true),
-	);
+	confirmAsyncMock.mockResolvedValue(true);
 	leaveFeedChannelMock.mockResolvedValue(undefined);
 
 	render(
