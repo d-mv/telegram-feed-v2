@@ -126,9 +126,9 @@ export function FeedCard({ item, onFocus, groupedItems }: FeedCardProps) {
 					<Media item={item} />
 				</div>
 			)}
-			{item.type === "dm" && item.reactions.length > 0 && (
+			{(item.reactions?.length ?? 0) > 0 && (
 				<Flex gap={6} style={{ marginTop: 8 }} wrap="wrap">
-					{item.reactions.map((reaction) => (
+					{item.reactions?.map((reaction) => (
 						<Typography.Text key={reaction.emoji} style={{ fontSize: 13 }}>
 							{reaction.emoji} {reaction.count}
 						</Typography.Text>

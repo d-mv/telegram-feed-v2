@@ -291,6 +291,53 @@ test("renders a single message with multiple images as a gallery", () => {
 	).toHaveLength(3);
 });
 
+test("renders reactions for group and channel posts", () => {
+	render(
+		<FeedCard
+			item={{
+				id: "group-reactions-1",
+				type: "group" as const,
+				chatName: "Tech News",
+				timestamp: "now",
+				date: 0,
+				text: "Post with reactions",
+				reactions: [
+					{ emoji: "👍", count: 5 },
+					{ emoji: "❤️", count: 3 },
+				],
+				isFocused: false,
+			}}
+			onFocus={() => {}}
+		/>,
+		{ wrapper: Wrapper },
+	);
+
+	expect(screen.getByText("👍 5")).toBeInTheDocument();
+	expect(screen.getByText("❤️ 3")).toBeInTheDocument();
+});
+
+test("renders reactions for dm posts", () => {
+	render(
+		<FeedCard
+			item={{
+				id: "dm-reactions-1",
+				type: "dm" as const,
+				chatName: "Alice",
+				senderName: "Alice",
+				timestamp: "now",
+				date: 0,
+				text: "DM with reaction",
+				reactions: [{ emoji: "🔥", count: 1 }],
+				isFocused: false,
+			}}
+			onFocus={() => {}}
+		/>,
+		{ wrapper: Wrapper },
+	);
+
+	expect(screen.getByText("🔥 1")).toBeInTheDocument();
+});
+
 test("renders forwarded source metadata and opens resolvable forwarded targets internally", async () => {
 	const user = userEvent.setup();
 	const handler = vi.fn();

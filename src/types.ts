@@ -57,6 +57,7 @@ interface Message {
 	sourceMessage?: unknown;
 	isFocused: boolean;
 	isRead?: boolean;
+	reactions?: Reaction[];
 }
 
 export interface DirectMessage extends Message {
