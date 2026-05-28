@@ -18,6 +18,13 @@ export default defineConfig({
             return "telegram";
           }
           if (
+            id.includes("/node_modules/antd/") ||
+            id.includes("/node_modules/@ant-design/") ||
+            id.includes("/node_modules/rc-")
+          ) {
+            return "antd";
+          }
+          if (
             id.includes("/node_modules/react/") ||
             id.includes("/node_modules/react-dom/") ||
             id.includes("/node_modules/jotai/") ||
