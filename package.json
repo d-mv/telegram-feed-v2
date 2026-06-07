@@ -21,7 +21,7 @@
     "qrcode": "1.5.4",
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "telegram": "^2.26.22",
+    "telegram": "npm:telegram@browser",
     "virtua": "0.49.1"
   },
   "devDependencies": {
@@ -39,7 +39,10 @@
     "jsdom": "29.1.1",
     "lefthook": "2.1.9",
     "typescript": "6.0.3",
-    "vite": "^8.0.16",
+    "vite": "npm:rolldown-vite@7.3.1",
     "vitest": "4.1.8"
+  },
+  "overrides": {
+    "vite": "npm:rolldown-vite@7.3.1"
   }
 }
