@@ -4,6 +4,7 @@ import { isLoadingFeedAtom } from "../../atoms/app.atom";
 import { authClientAtom, isAuthenticatedAtom } from "../../atoms/auth.atom";
 import { avatarVisibilityAtom } from "../../atoms/avatarVisibility.atom";
 import { feedItemsAtom } from "../../atoms/feedItems.atom";
+import { fontSizeAtom } from "../../atoms/fontSize.atom";
 import { Loading } from "../../shared/ui/Loading/Loading";
 import type { FeedItem } from "../../types";
 import type { Dal } from "../dal/types";
@@ -20,6 +21,7 @@ const Empty = lazy(() => import("./components/Empty"));
 export default function AuthenticatedApp({ dal }: { dal: Dal }) {
 	const authClient = useAtomValue(authClientAtom);
 	const avatarVisibility = useAtomValue(avatarVisibilityAtom);
+	const fontSize = useAtomValue(fontSizeAtom);
 	const feedItems = useAtomValue(feedItemsAtom);
 	const isFeedLoading = useAtomValue(isLoadingFeedAtom);
 	const setIsAuthenticated = useSetAtom(isAuthenticatedAtom);
@@ -39,6 +41,7 @@ export default function AuthenticatedApp({ dal }: { dal: Dal }) {
 	useProcessMessages({ dal });
 	const {
 		handleSetAvatarVisibility,
+		handleSetFontSize,
 		handleEnableAllFeedFilters,
 		handleToggleChannelFilter,
 		handleClearChannelState,
@@ -93,6 +96,8 @@ export default function AuthenticatedApp({ dal }: { dal: Dal }) {
 				ensureTelegramConnected,
 				avatarVisibility,
 				onSetAvatarVisibility: handleSetAvatarVisibility,
+				fontSize,
+				onSetFontSize: handleSetFontSize,
 				onToggleChannelNotification: handleToggleChannelNotification,
 				onToggleChannelFilter: handleToggleChannelFilter,
 				onClearChannelState: handleClearChannelState,

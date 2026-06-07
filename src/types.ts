@@ -85,3 +85,9 @@ export type AvatarVisibilitySettings = {
 	thread: boolean;
 	notifications: boolean;
 };
+
+export type FontSize = "small" | "medium" | "large" | "xlarge";
+
+export type FontSizeSettings = {
+	size: FontSize;
+};

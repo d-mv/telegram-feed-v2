@@ -10,6 +10,7 @@ import { AppContext } from "../app/AppContext";
 import { MenuOutlined } from "@ant-design/icons";
 import AvatarsSettings from "./components/AvatarsSettings";
 import FiltersSettings from "./components/FiltersSettings";
+import FontSizeSettings from "./components/FontSizeSettings";
 import Maintenance from "./components/Maintenance";
 import NotificationsSettings from "./components/NotificationsSettings";
 
@@ -21,6 +22,7 @@ const MENU_ITEMS = [
 	{ label: "Notifications", module: NotificationsSettings },
 	{ label: "Filters", module: FiltersSettings },
 	{ label: "Avatars", module: AvatarsSettings },
+	{ label: "Font size", module: FontSizeSettings },
 	{ label: "Maintenance", module: Maintenance },
 ];
 

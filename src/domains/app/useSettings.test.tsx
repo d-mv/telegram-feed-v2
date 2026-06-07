@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi, type Mock } from "vitest";
 import { avatarVisibilityAtom } from "../../atoms/avatarVisibility.atom";
 import { feedFilterSettingsAtom } from "../../atoms/feedFilters.atom";
+import { fontSizeAtom } from "../../atoms/fontSize.atom";
 import {
 	notificationPermissionAtom,
 	notificationSettingsAtom,
@@ -35,6 +36,8 @@ function createDalStub() {
 			.fn()
 			.mockRejectedValue(new Error("no avatars")),
 		setAvatarVisibilitySettings: vi.fn().mockResolvedValue(undefined),
+		getFontSizeSettings: vi.fn().mockRejectedValue(new Error("no font size")),
+		setFontSizeSettings: vi.fn().mockResolvedValue(undefined),
 		getFeedCache: vi.fn(),
 		setFeedCache: vi.fn(),
 		getMedia: vi.fn(),
@@ -52,6 +55,7 @@ function createWrapper() {
 		thread: true,
 		notifications: true,
 	});
+	store.set(fontSizeAtom, { size: "medium" });
 	store.set(notificationPermissionAtom, "default");
 
 	const Wrapper = ({ children }: { children: ReactNode }) => (
@@ -129,6 +133,34 @@ describe("useSettings", () => {
 			feed: false,
 			thread: false,
 			notifications: false,
+		});
+	});
+
+	it("handleSetFontSize updates atom and persists via DAL", async () => {
+		const dal = createDalStub();
+		const { store, Wrapper } = createWrapper();
+
+		const { result } = renderHook(() => useSettings({ dal }), {
+			wrapper: Wrapper,
+		});
+
+		act(() => {
+			result.current.handleSetFontSize({ size: "large" });
+		});
+
+		expect(store.get(fontSizeAtom)).toEqual({ size: "large" });
+		expect(dal.setFontSizeSettings).toHaveBeenCalledWith({ size: "large" });
+	});
+
+	it("loads persisted font size into the atom on mount", async () => {
+		const dal = createDalStub();
+		(dal.getFontSizeSettings as Mock).mockResolvedValue({ size: "xlarge" });
+		const { store, Wrapper } = createWrapper();
+
+		renderHook(() => useSettings({ dal }), { wrapper: Wrapper });
+
+		await waitFor(() => {
+			expect(store.get(fontSizeAtom)).toEqual({ size: "xlarge" });
 		});
 	});
 

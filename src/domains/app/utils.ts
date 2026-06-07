@@ -1,8 +1,12 @@
 import type {
 	AvatarVisibilitySettings,
 	FeedFilterSettings,
+	FontSize,
+	FontSizeSettings,
 	NotificationSettings,
 } from "../../types";
+
+const FONT_SIZES: FontSize[] = ["small", "medium", "large", "xlarge"];
 
 export function isNotificationSettings(
 	value: unknown,
@@ -34,6 +38,14 @@ export function isAvatarVisibilitySettings(
 		typeof candidate.thread === "boolean" &&
 		typeof candidate.notifications === "boolean"
 	);
+}
+
+export function isFontSizeSettings(value: unknown): value is FontSizeSettings {
+	if (!value || typeof value !== "object") {
+		return false;
+	}
+	const candidate = value as FontSizeSettings;
+	return FONT_SIZES.includes(candidate.size);
 }
 
 export function getFallbackChatName(isPrivate: boolean) {

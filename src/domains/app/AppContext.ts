@@ -1,5 +1,9 @@
 import { createContext } from "react";
-import type { AvatarVisibilitySettings, FeedItem } from "../../types";
+import type {
+	AvatarVisibilitySettings,
+	FeedItem,
+	FontSizeSettings,
+} from "../../types";
 import type { EnsureTelegramConnected } from "../auth/model/authTypes";
 import type { Dal } from "../dal/types";
 
@@ -18,6 +22,8 @@ type AppContextType = {
 	ensureTelegramConnected: EnsureTelegramConnected;
 	avatarVisibility: AvatarVisibilitySettings;
 	onSetAvatarVisibility: (next: AvatarVisibilitySettings) => void;
+	fontSize: FontSizeSettings;
+	onSetFontSize: (next: FontSizeSettings) => void;
 	onToggleChannelNotification: (channelKey: string, enabled: boolean) => void;
 	onToggleChannelFilter: (channelKey: string, enabled: boolean) => void;
 	onClearChannelState?: (channelKey: string) => void;

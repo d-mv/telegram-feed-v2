@@ -1,7 +1,9 @@
 import { ConfigProvider, theme } from "antd";
 import { Provider } from "jotai/react";
+import { useAtomValue } from "jotai/react";
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { FONT_SIZE_PX, fontSizeAtom } from "./atoms/fontSize.atom";
 import App from "./domains/app/App.tsx";
 import "./index.css";
 import { runtimeLogger } from "./shared/infra/runtimeLogger";
@@ -22,6 +24,7 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 	const [isDark, setIsDark] = useState(
 		() => window.matchMedia("(prefers-color-scheme: dark)").matches,
 	);
+	const fontSize = useAtomValue(fontSizeAtom);
 
 	useEffect(() => {
 		const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -35,7 +38,7 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 			theme={{
 				algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
 				token: {
-					fontSize: 16,
+					fontSize: FONT_SIZE_PX[fontSize.size],
 					fontFamily:
 						"'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
 				},
@@ -55,11 +58,11 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
 	<StrictMode>
-		<ThemeProvider>
-			<Provider>
+		<Provider>
+			<ThemeProvider>
 				<App />
-			</Provider>
-		</ThemeProvider>
+			</ThemeProvider>
+		</Provider>
 	</StrictMode>,
 );
 

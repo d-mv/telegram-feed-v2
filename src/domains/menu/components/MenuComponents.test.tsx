@@ -15,6 +15,7 @@ import AvatarsSettings from "./AvatarsSettings";
 import { ChannelFilters } from "./ChannelFilters";
 import { ChannelNotifications } from "./ChannelNotifications";
 import FiltersSettings from "./FiltersSettings";
+import FontSizeSettings from "./FontSizeSettings";
 import Maintenance from "./Maintenance";
 import { MenuDialog } from "./MenuDialog";
 import { MenuHeader } from "./MenuHeader";
@@ -34,6 +35,8 @@ type AppCtxValue = {
 		thread: boolean;
 		notifications: boolean;
 	}) => void;
+	fontSize: { size: string };
+	onSetFontSize: (value: { size: string }) => void;
 	onToggleChannelNotification: (key: string, enabled: boolean) => void;
 	onToggleChannelFilter: (key: string, enabled: boolean) => void;
 	onRequestNotificationPermission: () => void;
@@ -63,6 +66,8 @@ function contextValue(overrides: Partial<AppCtxValue> = {}) {
 		ensureTelegramConnected: vi.fn().mockResolvedValue({}),
 		avatarVisibility: { feed: true, thread: true, notifications: true },
 		onSetAvatarVisibility: vi.fn(),
+		fontSize: { size: "medium" },
+		onSetFontSize: vi.fn(),
 		onToggleChannelNotification: vi.fn(),
 		onToggleChannelFilter: vi.fn(),
 		onRequestNotificationPermission: vi.fn(),
@@ -199,6 +204,20 @@ test("avatars settings toggles visibility", async () => {
 
 	await user.click(screen.getAllByRole("button", { name: "On" })[0]!);
 	expect(onSetAvatarVisibility).toHaveBeenCalled();
+});
+
+test("font size settings selects a size", async () => {
+	const user = userEvent.setup();
+	const onSetFontSize = vi.fn();
+	renderWithProviders(<FontSizeSettings />, {
+		contextOverrides: { fontSize: { size: "medium" }, onSetFontSize },
+	});
+
+	// Medium is the active selection
+	expect(screen.getByRole("button", { name: "Selected" })).toBeInTheDocument();
+
+	await user.click(screen.getAllByRole("button", { name: "Select" })[0]!);
+	expect(onSetFontSize).toHaveBeenCalledWith({ size: "small" });
 });
 
 test("maintenance clears cache", async () => {

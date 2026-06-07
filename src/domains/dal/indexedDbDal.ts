@@ -88,6 +88,8 @@ export function createIndexedDbDal(): Dal {
 		getAvatarVisibilitySettings: () => getValue("avatar-visibility-settings"),
 		setAvatarVisibilitySettings: (settings) =>
 			setValue("avatar-visibility-settings", settings),
+		getFontSizeSettings: () => getValue("font-size-settings"),
+		setFontSizeSettings: (settings) => setValue("font-size-settings", settings),
 		getFeedCache: () => getValue("feed"),
 		setFeedCache: (feed) => setValue("feed", feed),
 		getMedia: async (key) => {

@@ -2,6 +2,7 @@ import { useAtom, useSetAtom } from "jotai";
 import { useCallback, useEffect } from "react";
 import { avatarVisibilityAtom } from "../../atoms/avatarVisibility.atom";
 import { feedFilterSettingsAtom } from "../../atoms/feedFilters.atom";
+import { fontSizeAtom } from "../../atoms/fontSize.atom";
 import {
 	hasEnabledChannels,
 	notificationPermissionAtom,
@@ -10,6 +11,7 @@ import {
 import type {
 	AvatarVisibilitySettings,
 	FeedFilterSettings,
+	FontSizeSettings,
 	NotificationSettings,
 } from "../../types";
 import type { Dal } from "../dal/types";
@@ -17,6 +19,7 @@ import {
 	closeVisibleNotifications,
 	isAvatarVisibilitySettings,
 	isFeedFilterSettings,
+	isFontSizeSettings,
 	isNotificationSettings,
 } from "./utils";
 import { runtimeLogger } from "../../shared/infra/runtimeLogger";
@@ -25,6 +28,7 @@ export function useSettings({ dal }: { dal: Dal }) {
 	const [, setFeedFilterSettings] = useAtom(feedFilterSettingsAtom);
 	const [, setNotificationSettings] = useAtom(notificationSettingsAtom);
 	const setAvatarVisibility = useSetAtom(avatarVisibilityAtom);
+	const setFontSize = useSetAtom(fontSizeAtom);
 	const [notificationPermission, setNotificationPermission] = useAtom(
 		notificationPermissionAtom,
 	);
@@ -72,14 +76,30 @@ export function useSettings({ dal }: { dal: Dal }) {
 		}
 	}, [dal, setAvatarVisibility]);
 
+	const getFontSizeSettings = useCallback(async () => {
+		try {
+			const stored = await dal.getFontSizeSettings();
+			if (isFontSizeSettings(stored)) {
+				setFontSize(stored);
+			}
+		} catch (e) {
+			runtimeLogger.warn("settings_load_failed", {
+				scope: "font_size",
+				error: e instanceof Error ? e.message : String(e),
+			});
+		}
+	}, [dal, setFontSize]);
+
 	useEffect(() => {
 		getNotificationSettings();
 		getFeedFilterSettings();
 		getAvatarVisibilitySettings();
+		getFontSizeSettings();
 	}, [
 		dal,
 		getAvatarVisibilitySettings,
 		getFeedFilterSettings,
+		getFontSizeSettings,
 		getNotificationSettings,
 	]);
 
@@ -98,6 +118,14 @@ export function useSettings({ dal }: { dal: Dal }) {
 			persistOrWarn(dal.setAvatarVisibilitySettings(next), "avatar_visibility");
 		},
 		[dal, setAvatarVisibility],
+	);
+
+	const handleSetFontSize = useCallback(
+		(next: FontSizeSettings) => {
+			setFontSize(next);
+			persistOrWarn(dal.setFontSizeSettings(next), "font_size");
+		},
+		[dal, setFontSize],
 	);
 
 	const handleEnableAllFeedFilters = useCallback(() => {
@@ -192,6 +220,7 @@ export function useSettings({ dal }: { dal: Dal }) {
 		handleEnableAllFeedFilters,
 		handleRequestNotificationPermission,
 		handleSetAvatarVisibility,
+		handleSetFontSize,
 		handleClearChannelState,
 		handleToggleChannelFilter,
 		handleToggleChannelNotification,

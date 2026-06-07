@@ -5,6 +5,7 @@ import {
 	getFallbackChatName,
 	isAvatarVisibilitySettings,
 	isFeedFilterSettings,
+	isFontSizeSettings,
 	isNotificationSettings,
 } from "./utils";
 
@@ -66,6 +67,23 @@ describe("isAvatarVisibilitySettings", () => {
 				notifications: true,
 			}),
 		).toBe(false);
+	});
+});
+
+describe("isFontSizeSettings", () => {
+	it("returns true for each valid size", () => {
+		for (const size of ["small", "medium", "large", "xlarge"]) {
+			expect(isFontSizeSettings({ size })).toBe(true);
+		}
+	});
+	it("returns false for an unknown size", () => {
+		expect(isFontSizeSettings({ size: "huge" })).toBe(false);
+	});
+	it("returns false for null", () => {
+		expect(isFontSizeSettings(null)).toBe(false);
+	});
+	it("returns false when size is missing", () => {
+		expect(isFontSizeSettings({})).toBe(false);
 	});
 });
 
