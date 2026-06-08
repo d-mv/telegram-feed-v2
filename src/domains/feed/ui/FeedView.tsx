@@ -158,6 +158,7 @@ export function FeedView() {
 
 	return (
 		<>
+			<div id="feed-top-anchor" style={{ position: "absolute", top: 0 }} />
 			<FeedHeader />
 			<section
 				style={{
@@ -201,7 +202,9 @@ export function FeedView() {
 				{showScrollTop && (
 					<ScrollTopButton
 						onClick={() =>
-							document.body.scrollTo({ top: 0, behavior: "smooth" })
+							document
+								.getElementById("feed-top-anchor")
+								?.scrollIntoView({ behavior: "smooth", block: "start" })
 						}
 					/>
 				)}
