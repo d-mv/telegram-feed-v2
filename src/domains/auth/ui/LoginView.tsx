@@ -201,11 +201,11 @@ export function LoginView({ auth, onAuthenticated }: LoginViewProps) {
 								Telegram Feed
 							</Typography.Text>
 							<Typography.Title level={3} style={{ margin: 0 }}>
-								Sign in to keep the river moving.
+								Sign in:
 							</Typography.Title>
-							<Typography.Text type="secondary">
+							{/* <Typography.Text type="secondary">
 								Phone or QR login. We never auto-load media or autoplay video.
-							</Typography.Text>
+							</Typography.Text> */}
 						</div>
 						<form onSubmit={(e) => e.preventDefault()}>
 							<LoginToggle mode={loginMode} onChange={handleModeChange} />
@@ -224,7 +224,7 @@ export function LoginView({ auth, onAuthenticated }: LoginViewProps) {
 										onReset={resetFlow}
 									/>
 								)}
-								{loginMode === "qr" && (
+								{loginMode === "qr" && !needsTwoFactor && (
 									<QrLoginPanel
 										status={qrStatus}
 										token={qrToken}
@@ -280,18 +280,6 @@ export function LoginView({ auth, onAuthenticated }: LoginViewProps) {
 								fast, chronological, and intentionally quiet.
 							</Typography.Text>
 						</div>
-						<Flex gap={16} style={{ marginTop: 24 }}>
-							{["Client-side only", "System theme", "Greyscale media"].map(
-								(label) => (
-									<Typography.Text
-										key={label}
-										style={{ color: "rgba(255,255,255,0.7)", fontSize: 12 }}
-									>
-										{label}
-									</Typography.Text>
-								),
-							)}
-						</Flex>
 					</Flex>
 				</Card>
 			</Flex>

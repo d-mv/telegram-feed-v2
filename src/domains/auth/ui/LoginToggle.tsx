@@ -14,7 +14,7 @@ export function LoginToggle({ mode, onChange }: LoginToggleProps) {
 			<Button
 				type={mode === "phone" ? "primary" : "default"}
 				onClick={() => onChange("phone")}
-				style={{ flex: 1 }}
+				style={{ flex: 1, borderRadius: 0 }}
 				icon={<MobileOutlined aria-hidden style={{ fontSize: 16 }} />}
 			>
 				Phone

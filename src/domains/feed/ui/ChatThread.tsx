@@ -1,5 +1,4 @@
 import { Spin, theme, Typography } from "antd";
-import { VerticalAlignBottomOutlined } from "@ant-design/icons";
 import type { CSSProperties } from "react";
 import {
 	useCallback,
@@ -31,8 +30,8 @@ import { resolveFeedItemSourceMessage } from "../infra/resolveFeedItemSourceMess
 import { groupConsecutiveMediaOnlyItems } from "./groupConsecutiveMediaOnlyItems";
 import { getImageGridColumns } from "./mediaGroupUtils";
 import { ForwardedBadge } from "./ForwardedBadge";
-import { getForwardedMessageMeta } from "./getForwardedMessageMeta";
 import { Poll } from "./components/Poll";
+import { ScrollTopButton } from "./ScrollTopButton";
 
 type ChatThreadProps = {
 	item: FeedItem;
@@ -495,9 +494,6 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 						? getImageGridColumns(galleryItems.length)
 						: undefined;
 					const isFocusedGroup = group.some((message) => message.isFocused);
-					const forwardedMeta = getForwardedMessageMeta(
-						representative.sourceMessage,
-					);
 
 					const replyToId =
 						representative.sourceMessage instanceof Api.Message
@@ -518,10 +514,7 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 							style={{
 								padding: "10px 12px",
 								borderRadius: token.borderRadius,
-								background: isFocusedGroup
-									? token.colorPrimaryBg
-									: token.colorBgContainer,
-								border: `1px solid ${forwardedMeta ? token.colorPrimary : token.colorBorder}`,
+								background: isFocusedGroup ? "#b7c0c9" : "#E9ECEF",
 								outline: "none",
 							}}
 						>
@@ -546,7 +539,7 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 										display: "block",
 										width: "100%",
 										textAlign: "left",
-										background: token.colorBgLayout,
+										background: token.colorBgBase,
 										border: `1px solid ${token.colorBorder}`,
 										borderLeft: `3px solid ${token.colorPrimary}`,
 										borderRadius: token.borderRadius,
@@ -555,13 +548,10 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 										cursor: "pointer",
 									}}
 								>
-									<Typography.Text
-										strong
-										style={{ display: "block", fontSize: 12 }}
-									>
+									<Typography.Text style={{ display: "block", fontSize: 12 }}>
 										{repliedMessage.senderName}
 									</Typography.Text>
-									<Typography.Text type="secondary" style={{ fontSize: 12 }}>
+									<Typography.Text type="secondary" style={{ fontSize: 14 }}>
 										{repliedMessage.text || "Media"}
 									</Typography.Text>
 								</button>
@@ -652,27 +642,31 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 					);
 				})}
 				{showJump && (
-					<button
-						type="button"
+					<ScrollTopButton
 						onClick={handleJumpToLatest}
-						aria-label="Jump to latest"
-						style={{
-							position: "sticky",
-							bottom: 8,
-							alignSelf: "center",
-							background: token.colorBgContainer,
-							border: `1px solid ${token.colorBorder}`,
-							borderRadius: token.borderRadiusLG,
-							padding: "6px 12px",
-							cursor: "pointer",
-							display: "flex",
-							alignItems: "center",
-							gap: 4,
-							color: token.colorText,
-						}}
-					>
-						<VerticalAlignBottomOutlined aria-hidden style={{ fontSize: 16 }} />
-					</button>
+						style={{ bottom: 64, right: 24, transform: "rotate(180deg)" }}
+					/>
+					// <button
+					//   type="button"
+					//   onClick={handleJumpToLatest}
+					//   aria-label="Jump to latest"
+					//   style={{
+					//     position: "sticky",
+					//     bottom: 8,
+					//     alignSelf: "center",
+					//     background: token.colorBgContainer,
+					//     border: `1px solid ${token.colorBorder}`,
+					//     borderRadius: '50%',
+					//     padding: "6px 12px",
+					//     cursor: "pointer",
+					//     display: "flex",
+					//     alignItems: "center",
+					//     gap: 4,
+					//     color: token.colorText,
+					//   }}
+					// >
+					//   <DownOutlined  aria-hidden style={{ fontSize: 16 }} />
+					// </button>
 				)}
 			</div>
 		</div>

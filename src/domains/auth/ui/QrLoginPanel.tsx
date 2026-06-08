@@ -46,10 +46,11 @@ export function QrLoginPanel({
 				<>
 					<div
 						style={{
-							border: "4px solid",
+							border: "1px solid",
 							borderColor: "var(--ant-color-border, #d9d9d9)",
-							borderRadius: 8,
 							padding: 4,
+							height: "168px",
+							width: "168px",
 						}}
 					>
 						{qrDataUrl && (

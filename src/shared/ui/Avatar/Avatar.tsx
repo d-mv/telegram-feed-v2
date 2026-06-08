@@ -56,6 +56,7 @@ export function Avatar({ message, noPreview, isThread }: Props) {
 					padding: 0,
 					outline: "none",
 					boxShadow: `0 0 0 1px ${token.colorBorder}`,
+					filter: "grayscale(100%)",
 				}}
 				aria-label={`Avatar for ${message.senderName}`}
 				title={message.senderName}

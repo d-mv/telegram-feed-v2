@@ -20,6 +20,18 @@ function GlobalStyles() {
 	return null;
 }
 
+const defaultTokens = {
+	borderRadius: 0,
+	colorBgBase: "#F8F9FA",
+	colorError: "#7c6262",
+	colorInfo: "#6C757D",
+	colorLink: "#212529",
+	colorPrimary: "#495057",
+	colorSuccess: "#212529",
+	colorTextBase: "#131416",
+	colorWarning: "#7c7b5c",
+};
+
 function ThemeProvider({ children }: { children: React.ReactNode }) {
 	const [isDark, setIsDark] = useState(
 		() => window.matchMedia("(prefers-color-scheme: dark)").matches,
@@ -38,9 +50,23 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 			theme={{
 				algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
 				token: {
+					...defaultTokens,
 					fontSize: FONT_SIZE_PX[fontSize.size],
 					fontFamily:
 						"'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+				},
+
+				components: {
+					// Button: {
+					//  borderRadius: 0,
+					//  borderRadiusLG: 0,
+					// borderRadiusSM: 0,
+					// },
+					// Input: {
+					//   borderRadius: 0,
+					//   borderRadiusLG: 0,
+					// borderRadiusSM: 0,
+					// }
 				},
 			}}
 		>
