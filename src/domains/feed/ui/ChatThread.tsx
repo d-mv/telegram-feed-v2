@@ -392,7 +392,7 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 					style={{
 						marginTop: 8,
 						paddingLeft: 8,
-						borderLeft: `2px solid ${token.colorBorder}`,
+						borderLeft: `2px solid ${token.colorLink}`,
 					}}
 				>
 					{commentsLoading[message.id] && (
@@ -416,10 +416,14 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 										marginBottom: 2,
 									}}
 								>
-									<Typography.Text strong style={{ fontSize: 12 }}>
+									<Typography.Text style={{ fontSize: 11 }}>
 										{comment.senderName}
 									</Typography.Text>
-									<Typography.Text type="secondary" style={{ fontSize: 11 }}>
+									<Typography.Text
+										strong
+										type="secondary"
+										style={{ fontSize: 12 }}
+									>
 										{comment.timestamp}
 									</Typography.Text>
 								</div>
@@ -515,8 +519,10 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 								padding: "10px 12px",
 								borderRadius: token.borderRadius,
 								background: isFocusedGroup
-									? token.colorMessageBgFocus
-									: token.colorMessageBg,
+									? // @ts-ignore
+										token.colorMessageBgFocus
+									: // @ts-ignore
+										token.colorMessageBg,
 								outline: "none",
 							}}
 						>

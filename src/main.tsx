@@ -73,25 +73,14 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 					...(isDark ? darkTokens : defaultTokens),
 					fontSize: FONT_SIZE_PX[fontSize.size],
 					fontFamily:
-						"'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+						"'M PLUS Rounded 1c', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
 				},
 
 				components: {
 					Button: {
 						boxShadow: "none",
 						controlOutline: "transparent",
-
-						// colorTextDisabled: isDark ? "#6c757d" : "#ced4da",
-						//  borderRadius: 0,
-						//  borderRadiusLG: 0,
-						// borderRadiusSM: 0,
 					},
-					// Input: {
-					// placeholderColor: isDark ? "#ced4da" : "#6c757d",
-					//   borderRadius: 0,
-					//   borderRadiusLG: 0,
-					// borderRadiusSM: 0,
-					// }
 				},
 			}}
 		>

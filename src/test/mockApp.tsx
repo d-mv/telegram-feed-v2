@@ -117,7 +117,7 @@ export function MockAppProvider({
 						...defaultTokens,
 						fontSize: FONT_SIZE_PX.medium,
 						fontFamily:
-							"'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+							"'M PLUS Rounded 1c', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
 					},
 				}}
 			>

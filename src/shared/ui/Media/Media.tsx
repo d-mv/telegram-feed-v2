@@ -145,7 +145,6 @@ export function Media({
 	}
 
 	async function handleDownload() {
-		console.log("Download initiated for media", media);
 		if (!item.media) return;
 		setIsDownloading(true);
 		setDownloadProgress(0);
@@ -171,7 +170,15 @@ export function Media({
 			}
 			const url = nextUrl;
 			if (!url) {
-				setDownloadError("Download failed");
+				runtimeLogger.warn("[FeedCardMedia] download returned no URL", {
+					id: item.id,
+					type: item.media.meta.type,
+				});
+				setDownloadError(
+					item.media.meta.type === "video"
+						? "Couldn't load video — try refreshing the feed"
+						: "Download failed — try refreshing the feed",
+				);
 				return;
 			}
 			if (item.media.meta.type === "video") {
@@ -179,18 +186,31 @@ export function Media({
 				return;
 			}
 			if (item.media.meta.type === "file" || item.media.meta.type === "audio") {
+				// The anchor must be connected to the document for the click to
+				// trigger a download in Firefox/Safari; a detached anchor is ignored.
 				const a = document.createElement("a");
 				a.href = url;
 				a.download = item.media.meta.fileName || "download";
+				a.rel = "noopener";
+				a.style.display = "none";
+				document.body.appendChild(a);
 				a.click();
+				a.remove();
+				// Defer revocation so the browser can start the download first.
+				setTimeout(() => URL.revokeObjectURL(url), 10000);
 				return;
 			}
 			setPreviewUrl(url);
 		} catch (error) {
 			const message =
-				error instanceof Error ? error.message : "Download failed";
-			runtimeLogger.error("[FeedCardMedia] download failed", error);
-			setDownloadError(message || "Download failed");
+				error instanceof Error
+					? error.message
+					: "Download failed, caught unknown error";
+			runtimeLogger.error(
+				"[FeedCardMedia] download failed, caught unknown error",
+				error,
+			);
+			setDownloadError(message || "Download failed, caught unknown error");
 		} finally {
 			setIsDownloading(false);
 		}
@@ -199,9 +219,11 @@ export function Media({
 	const previewBlobRef = useRef<string | undefined>(undefined);
 	const videoBlobRef = useRef<string | undefined>(undefined);
 
-	// Revoke blob URLs only when the item changes or the component unmounts,
-	// not on every state update — revoking on state change causes ERR_FILE_NOT_FOUND
-	// because the blob is still being displayed when the cleanup runs.
+	// Revoke blob URLs only when we switch to a different item or the component
+	// unmounts — keyed on the stable item.id, NOT the item object. The parent
+	// re-creates item objects on every refresh/scroll, so depending on `item`
+	// would revoke the blob while it is still displayed, causing
+	// ERR_FILE_NOT_FOUND on the <img>/<video>.
 	useEffect(() => {
 		return () => {
 			if (previewBlobRef.current?.startsWith("blob:")) {
@@ -213,7 +235,7 @@ export function Media({
 				videoBlobRef.current = undefined;
 			}
 		};
-	}, [item]);
+	}, [item.id]);
 
 	useEffect(() => {
 		if (!media || media.url || previewUrl || previewFailed) return;

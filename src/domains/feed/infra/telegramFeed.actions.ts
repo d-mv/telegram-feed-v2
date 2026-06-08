@@ -82,6 +82,7 @@ export async function voteOnPoll(
 		new Api.messages.SendVote({
 			peer: (inputChat ?? undefined) as SendTarget,
 			msgId: sourceMessage.id,
+			//  @ts-ignore
 			options,
 		}),
 	);

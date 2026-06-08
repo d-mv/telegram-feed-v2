@@ -458,7 +458,7 @@ describe("download flow", () => {
 		expect(await screen.findByText("network error")).toBeInTheDocument();
 	});
 
-	it("shows 'Download failed' when download returns undefined", async () => {
+	it("shows an actionable video error when download returns undefined", async () => {
 		vi.mocked(downloadMediaForItem).mockResolvedValueOnce(undefined);
 
 		const item: FeedItem = {
@@ -477,7 +477,9 @@ describe("download flow", () => {
 		const user = userEvent.setup();
 		render(<Media item={item} />, { wrapper: Wrapper });
 		await user.click(screen.getByRole("button", { name: /download/i }));
-		expect(await screen.findByText("Download failed")).toBeInTheDocument();
+		expect(
+			await screen.findByText("Couldn't load video — try refreshing the feed"),
+		).toBeInTheDocument();
 	});
 });
 
@@ -590,8 +592,9 @@ describe("file/document download", () => {
 		const blobUrl = "blob:http://localhost/file-abc";
 		vi.mocked(downloadMediaForItem).mockResolvedValueOnce(blobUrl);
 
-		const clickSpy = vi.fn();
-		const fakeAnchor = { href: "", download: "", click: clickSpy } as never;
+		const original = document.createElement.bind(document);
+		const fakeAnchor = original("a");
+		const clickSpy = vi.spyOn(fakeAnchor, "click").mockImplementation(() => {});
 
 		const item: FeedItem = {
 			id: "file-download",
@@ -615,7 +618,6 @@ describe("file/document download", () => {
 		render(<Media item={item} />, { wrapper: Wrapper });
 
 		// Spy after render; only intercept "a" tag so React's own renders still work
-		const original = document.createElement.bind(document);
 		const createSpy = vi
 			.spyOn(document, "createElement")
 			.mockImplementation((tag, ...rest) => {

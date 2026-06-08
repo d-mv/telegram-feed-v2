@@ -41,6 +41,7 @@ export function createPhoneAuth(
 							currentNumber: true,
 							allowAppHash: true,
 							allowMissedCall: true,
+							// @ts-ignore
 							logoutTokens: [getLogoutToken()],
 						}),
 					}),

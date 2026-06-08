@@ -44,13 +44,15 @@ export function Controls({
 	const btnStyle: React.CSSProperties = {
 		background: "rgba(0,0,0,0.5)",
 		border: "none",
-		borderRadius: token.borderRadius,
 		color: "#fff",
 		cursor: "pointer",
 		padding: "4px 6px",
 		display: "flex",
 		alignItems: "center",
 		justifyContent: "center",
+		width: 40,
+		height: 40,
+		borderRadius: "50%",
 	};
 
 	return (
@@ -90,10 +92,19 @@ export function Controls({
 				step={0.1}
 				value={currentTime}
 				onChange={(event) => handleScrub(Number(event.target.value))}
-				style={{ flex: 1, accentColor: token.colorPrimary }}
+				style={{
+					flex: 1,
+					accentColor: token.colorPrimaryBg,
+				}}
 				disabled={!videoUrl || duration <= 0}
 			/>
-			<span style={{ color: "#fff", fontSize: 11, whiteSpace: "nowrap" }}>
+			<span
+				style={{
+					color: token.colorTextSecondary,
+					fontSize: 11,
+					whiteSpace: "nowrap",
+				}}
+			>
 				{getTimeLeftLabel()}
 			</span>
 			<button

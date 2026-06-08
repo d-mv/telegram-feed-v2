@@ -9,6 +9,7 @@ import {
 	toUint8Array,
 } from "./telegramFeed.binary";
 import { resolveFeedItemSourceMessage } from "./resolveFeedItemSourceMessage";
+import { runtimeLogger } from "../../../shared/infra/runtimeLogger";
 
 type DownloadProgressCallback = (
 	downloaded: bigInt.BigInteger,
@@ -69,6 +70,10 @@ async function doDownloadMediaForItem(
 
 	const sourceMessage = await resolveFeedItemSourceMessage(item, client);
 	if (!sourceMessage) {
+		runtimeLogger.warn(
+			"[downloadMediaForItem] could not resolve source message",
+			{ cacheKey, type: item.media.meta.type, channelKey: item.channelKey },
+		);
 		return undefined;
 	}
 
@@ -77,6 +82,11 @@ async function doDownloadMediaForItem(
 	});
 	const size = getBinarySize(buffer);
 	if (!buffer || size === 0) {
+		runtimeLogger.warn("[downloadMediaForItem] empty download buffer", {
+			cacheKey,
+			type: item.media.meta.type,
+			size,
+		});
 		return undefined;
 	}
 	const blob = toBlob(
@@ -84,6 +94,11 @@ async function doDownloadMediaForItem(
 		item.media.meta.mimeType ?? "application/octet-stream",
 	);
 	if (!blob) {
+		runtimeLogger.warn("[downloadMediaForItem] failed to build blob", {
+			cacheKey,
+			type: item.media.meta.type,
+			mimeType: item.media.meta.mimeType,
+		});
 		return undefined;
 	}
 	await storeBlob(cacheKey, blob, dal);

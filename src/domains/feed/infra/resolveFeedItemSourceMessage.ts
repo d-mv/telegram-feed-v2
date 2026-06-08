@@ -1,5 +1,6 @@
 import { Api, type TelegramClient } from "telegram";
 import type { FeedItem } from "../../../types";
+import { runtimeLogger } from "../../../shared/infra/runtimeLogger";
 
 type MessagesTarget = Parameters<TelegramClient["getMessages"]>[0];
 
@@ -13,7 +14,7 @@ function getCachedItemMessageId(item: FeedItem): number | undefined {
 	return Number.isSafeInteger(parsed) ? parsed : undefined;
 }
 
-function getCachedItemChatId(item: FeedItem): string | undefined {
+function getChatIdFromChannelKey(item: FeedItem): string | undefined {
 	if (!item.channelKey) {
 		return undefined;
 	}
@@ -24,6 +25,18 @@ function getCachedItemChatId(item: FeedItem): string | undefined {
 	}
 
 	return item.channelKey.slice(separatorIndex + 1) || undefined;
+}
+
+// Restored-from-cache items can lose `channelKey`, but the id keeps the same
+// `${type}-${chatId}-${messageId}` shape it was built with (chatId may be
+// negative for channels/groups), so recover the chat id from there.
+function getChatIdFromItemId(item: FeedItem): string | undefined {
+	const match = item.id.match(/^(?:dm|group)-(-?\d+)-\d+$/);
+	return match ? match[1] : undefined;
+}
+
+function getCachedItemChatId(item: FeedItem): string | undefined {
+	return getChatIdFromChannelKey(item) ?? getChatIdFromItemId(item);
 }
 
 export async function resolveFeedItemSourceMessage(
@@ -37,6 +50,10 @@ export async function resolveFeedItemSourceMessage(
 	const chatId = getCachedItemChatId(item);
 	const messageId = getCachedItemMessageId(item);
 	if (!chatId || messageId === undefined) {
+		runtimeLogger.warn(
+			"[resolveFeedItemSourceMessage] cannot derive chat/message id from cached item",
+			{ id: item.id, channelKey: item.channelKey, chatId, messageId },
+		);
 		return undefined;
 	}
 
@@ -47,8 +64,19 @@ export async function resolveFeedItemSourceMessage(
 			ids: [messageId],
 		});
 		const sourceMessage = messages[0];
-		return sourceMessage instanceof Api.Message ? sourceMessage : undefined;
-	} catch {
+		if (!(sourceMessage instanceof Api.Message)) {
+			runtimeLogger.warn(
+				"[resolveFeedItemSourceMessage] getMessages returned no usable message",
+				{ id: item.id, chatId, messageId },
+			);
+			return undefined;
+		}
+		return sourceMessage;
+	} catch (error) {
+		runtimeLogger.error(
+			"[resolveFeedItemSourceMessage] getMessages failed",
+			error,
+		);
 		return undefined;
 	}
 }
