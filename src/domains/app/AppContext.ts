@@ -7,7 +7,7 @@ import type {
 import type { EnsureTelegramConnected } from "../auth/model/authTypes";
 import type { Dal } from "../dal/types";
 
-type AppContextType = {
+export type AppContextType = {
 	onManualRefresh: () => void | Promise<void>;
 	onManualLoadOlder: () => void | Promise<void>;
 	isLoadingOlder: boolean;

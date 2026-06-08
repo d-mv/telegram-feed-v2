@@ -514,7 +514,9 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 							style={{
 								padding: "10px 12px",
 								borderRadius: token.borderRadius,
-								background: isFocusedGroup ? "#b7c0c9" : "#E9ECEF",
+								background: isFocusedGroup
+									? token.colorMessageBgFocus
+									: token.colorMessageBg,
 								outline: "none",
 							}}
 						>
@@ -646,27 +648,6 @@ export function ChatThread({ item, sentMessages = [] }: ChatThreadProps) {
 						onClick={handleJumpToLatest}
 						style={{ bottom: 64, right: 24, transform: "rotate(180deg)" }}
 					/>
-					// <button
-					//   type="button"
-					//   onClick={handleJumpToLatest}
-					//   aria-label="Jump to latest"
-					//   style={{
-					//     position: "sticky",
-					//     bottom: 8,
-					//     alignSelf: "center",
-					//     background: token.colorBgContainer,
-					//     border: `1px solid ${token.colorBorder}`,
-					//     borderRadius: '50%',
-					//     padding: "6px 12px",
-					//     cursor: "pointer",
-					//     display: "flex",
-					//     alignItems: "center",
-					//     gap: 4,
-					//     color: token.colorText,
-					//   }}
-					// >
-					//   <DownOutlined  aria-hidden style={{ fontSize: 16 }} />
-					// </button>
 				)}
 			</div>
 		</div>

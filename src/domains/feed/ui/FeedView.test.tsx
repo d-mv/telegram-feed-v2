@@ -11,7 +11,7 @@ import { feedItemsAtom } from "../../../atoms/feedItems.atom";
 import { feedFilterSettingsAtom } from "../../../atoms/feedFilters.atom";
 import { notificationFocusAtom } from "../../../atoms/notificationFocus.atom";
 import { AppContext } from "../../app/AppContext";
-import type { FeedItem } from "../model/mockFeed";
+import type { FeedItem } from "../../../types";
 import { FeedView } from "./FeedView";
 
 Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {

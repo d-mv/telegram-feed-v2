@@ -27,3 +27,7 @@ dist-ssr
 coverage
 error.txt
 
+# Storybook
+storybook-static
+screenshots
+

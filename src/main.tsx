@@ -30,6 +30,26 @@ const defaultTokens = {
 	colorSuccess: "#212529",
 	colorTextBase: "#131416",
 	colorWarning: "#7c7b5c",
+	colorMessageBg: "#E9ECEF",
+	colorMessageBgFocus: "#b7c0c9",
+};
+
+const darkTokens = {
+	borderRadius: 0,
+	colorBgBase: "#212529",
+	colorError: "#7c6262",
+	colorInfo: "#6C757D",
+	colorLink: "#212529",
+	colorPrimary: "#495057",
+	// colorSuccess: "#",
+	colorTextBase: "#F8F9FA",
+	colorWarning: "#7c7b5c",
+	colorMessageBg: "#343A40",
+	colorMessageBgFocus: "#495057",
+	// colorBgContainer: '#6C757D'
+	colorTextPlaceholder: "#495057",
+	colorTextDisabled: "#495057",
+	// outlineWidth: 0,
 };
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -48,21 +68,26 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 	return (
 		<ConfigProvider
 			theme={{
-				algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
+				// algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
 				token: {
-					...defaultTokens,
+					...(isDark ? darkTokens : defaultTokens),
 					fontSize: FONT_SIZE_PX[fontSize.size],
 					fontFamily:
 						"'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
 				},
 
 				components: {
-					// Button: {
-					//  borderRadius: 0,
-					//  borderRadiusLG: 0,
-					// borderRadiusSM: 0,
-					// },
+					Button: {
+						boxShadow: "none",
+						controlOutline: "transparent",
+
+						// colorTextDisabled: isDark ? "#6c757d" : "#ced4da",
+						//  borderRadius: 0,
+						//  borderRadiusLG: 0,
+						// borderRadiusSM: 0,
+					},
 					// Input: {
+					// placeholderColor: isDark ? "#ced4da" : "#6c757d",
 					//   borderRadius: 0,
 					//   borderRadiusLG: 0,
 					// borderRadiusSM: 0,

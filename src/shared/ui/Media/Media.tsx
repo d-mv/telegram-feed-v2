@@ -145,6 +145,7 @@ export function Media({
 	}
 
 	async function handleDownload() {
+		console.log("Download initiated for media", media);
 		if (!item.media) return;
 		setIsDownloading(true);
 		setDownloadProgress(0);
@@ -406,6 +407,9 @@ export function Media({
 						padding: 4,
 						display: "flex",
 						alignItems: "center",
+						borderRadius: "50%",
+						height: 40,
+						width: 40,
 					}}
 				>
 					{isDownloading ? (
@@ -466,13 +470,15 @@ export function Media({
 							right: 8,
 							background: "rgba(0,0,0,0.6)",
 							border: "none",
-							borderRadius: token.borderRadius,
 							color: "#fff",
 							padding: "6px 8px",
 							cursor: "pointer",
 							display: "flex",
 							alignItems: "center",
 							justifyContent: "center",
+							borderRadius: "50%",
+							height: 40,
+							width: 40,
 						}}
 					>
 						{isDownloading ? (
