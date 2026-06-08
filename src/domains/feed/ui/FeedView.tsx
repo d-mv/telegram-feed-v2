@@ -200,7 +200,9 @@ export function FeedView() {
 				)}
 				{showScrollTop && (
 					<ScrollTopButton
-						onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+						onClick={() =>
+							document.body.scrollTo({ top: 0, behavior: "smooth" })
+						}
 					/>
 				)}
 			</section>
