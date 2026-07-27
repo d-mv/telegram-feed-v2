@@ -248,7 +248,7 @@ export function LoginView({ auth, onAuthenticated }: LoginViewProps) {
 							</div>
 							{error !== "" && (
 								<Alert
-									message={error}
+									title={error}
 									type="error"
 									showIcon
 									style={{ marginTop: 12 }}

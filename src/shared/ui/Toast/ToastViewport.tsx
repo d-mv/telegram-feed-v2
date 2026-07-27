@@ -26,7 +26,7 @@ export function ToastViewport() {
 		>
 			{toasts.map((toast) => (
 				<div key={toast.id} role="status">
-					<Alert message={toast.message} type="info" showIcon banner />
+					<Alert title={toast.message} type="info" showIcon banner />
 				</div>
 			))}
 		</div>

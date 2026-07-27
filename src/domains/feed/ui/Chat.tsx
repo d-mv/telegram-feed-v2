@@ -131,7 +131,6 @@ export function Chat({ item, onClose }: ChatProps) {
 			open
 			onClose={onClose}
 			placement="right"
-			width={Math.min(560, window.innerWidth)}
 			title={
 				<Flex align="center" justify="space-between">
 					<Typography.Text strong>{title}</Typography.Text>
@@ -146,12 +145,13 @@ export function Chat({ item, onClose }: ChatProps) {
 			}
 			closable
 			styles={{
+				wrapper: { width: Math.min(560, window.innerWidth) },
 				body: { padding: 0, display: "flex", flexDirection: "column" },
 				header: { borderBottom: `1px solid ${token.colorBorder}` },
 			}}
 			footer={
 				<Flex vertical gap={8}>
-					{error !== "" && <Alert message={error} type="error" showIcon />}
+					{error !== "" && <Alert title={error} type="error" showIcon />}
 					<Flex gap={8}>
 						<Input
 							placeholder="Write a reply..."

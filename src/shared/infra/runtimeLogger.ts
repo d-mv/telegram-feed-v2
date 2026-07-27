@@ -1,7 +1,10 @@
 type ConsoleTarget = Pick<Console, "warn" | "error">;
 
-const LOGGER_API_URL = "https://logger-api.fly.dev/ingest";
-const LOGGER_INGEST_KEY = "701aa421-498a-43a8-bf09-a4c196d0ef6d";
+const LOGGER_API_URL =
+	import.meta.env.VITE_LOGGER_API_URL ?? "https://logger-api.fly.dev/ingest";
+const LOGGER_INGEST_KEY =
+	import.meta.env.VITE_LOGGER_INGEST_KEY ??
+	"701aa421-498a-43a8-bf09-a4c196d0ef6d";
 
 const SENSITIVE_KEY_RE = /phone|password|token|secret|session|credential/i;
 

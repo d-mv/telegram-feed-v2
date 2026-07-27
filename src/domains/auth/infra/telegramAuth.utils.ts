@@ -27,6 +27,17 @@ export function getTelegramErrorMessage(error: unknown, fallback: string) {
 	return fallback;
 }
 
+export function isAuthFailureError(error: unknown): boolean {
+	const message = getTelegramErrorMessage(error, "").toUpperCase();
+	return (
+		message.includes("AUTH_KEY_UNREGISTERED") ||
+		message.includes("SESSION_REVOKED") ||
+		message.includes("SESSION_EXPIRED") ||
+		message.includes("USER_DEACTIVATED") ||
+		message.includes("401")
+	);
+}
+
 export function createLoginSuccessHandler(
 	session: StringSession,
 	config: TelegramAuthConfig,

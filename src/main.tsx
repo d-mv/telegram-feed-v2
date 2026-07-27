@@ -41,15 +41,12 @@ const darkTokens = {
 	colorInfo: "#6C757D",
 	colorLink: "#212529",
 	colorPrimary: "#495057",
-	// colorSuccess: "#",
 	colorTextBase: "#F8F9FA",
 	colorWarning: "#7c7b5c",
 	colorMessageBg: "#343A40",
 	colorMessageBgFocus: "#495057",
-	// colorBgContainer: '#6C757D'
 	colorTextPlaceholder: "#495057",
 	colorTextDisabled: "#495057",
-	// outlineWidth: 0,
 };
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -68,7 +65,7 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 	return (
 		<ConfigProvider
 			theme={{
-				// algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
+				algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
 				token: {
 					...(isDark ? darkTokens : defaultTokens),
 					fontSize: FONT_SIZE_PX[fontSize.size],

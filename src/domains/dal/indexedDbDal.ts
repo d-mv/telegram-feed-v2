@@ -22,7 +22,10 @@ export function createIndexedDbDal(): Dal {
 				};
 
 				request.onsuccess = () => resolve(request.result);
-				request.onerror = () => reject(request.error);
+				request.onerror = () => {
+					dbPromise = null;
+					reject(request.error);
+				};
 			});
 		}
 		return dbPromise;

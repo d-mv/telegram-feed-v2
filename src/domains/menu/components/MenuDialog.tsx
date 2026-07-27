@@ -17,7 +17,7 @@ export function MenuDialog({
 			onClose={onClose}
 			title={title}
 			placement="right"
-			width={Math.min(400, window.innerWidth)}
+			styles={{ wrapper: { width: Math.min(400, window.innerWidth) } }}
 		>
 			{children}
 		</Drawer>

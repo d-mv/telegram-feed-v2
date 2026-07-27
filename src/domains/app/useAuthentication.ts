@@ -25,8 +25,27 @@ export function useAuthentication({ dal }: { dal: Dal }) {
 			});
 			setAuthClient(client);
 			if (sessionValue) {
-				const authorized = await client.checkSession();
-				if (authorized) setIsAuthenticated(true);
+				try {
+					const authorized = await client.checkSession();
+					if (authorized) {
+						setIsAuthenticated(true);
+					} else {
+						// Server explicitly indicated session is not authorized
+						await dal.setSession("");
+						setIsAuthenticated(false);
+					}
+				} catch (err) {
+					const { isAuthFailureError } = await import(
+						"../auth/infra/telegramAuth.utils"
+					);
+					if (isAuthFailureError(err)) {
+						await dal.setSession("");
+						setIsAuthenticated(false);
+					} else {
+						// Network offline or transient MTProto error — preserve offline session
+						setIsAuthenticated(true);
+					}
+				}
 			}
 		} catch {
 			const { createAuthFromEnv } = await import("../auth/infra/authFactory");
