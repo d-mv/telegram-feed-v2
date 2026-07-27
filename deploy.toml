@@ -1,9 +1,7 @@
-[app]
+[deploy]
 name = "telegram-feed"
 type = "static-spa"
 port = 8080
-
-[deploy]
 domain = "telegram-feed.mlnkv.net"
 dockerfile = true
 dockerfile_exposes = 8080
